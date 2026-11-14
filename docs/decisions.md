@@ -770,3 +770,50 @@ dose bar, with regolith under ~10%, while a player who stays outside goes far ov
   on a phone. Fixed (`width: max-content` + max-width): 4 lines, 330 px. Wording tightened (storm,
   crash, wake-up, win, evacuation lines); checked on screen at 375 x 812 in TR.
 - Debug-only handles for test scripts: `window.sdGame` / `window.sdWorld` with `?debug`.
+
+**Late fix from the browser test:** with every task waiting for the panels' power, PUSULA said
+"Nothing left that needs you today" while hours still had to pass to fill the battery. The explore
+idea now shows whenever nothing on the list can be done *right now* (`nextTask` is null), above the
+waiting tasks; the collect row reads "Collect: Rocket piece". Bot report unchanged.
+
+**Browser check (no `?debug`, w1, saves made by the sim):** sol 17: PUSULA suggests a rocket piece
+while the tasks wait for power -> collect (+2 🔩, +10 XP, battery filled meanwhile) -> PUSULA
+suggests the food store -> built (store x/30, crates next to the greenhouse) -> landing marker ->
+night card with a cold night. Sol 18 storm: made oxygen first (1 h + walk at the storm peak: about
+30% of the budget), then the shelter until dusk; night card: storm dose +37%, PUSULA's note
+"Ada spent 2 h outside the shelter during the particle storm", What if: "10 h in the shelter: 6.6%".
+Phone 375 x 812 (HUD, night card, menu) and Turkish subtitles checked.
+
+**Final bot report (200 games per strategy per window):**
+| Window | Strategy | Win | Legend | Avg sols | Top loss reasons | Hard-choice days |
+|---|---|---|---|---|---|---|
+| w1 | random | 0.5% | 0.0% | 12.7 | air 61.5%, food 34.0%, dose 4.0% | 5.4 |
+| w1 | greedy | 4.5% | 0.0% | 17.2 | air 84.0%, food 9.0%, dose 2.5% | 9.9 |
+| w1 | balanced | 81.0% | 29.0% | 28.7 | air 19.0% | 6.2 |
+| w1 | pusula | 94.5% | 0.0% | 29.4 | air 5.5% | 4.6 |
+| w1 | never-shelter | 0.0% | 0.0% | 17.0 | dose 99.5%, air 0.5% | 2.0 |
+| w1 | always-shelter | 17.5% | 0.0% | 20.7 | air 82.5% | 8.8 |
+| w1 | no-antenna | 0.0% | 0.0% | 28.6 | noSignal 94.5%, air 5.5% | 5.2 |
+| w2 | random | 0.0% | 0.0% | 13.1 | air 68.5%, food 31.5% | 6.7 |
+| w2 | greedy | 4.5% | 0.0% | 17.2 | air 86.5%, food 9.0% | 9.6 |
+| w2 | balanced | 78.0% | 40.5% | 28.6 | air 22.0% | 6.5 |
+| w2 | pusula | 98.0% | 0.0% | 29.7 | air 2.0% | 4.2 |
+| w2 | never-shelter | 86.5% | 86.0% | 29.3 | air 13.5% | 5.4 |
+| w2 | always-shelter | 41.0% | 0.0% | 24.9 | air 59.0% | 9.9 |
+| w2 | no-antenna | 0.0% | 0.0% | 28.6 | noSignal 90.5%, air 9.5% | 5.0 |
+| w3 | random | 0.0% | 0.0% | 13.5 | air 71.5%, food 28.5% | 5.1 |
+| w3 | greedy | 4.5% | 0.0% | 17.2 | air 86.5%, food 9.0% | 7.8 |
+| w3 | balanced | 87.0% | 44.0% | 29.4 | air 13.0% | 4.4 |
+| w3 | pusula | 97.0% | 0.0% | 29.6 | air 3.0% | 2.6 |
+| w3 | never-shelter | 86.5% | 78.0% | 29.3 | air 13.5% | 4.2 |
+| w3 | always-shelter | 68.5% | 0.0% | 27.6 | air 31.5% | 6.0 |
+| w3 | no-antenna | 0.0% | 0.0% | 28.9 | noSignal 98.5%, air 1.5% | 2.8 |
+Targets: balanced >= 70% ✓ (81 / 78 / 87), pusula >= 80% ✓ (94.5 / 98 / 97), never-shelter w1
+<= 30% ✓ (0), random <= 20% ✓ (<= 0.5), no-antenna >= 15 below balanced ✓ (0), balanced Legend
+25-50% ✓ (29 / 40.5 / 44), always-shelter Legend <= 10% ✓ (0). Off target: greedy 4.5% (target
+30-60%, see part 5); hard-choice days below 3 in w3 for balanced / pusula / no-antenna (calm
+month, as before).
+
+**Not done / for the human:** greedy target (needs a design decision about what "greedy" may do);
+the 4-hour shelter scenario can't reach the asked numbers with the real curve (PUSULA now advises
+the whole storm instead); no new 3D model files (debris and upgrade props are made in code).

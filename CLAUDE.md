@@ -210,3 +210,22 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
 - Editing any source file reloads every open tab of the dev server (HMR), so never edit while a
   measurement runs; store results in localStorage, not in page variables.
 
+- F6 test saves: build a state with the sim in Node (bot strategy up to sol N), write it as the
+  `seyir-defteri.saves` list into a git-ignored path the dev server serves (e.g.
+  `node_modules/.f6/save.json`), `fetch` it in the pane, put it in localStorage, reload, Continue.
+  Faster and repeatable compared with skipping sols in the debug panel.
+- `?debug` exposes `window.sdGame` / `window.sdWorld` for pane scripts (state, `pick(x, y)`,
+  `walkToDebris`, `cutscene(kind)`). Scan `sdWorld.pick` over a grid to find where a small object
+  is on screen before clicking it.
+- Shields (D-022): daylight work is outside (`dose.outsideShield`), the night and leftover daylight
+  in the habitat, waiting in the shelter is the strong one. The real curve puts most of w1 sol 18
+  outside the first 4 h, so PUSULA advises the whole storm. Before touching shields run the bot and
+  `src/sim/shelter.test.ts`.
+- The rescue needs the location sent (`rescueStage >= 2`) by sol 30, else `noSignal` evacuation:
+  a strategy that never builds the antenna can never win (greedy now taps the store / radio).
+- CSS added in a new file must beat older rules in styles.css: the imports come first, so equal
+  selectors lose. Prefix phone rules with `html` (see `src/phone.css`).
+- Absolutely positioned text centred with `left: 50%; transform: translateX(-50%)` shrinks to half
+  the screen; give it `width: max-content` plus a max-width (the cutscene subtitle bug).
+- Live data: `src/adapters/donki.ts` never throws; the main-menu card starts SAVED and swaps to LIVE.
+  Refresh the fallback with `node tools/data/fetch.mjs --latest` (does not touch the window snapshots).

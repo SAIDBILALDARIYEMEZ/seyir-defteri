@@ -217,11 +217,13 @@ function ruleTasks(state: GameState, win: WindowData, max: number, urgentOnly = 
 }
 
 /**
- * F6: PUSULA's extra idea when the day's list is empty: an affordable upgrade first, else the
- * nearest rocket piece still lying around. Never part of the plan (never overdue, no cost).
+ * F6: PUSULA's extra idea when nothing on the list can be done right now (the list is empty, or
+ * its tasks wait for the panels' power): an affordable upgrade first, else the next rocket piece.
+ * Exploring lets the daylight hours pass, so the battery fills meanwhile. Never part of the plan
+ * (never overdue, no cost).
  */
 export function exploreTask(state: GameState, win: WindowData): Task | null {
-  if (!setupDone(state) || state.phase !== 'playing' || liveDay(state, win).tasks.length > 0) return null;
+  if (!setupDone(state) || state.phase !== 'playing' || nextTask(state, win) !== null) return null;
   for (const upgrade of UPGRADES) {
     const action: Action = { type: 'upgrade', crewId: 0, upgrade };
     const affordable = spareParts(state) >= BALANCE.upgrades[upgrade].parts;

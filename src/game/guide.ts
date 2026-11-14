@@ -48,6 +48,7 @@ export function labelOf(state: GameState, action: Action): string {
   if (action.type === 'build' || action.type === 'place') {
     return `${t(`action.${action.type}`)}: ${t(`station.${action.station}`)}`;
   }
+  if (action.type === 'bonus') return `${t('action.bonus')}: ${t('debris.name')}`;
   const name = actionLabel(state, action);
   return action.type === 'repair' ? `${name}: ${t(`station.${action.station}`)}` : name;
 }
@@ -93,7 +94,7 @@ export function computeGuide(state: GameState, win: WindowData, go: GuideActions
     if (extra) {
       const text = t(`task.${extra.why}` as TextKey, { n: BALANCE.upgrades.foodStore.food });
       const station = extra.action.type === 'upgrade' ? costOf(state, extra.action).station : 'habitat';
-      return { station, card: null, text, tasks: [toTask(extra)], deferred, endDay: playing, stepType: null, danger };
+      return { station, card: null, text, tasks: [toTask(extra), ...tasks], deferred, endDay: playing, stepType: null, danger };
     }
     const text = step ? t(step.text) : t('watch.allDone');
     return { station: 'habitat', card: null, text, tasks, deferred, endDay: playing, stepType: null, danger };
