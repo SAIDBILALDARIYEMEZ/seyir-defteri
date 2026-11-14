@@ -34,7 +34,7 @@ export const BALANCE = {
     legendMax: 20,
   },
   /** Tuned with the bot (D-009): curiosity + rock scan give up to 3 per sol. */
-  science: { legendMin: 62 },
+  science: { legendMin: 72 },
 
   actions: {
     clean: { hours: 2 },
@@ -56,8 +56,8 @@ export const BALANCE = {
     shelterWait: 4,
     message: 4,
     beacon: 4,
-    readCuriosity: 4,
-    scanRock: 4,
+    readCuriosity: 1,
+    scanRock: 1,
     repair: 1,
   },
   /**

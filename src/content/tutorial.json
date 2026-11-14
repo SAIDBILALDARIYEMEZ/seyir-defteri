@@ -1,17 +1,21 @@
 {
   "1": [
+    { "action": "build", "station": "moxie", "text": "tutorial.s1.build" },
     { "action": "clean", "text": "tutorial.s1.clean" },
-    { "action": "moxie", "text": "tutorial.s1.moxie" },
     { "action": "endSol", "text": "tutorial.s1.end" }
   ],
   "2": [
     { "action": "moxie", "text": "tutorial.s2.moxie" },
-    { "action": "clean", "text": "tutorial.s2.clean" },
+    { "action": "build", "station": "greenhouse", "text": "tutorial.s2.build" },
     { "action": "endSol", "text": "tutorial.s2.end" }
   ],
   "3": [
-    { "action": "greenhouse", "text": "tutorial.s3.greenhouse" },
+    { "action": "readCuriosity", "text": "tutorial.s3.curiosity" },
     { "action": "clean", "text": "tutorial.s3.clean" },
     { "action": "endSol", "text": "tutorial.s3.end" }
+  ],
+  "chain": [
+    { "action": "build", "station": "shelter", "text": "tutorial.chain.shelter" },
+    { "action": "build", "station": "antenna", "text": "tutorial.chain.antenna" }
   ]
 }

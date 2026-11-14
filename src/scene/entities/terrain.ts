@@ -1,0 +1,156 @@
+// SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
+// Concept, story, design and decisions: team Seyir Defteri.
+// The valley: a flat build floor, sand dunes and hills around it, rocks, the craters of the
+// build grid, and passive scenery (sleep capsules, ship). Deterministic, no randomness.
+
+import * as THREE from 'three';
+import { BALANCE } from '../../config/balance.ts';
+import { CELL, GRID_HALF, cellToWorld } from '../grid.ts';
+import { COLORS } from '../layout.ts';
+
+const flat = (color: number): THREE.MeshLambertMaterial =>
+  new THREE.MeshLambertMaterial({ color, flatShading: true });
+
+const SIZE = 260;
+const SEGMENTS = 90;
+/** The build floor stays flat this far beyond the grid edge. */
+const FLAT_MARGIN = 4;
+
+/** Low-frequency sine "noise": the same valley every time. */
+function wobble(x: number, z: number): number {
+  return (
+    Math.sin(x * 0.11 + 1.3) * Math.cos(z * 0.09 - 0.7) * 0.6 +
+    Math.sin(x * 0.23 - z * 0.17) * 0.3 +
+    Math.cos(x * 0.05 + z * 0.07) * 0.4
+  );
+}
+
+/** Ground height: flat over the build grid, long dune ridges and rising hills further out. */
+export function heightAt(x: number, z: number): number {
+  const edge = Math.max(Math.abs(x), Math.abs(z)) - GRID_HALF - FLAT_MARGIN;
+  if (edge <= 0) return 0;
+  const k = Math.min(1, edge / 30);
+  // Dunes: ridges running across the wind (diagonal), growing away from the base.
+  const dunes = Math.pow(Math.max(0, Math.sin(x * 0.16 + z * 0.09 + wobble(x, z))), 2) * 2.2 * k;
+  const rise = Math.pow(Math.min(1, edge / 70), 1.6) * 16;
+  return dunes + rise + wobble(x, z) * k * 0.8;
+}
+
+function ground(): THREE.Mesh {
+  const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEGMENTS, SEGMENTS);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position as THREE.BufferAttribute;
+  const colors = new Float32Array(pos.count * 3);
+  const base = new THREE.Color(COLORS.ground);
+  const dark = new THREE.Color(COLORS.groundDark);
+  const light = new THREE.Color(COLORS.groundLight);
+  const c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const z = pos.getZ(i);
+    const y = heightAt(x, z);
+    pos.setY(i, y);
+    const shade = wobble(x * 1.9, z * 1.6);
+    c.copy(base).lerp(shade > 0 ? light : dark, Math.min(0.8, Math.abs(shade) * 0.45 + y * 0.02));
+    colors.set([c.r, c.g, c.b], i * 3);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+/** A shallow bowl with a raised rim for each crater of the build grid. */
+function craters(): THREE.Group {
+  const g = new THREE.Group();
+  for (const crater of BALANCE.grid.craters) {
+    const [x, z] = cellToWorld(crater);
+    const r = (crater.r + 0.5) * CELL;
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(r, 0.7, 5, 18), flat(COLORS.hill));
+    rim.rotation.x = -Math.PI / 2;
+    rim.scale.z = 0.5;
+    rim.position.set(x, 0.05, z);
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(r, 18), flat(COLORS.groundDark));
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.set(x, 0.02, z);
+    rim.receiveShadow = floor.receiveShadow = true;
+    rim.castShadow = true;
+    g.add(rim, floor);
+  }
+  return g;
+}
+
+function rocks(): THREE.Group {
+  const g = new THREE.Group();
+  for (let i = 0; i < 40; i++) {
+    const a = i * 2.4;
+    const r = GRID_HALF + FLAT_MARGIN + 1 + ((i * 11) % 17) * 1.3;
+    const x = Math.cos(a) * r;
+    const z = Math.sin(a) * r;
+    const size = 0.3 + (i % 4) * 0.28;
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(size, 0), flat(COLORS.rock));
+    rock.position.set(x, heightAt(x, z) + size * 0.4, z);
+    rock.rotation.set(i, i * 0.7, 0);
+    rock.castShadow = true;
+    g.add(rock);
+  }
+  return g;
+}
+
+function hills(): THREE.Group {
+  const g = new THREE.Group();
+  for (let i = 0; i < 24; i++) {
+    const a = (i / 24) * Math.PI * 2;
+    if (Math.sin(a) > 0.35) continue; // keep the camera side open
+    const r = 75 + ((i * 7) % 5) * 6;
+    const h = 8 + ((i * 5) % 7) * 2;
+    const x = Math.cos(a) * r;
+    const z = Math.sin(a) * r - 10;
+    const hill = new THREE.Mesh(new THREE.ConeGeometry(14 + (i % 3) * 5, h, 7), flat(COLORS.hill));
+    hill.position.set(x, heightAt(x, z) + h / 2 - 1, z);
+    hill.rotation.y = i;
+    g.add(hill);
+  }
+  return g;
+}
+
+/** Sleep capsules and the ship: scenery behind the build grid, never clickable. */
+function passive(): THREE.Group {
+  const g = new THREE.Group();
+  const WHITE = 0xf2ece4;
+  const pod = new THREE.CapsuleGeometry(0.6, 1.4, 2, 8);
+  const back = -GRID_HALF - 5;
+  for (let i = 0; i < 6; i++) {
+    const p = new THREE.Mesh(pod, flat(0xc9c3bb));
+    p.position.set(5 + i * 1.7, 0.6, back);
+    p.rotation.x = Math.PI / 2;
+    p.castShadow = true;
+    g.add(p);
+  }
+  const ship = new THREE.Group();
+  const add = (geo: THREE.BufferGeometry, color: number, y: number): THREE.Mesh => {
+    const m = new THREE.Mesh(geo, flat(color));
+    m.position.y = y;
+    m.castShadow = true;
+    ship.add(m);
+    return m;
+  };
+  add(new THREE.CylinderGeometry(1.5, 1.8, 7, 10), WHITE, 4.5);
+  add(new THREE.ConeGeometry(1.5, 2.6, 10), 0xc8452f, 9.3);
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2;
+    const fin = add(new THREE.BoxGeometry(0.2, 2.4, 1.6), 0xa9a39b, 1.2);
+    fin.position.set(Math.cos(a) * 1.9, 1.2, Math.sin(a) * 1.9);
+    fin.rotation.y = -a + Math.PI / 2;
+  }
+  ship.position.set(-8, 0, back - 3);
+  g.add(ship);
+  return g;
+}
+
+export function buildTerrain(): THREE.Group {
+  const g = new THREE.Group();
+  g.add(ground(), craters(), rocks(), hills(), passive());
+  return g;
+}

@@ -4,20 +4,31 @@
 
 import type { StationId } from '../sim/actions.ts';
 
-/** Ground position [x, z] of each station. The camera looks from +z towards -z. */
-export const STATION_POS: Record<StationId, readonly [number, number]> = {
-  habitat: [0, -3],
-  panels: [-10, 1],
-  moxie: [-5.5, -8],
-  greenhouse: [6.5, -8],
-  shelter: [11, 0],
-  antenna: [-14, -8],
-  beacon: [3, 7],
-  curiosity: [-15, 9],
-  science: [16, 8],
-};
+/** Every station id, in the order labels are drawn. Positions come from the grid (grid.ts). */
+export const STATION_IDS: StationId[] = [
+  'habitat',
+  'panels',
+  'moxie',
+  'greenhouse',
+  'shelter',
+  'antenna',
+  'beacon',
+  'curiosity',
+  'science',
+];
 
-export const STATION_IDS = Object.keys(STATION_POS) as StationId[];
+/** Walking keeps this far from a station's center (simple collision). */
+export const FOOTPRINT: Record<StationId, number> = {
+  habitat: 3.6,
+  panels: 3.4,
+  moxie: 2.2,
+  greenhouse: 2.6,
+  shelter: 2.8,
+  antenna: 1.6,
+  beacon: 1.8,
+  curiosity: 1.8,
+  science: 2.2,
+};
 
 /** How far in front of a station (towards the camera) the astronaut stops. */
 export const STAND_OFFSET: Record<StationId, number> = {
@@ -47,12 +58,13 @@ export const LABEL_HEIGHT: Record<StationId, number> = {
 
 export const CAMERA = {
   fov: 40,
-  radius: 44,
-  minRadius: 30,
-  maxRadius: 52,
+  radius: 50,
+  minRadius: 32,
+  maxRadius: 66,
   elevation: 0.5,
   maxAzimuth: 0.55,
-  target: [0, 0, -1.5] as const,
+  /** Slightly right of the grid center: the store and the watch cover the right edge. */
+  target: [2, 0, 1] as const,
   rotateSpeed: 0.004,
   zoomSpeed: 0.02,
 };
@@ -63,8 +75,11 @@ export const LOCKED_OPACITY = 0.22;
 /** PUSULA waits this far to the side of where Ada stands. */
 export const PUSULA_SIDE = 3;
 
-/** Seconds of walking animation per simulated walking hour. */
-export const WALK_SECONDS_PER_HOUR = 2.4;
+/** Walking speed of Ada in the valley (world units per second). Visual only. */
+export const WALK_SPEED = 7;
+
+/** Opacity factor of a station that is still being built (scaffold around it). */
+export const BUILDING_OPACITY = 0.35;
 
 export const COLORS = {
   skyDay: 0xe6ad90,
@@ -73,4 +88,10 @@ export const COLORS = {
   ground: 0xb5532f,
   hill: 0x9c4526,
   rock: 0x8c3f24,
+  groundDark: 0x9a4426,
+  groundLight: 0xcf7447,
+  skyTop: 0xc4785a,
+  scaffold: 0xf2a33a,
+  ghostOk: 0x4fdc7a,
+  ghostBad: 0xff5a4a,
 };

@@ -5,7 +5,7 @@ import { BALANCE } from '../config/balance.ts';
 import { builtinWindow } from '../data/builtinWindow.ts';
 import type { Action, BuildableId, Cell } from './actions.ts';
 import { reduce } from './reducer.ts';
-import { check } from './rules.ts';
+import { check, costOf } from './rules.ts';
 import { createRng } from './rng.ts';
 import { createInitialState } from './state.ts';
 import type { GameState } from './state.ts';
@@ -119,5 +119,10 @@ describe('build mode', () => {
     expect(s.parts).toBe(BALANCE.parts.start + 2);
     expect(s.science).toBe(1);
     expect(s.hoursLeft).toBe(BALANCE.daylightHours);
+  });
+
+  it('ending the day is always a habitat action', () => {
+    const s = step(fresh(), build('moxie'));
+    expect(costOf(s, END).station).toBe('habitat');
   });
 });

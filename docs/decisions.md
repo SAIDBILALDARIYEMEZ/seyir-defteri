@@ -282,5 +282,47 @@ not the lever; start resources unchanged (MOXIE is ready on sol 2, air 70 lasts 
 - `greedy` 0 / 6.5 / 6.5% (target 30-60%).
 - `balanced` Legend 76 / 86.5% in w2 / w3 (target 25-50%); `always-shelter` Legend 21.5% in w3.
 - `never-shelter` wins 86.5% in w2 / w3 (target is only for w1, where it is 0%).
+**Human confirmation (2026-11-14, start of B2):** antenna is built (no repair action);
+never-shelter builds the shelter; grid and slots approved; Curiosity and the science spot are
+open from sol 1 (`unlockSol.readCuriosity` / `scanRock` = 1). Science then earns 3 more sols,
+so balanced Legend jumped to 81 / 78 / 87%; `science.legendMin` 62 -> 72 (probe: w1 balanced
+median science 71). Bot after both: balanced 81 / 78 / 87% wins, Legend 29 / 69.5 / 86.5%;
+pusula 88.5 / 92 / 93%; always-shelter Legend 0 / 0 / 13.5%; other rows unchanged.
 **Not built in B1:** any UI (placement view, build menu, status labels, parts counter): B2.
 Until B2 the deployed game is unchanged; the `main` branch game cannot build yet.
+
+## D-014 — 2026-11-14 — B2 build-mode UI (store, placement, construction, free walk)
+Build choices (not yet confirmed by the human):
+- **Grid in the valley:** the sim grid is centered on the origin, one cell = 3 world units
+  (`scene/grid.ts`). Fixed stations (habitat, panels, Curiosity, science) and the craters come
+  from `BALANCE.grid`, so the 3D layout follows the approved grid; the old hand-placed
+  `STATION_POS` is gone. Capsules and the ship moved behind the grid (scenery only).
+- **Store** (`ui/buildMenu.ts`) on the right above the wrist watch; it scrolls when both do
+  not fit, ready cards shrink to one line. On screens <= 900 px it moves bottom-left, on
+  phones (<= 600 px) it becomes a horizontal strip.
+- **Placing** (`input/placement.ts`): drag a card onto the ground, or tap a card and then a
+  cell; the wrist-watch build task does the same. Ghost model + cell tile, green / red, the
+  tip shows the sim's reason (`check()` of the real `build` action, so also noTime / noPower).
+  An invalid drop keeps the card selected so the next tap can retry; Esc, the banner's Cancel
+  or a second tap on the card cancels. Ada walks to the site, then the `build` action runs.
+- **Construction look:** a station being built is see-through inside an orange scaffold with
+  "🏗️ N sol" on its label; it cannot be picked. Unplaced stations are hidden (no label).
+- **Free walk:** tapping the ground walks Ada there (straight line, stops outside building
+  footprints). It is visual only: the sim still charges walking with the next action (D-010).
+  Walk animation length now follows the distance (7 units/s), not the sim's walk hours.
+- **Tutorial:** sol 1 build MOXIE, clean, end; sol 2 make oxygen, build greenhouse, end;
+  sol 3 Curiosity, clean, end; then a build chain (shelter, antenna) that leads PUSULA on any
+  sol where the next one can be placed. Build steps pulse the store card instead of the arrow.
+- **Morning cards:** "{station} is ready" per finished build, "New in the store: X" when a
+  card unlocks overnight; the old greenhouse / unlock-all texts were reduced to food / dose.
+- **Mission code** asks before replacing a saved mission (same card as New Mission).
+- **game.ts split:** `game.ts` (wiring, render, perform) + `game/context.ts`, `game/flow.ts`
+  (screens), `game/guide.ts` (PUSULA target), `game/stationUi.ts` (stations, walking, placing).
+- **Look:** gradient sky dome, one shadow-casting sun (1024 px PCF map), ACES tone mapping,
+  vertex-shaded dunes and hills outside the flat build floor, crater rims. Pixel ratio capped
+  at 1.75. 60 fps in the browser pane at 1280 x 800.
+- Sim fix found while playing: `costOf(endSol)` returned the crew's location (B1 change), so
+  PUSULA's arrow pointed at the last station instead of the habitat. Now always the habitat
+  (test added). Bot report unchanged.
+**Not built in B2:** path-finding around buildings (Ada walks straight), moving or removing a
+placed building, real models, sound.

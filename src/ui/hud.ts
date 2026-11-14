@@ -47,7 +47,8 @@ export function mountHud(parent: HTMLElement, onPause: () => void, onInfo: (id: 
   const left = el('div', 'hud-side');
   const sol = el('span', 'chip');
   const hours = el('span', 'chip');
-  left.append(sol, hours);
+  const parts = el('span', 'chip parts');
+  left.append(sol, hours, parts);
 
   const groups = el('div', 'hud-groups');
   const power = gauge('⚡', () => onInfo('power'));
@@ -76,9 +77,13 @@ export function mountHud(parent: HTMLElement, onPause: () => void, onInfo: (id: 
     root,
     update(state, win) {
       const a = BALANCE.advisor;
-      // Gradual unlock (PRD §11.5): food from sol 3, storm dose and science from sol 4.
+      // Gradual unlock (PRD §11.5): food from sol 3, storm dose from sol 4; science from the
+      // sol Curiosity opens (sol 1 in build mode, D-013).
       food.row.hidden = state.sol < BALANCE.food.unlockSol;
-      doseGroup.hidden = star.hidden = state.sol < BALANCE.unlockSol.shelterBuild;
+      doseGroup.hidden = state.sol < BALANCE.unlockSol.shelterBuild;
+      star.hidden = state.sol < BALANCE.unlockSol.readCuriosity;
+      parts.textContent = `🔩 ${state.parts}`;
+      parts.title = t('hud.parts');
       const tapHint = t('hud.tapInfo');
       for (const g of [power, air, food, dose]) g.row.title = tapHint;
       sol.textContent = t('hud.sol', { n: state.sol, total: BALANCE.totalSols });

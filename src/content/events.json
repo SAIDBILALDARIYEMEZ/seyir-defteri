@@ -1,8 +1,10 @@
 {
-  "unlockGreenhouse": { "icon": "🌱", "lines": ["unlock.greenhouse", "unlock.food"] },
+  "unlockFood": { "icon": "🥫", "lines": ["unlock.food"] },
+  "built": { "icon": "✅", "lines": ["event.built"] },
+  "unlockBuild": { "icon": "📦", "lines": ["unlock.build"] },
   "unlockAll": {
     "icon": "🗺️",
-    "lines": ["unlock.shelter", "unlock.antenna", "unlock.beacon", "unlock.curiosity", "unlock.science", "unlock.dose"]
+    "lines": ["unlock.dose"]
   },
   "broken": { "icon": "🔧", "lines": ["event.broken"], "source": "source.game" },
   "dust": { "icon": "🌪️", "lines": ["event.dust"], "fact": "event.dust.fact", "source": "source.game" },

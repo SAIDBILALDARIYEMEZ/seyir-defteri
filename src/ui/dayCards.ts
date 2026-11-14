@@ -7,7 +7,9 @@ import { BALANCE } from '../config/balance.ts';
 import events from '../content/events.json';
 import { t } from '../i18n/i18n.ts';
 import type { TextKey } from '../i18n/i18n.ts';
+import type { BuildableId } from '../sim/actions.ts';
 import type { GameState } from '../sim/state.ts';
+import { BUILDABLES, buildStatus } from '../sim/systems/build.ts';
 import { isDustSol } from '../sim/systems/schedule.ts';
 import { whatIfSolDose } from '../sim/systems/time.ts';
 import { sepWarnedToday, visibleWarnings } from '../sim/systems/warnings.ts';
@@ -129,7 +131,14 @@ export function morningCards(
       ],
     }));
   }
-  if (state.sol === BALANCE.unlockSol.greenhouse) card('unlockGreenhouse', {}, { title: `🌱 ${t('unlock.title')}` });
+  for (const flag of yesterday?.flags ?? []) {
+    if (flag.startsWith('built.')) card('built', { station: t(`station.${flag.slice(6) as BuildableId}`) });
+  }
+  // A store card that opened overnight (unlock chain, D-013).
+  for (const id of BUILDABLES.filter((b) => buildStatus(before, b) === 'locked' && buildStatus(state, b) === 'available')) {
+    card('unlockBuild', { station: t(`station.${id}`) }, { title: `📦 ${t('unlock.title')}` });
+  }
+  if (state.sol === BALANCE.food.unlockSol) card('unlockFood', {}, { title: `🥫 ${t('unlock.title')}` });
   if (state.sol === BALANCE.unlockSol.shelterBuild) card('unlockAll', {}, { title: `🗺️ ${t('unlock.title')}` });
   for (const station of state.broken.filter((s) => !before.broken.includes(s))) {
     card('broken', { station: t(`station.${station}`) });

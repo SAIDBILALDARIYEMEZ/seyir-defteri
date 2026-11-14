@@ -33,9 +33,10 @@ function walkHours(from: StationId, to: StationId): number {
 
 export function costOf(state: GameState, action: Action): Cost {
   const a = BALANCE.actions;
-  if (action.type === 'endSol' || action.type === 'replayYesterday' || action.type === 'bonus') {
-    return { station: locationOf(state, action.crewId), walk: 0, hours: 0, power: 0 };
+  if (action.type === 'endSol' || action.type === 'replayYesterday') {
+    return { station: 'habitat', walk: 0, hours: 0, power: 0 };
   }
+  if (action.type === 'bonus') return { station: locationOf(state, action.crewId), walk: 0, hours: 0, power: 0 };
   const station =
     action.type === 'repair' || action.type === 'build' ? action.station : STATION_OF[action.type];
   const walk = walkHours(locationOf(state, action.crewId), station);

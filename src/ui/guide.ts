@@ -1,11 +1,13 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
-// Guidance marks (PRD §11): the tutorial steps of sols 1-3, the bouncing arrow above the
+// Guidance marks (PRD §11): the tutorial steps of sols 1-3 and the build chain, the bouncing arrow above the
 // target station and the speech bubble above the PUSULA robot.
 
 import tutorial from '../content/tutorial.json';
 import type { TextKey } from '../i18n/i18n.ts';
-import type { Action, SimpleActionType, StationId } from '../sim/actions.ts';
+import { BALANCE } from '../config/balance.ts';
+import type { Action, BuildableId, SimpleActionType, StationId } from '../sim/actions.ts';
+import { buildStatus } from '../sim/systems/build.ts';
 import { check, costOf } from '../sim/rules.ts';
 import type { GameState } from '../sim/state.ts';
 import type { WindowData } from '../sim/window.ts';
@@ -15,22 +17,45 @@ import { button, el } from './dom.ts';
 export interface TutorialStep {
   action: Action;
   station: StationId;
+  /** Build steps point at this store card instead of a station. */
+  card: BuildableId | null;
   text: TextKey;
 }
 
-const STEPS: Record<string, { action: string; text: string }[] | undefined> = tutorial;
+interface StepData {
+  action: string;
+  station?: string;
+  text: string;
+}
+const STEPS: Record<string, StepData[] | undefined> = tutorial;
 
-/** Tutorial steps still to do today, in order. Empty outside the tutorial sols. */
-export function tutorialSteps(state: GameState, win: WindowData): TutorialStep[] {
-  const out: TutorialStep[] = [];
-  for (const step of STEPS[String(state.sol)] ?? []) {
-    const action: Action = { type: step.action as SimpleActionType, crewId: 0 };
-    const done = action.type !== 'endSol' && state.today.actions.includes(action.type);
-    // A step that cannot be done right now (for example clean panels) is skipped, never a dead end.
-    if (done || check(state, action, win) !== null) continue;
-    out.push({ action, station: costOf(state, action).station, text: step.text as TextKey });
+function stepOf(step: StepData, state: GameState, win: WindowData): TutorialStep | null {
+  const text = step.text as TextKey;
+  if (step.action === 'build') {
+    const id = step.station as BuildableId;
+    // The spot is the player's choice, so only the chain and the parts decide here.
+    const ready = buildStatus(state, id) === 'available' && state.parts >= BALANCE.build.stations[id].parts;
+    if (!ready) return null;
+    const action: Action = { type: 'build', crewId: 0, station: id, cell: BALANCE.grid.slots[id] };
+    return { action, station: 'habitat', card: id, text };
   }
-  return out;
+  const action: Action = { type: step.action as SimpleActionType, crewId: 0 };
+  const done = action.type !== 'endSol' && state.today.actions.includes(action.type);
+  // A step that cannot be done right now (for example clean panels) is skipped, never a dead end.
+  if (done || check(state, action, win) !== null) return null;
+  return { action, station: costOf(state, action).station, card: null, text };
+}
+
+/**
+ * Tutorial steps still to do today, in order: the sol's own steps on sols 1-3, then the
+ * build chain (shelter, antenna) on any sol where the next station can be placed.
+ */
+export function tutorialSteps(state: GameState, win: WindowData): TutorialStep[] {
+  const own = (STEPS[String(state.sol)] ?? []).map((s) => stepOf(s, state, win));
+  const steps = own.filter((s): s is TutorialStep => s !== null);
+  if (steps.length > 0) return steps;
+  const chain = (STEPS.chain ?? []).map((s) => stepOf(s, state, win)).find((s) => s !== null);
+  return chain ? [chain] : [];
 }
 
 export interface GuideMarks {

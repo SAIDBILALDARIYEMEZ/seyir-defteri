@@ -6,6 +6,7 @@ import stations from '../content/stations.json';
 import { t } from '../i18n/i18n.ts';
 import type { StationId } from '../sim/actions.ts';
 import { isStationLocked, stationUnlockSol } from '../sim/rules.ts';
+import { buildStatus, isBuildable } from '../sim/systems/build.ts';
 import type { GameState } from '../sim/state.ts';
 import type { ScreenPoint } from '../scene/world.ts';
 import { CODE_LENGTH } from '../lib/missionCode.ts';
@@ -77,12 +78,19 @@ export function mountLabels(parent: HTMLElement, onPick: (id: StationId) => void
         const id = ids[i] ?? 'habitat';
         const broken = state.broken.includes(id);
         const locked = isStationLocked(state, id);
-        const name = `${locked ? '🔒' : stations[id].icon} ${t(`station.${id}`)}`;
-        node.textContent = `${name}${broken && !locked ? ` 🔧 ${t('station.needsRepair')}` : ''}`;
+        // Build mode: an unplaced station has no label; one being built shows the sols left.
+        const status = isBuildable(id) ? buildStatus(state, id) : 'ready';
+        node.hidden = status === 'locked' || status === 'available';
+        const building = status === 'building';
+        const solsLeft = isBuildable(id) ? (state.buildings[id]?.solsLeft ?? 0) : 0;
+        const name = `${locked && !building ? '🔒' : stations[id].icon} ${t(`station.${id}`)}`;
+        const extra = building ? ` ${t('build.label', { n: solsLeft })}` : broken && !locked ? ` 🔧 ${t('station.needsRepair')}` : '';
+        node.textContent = `${name}${extra}`;
         node.classList.toggle('broken', broken && !locked);
         node.classList.toggle('locked', locked);
+        node.classList.toggle('building', building);
         node.disabled = locked;
-        node.title = locked ? t('station.opensOn', { n: stationUnlockSol(id) }) : '';
+        node.title = locked && !building ? t('station.opensOn', { n: stationUnlockSol(id) }) : '';
       });
     },
     place(screenOf) {

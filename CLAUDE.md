@@ -147,3 +147,13 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
 - Build power costs are very sensitive (5 per build dropped balanced from ~81% to ~52%):
   re-run the bot after any build number change. `node tools/bot/trace.ts balanced w1 2`
   prints one game sol by sol.
+- Station positions come from `BALANCE.grid` via `scene/grid.ts` (D-014). Change the grid and
+  the 3D layout follows; never hard-code station positions in the scene again.
+- The store, ghost and tip are DOM over the canvas: a drop counts only when the pointer is
+  over the canvas or a station label (`overScene` in `input/placement.ts`).
+- Editing a source file while playing in the browser pane triggers a full reload (HMR); only
+  the morning autosave survives. Batch code fixes, then replay from Continue. CSS-only edits
+  hot-update without a reload.
+- A fresh page load clears the pane's screenshot cache: take a screenshot before clicking by
+  coordinate.
+
