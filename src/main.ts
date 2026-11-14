@@ -5,7 +5,8 @@
 import { BALANCE } from './config/balance.ts';
 import { WINDOW_IDS, getWindow } from './data/windows.ts';
 import { createGame } from './game.ts';
-import type { Mission } from './game.ts';
+import type { Mission, Missions } from './game.ts';
+import { decodeMission, encodeMission, maxCodeSeed } from './lib/missionCode.ts';
 import { isDebug } from './lib/debug.ts';
 import { createWorld } from './scene/world.ts';
 import { setGauge, triggerDust, triggerMalfunction } from './sim/debugTools.ts';
@@ -24,7 +25,8 @@ const PLAYED_KEY = 'seyir-defteri.played';
  * seed. `?seed=` / `?w=` pin both (debug and class codes). Math.random stays outside the sim. */
 function nextMission(): Mission {
   if (params.has('seed') || params.has('w')) {
-    return { seed: Number(params.get('seed')) || FIRST_SEED, win: getWindow(params.get('w')) };
+    const pinned = Math.abs(Math.floor(Number(params.get('seed')))) % (maxCodeSeed(WINDOW_IDS.length) + 1);
+    return { seed: pinned || FIRST_SEED, win: getWindow(params.get('w')) };
   }
   let played = false;
   try {
@@ -40,7 +42,18 @@ function nextMission(): Mission {
 
 const world = createWorld(canvas);
 const first: Mission = { seed: Number(params.get('seed')) || FIRST_SEED, win: getWindow(params.get('w')) };
-const game = createGame(canvas, ui, world, first, nextMission);
+const windowIndex = (id: string): number => Math.max(0, WINDOW_IDS.findIndex((w) => w === id));
+const missions: Missions = {
+  next: nextMission,
+  ofSave: (seed, windowId) => ({ seed, win: getWindow(windowId) }),
+  fromCode: (code) => {
+    const found = decodeMission(code, WINDOW_IDS.length);
+    if (!found || found.seed < 1) return null;
+    return { seed: found.seed, win: getWindow(WINDOW_IDS[found.windowIndex] ?? 'w1') };
+  },
+  codeOf: (seed, windowId) => encodeMission(seed, windowIndex(windowId), WINDOW_IDS.length),
+};
+const game = createGame(canvas, ui, world, first, missions);
 /** Debug skip: tops up the life gauges first, so a skipped sol never ends the mission. */
 const endSol = (): void => {
   let s = game.getState();

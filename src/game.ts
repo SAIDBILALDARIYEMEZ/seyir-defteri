@@ -25,6 +25,9 @@ import { morningCards, nightSpec } from './ui/dayCards.ts';
 import { fmt } from './ui/dom.ts';
 import { mountGuide, tutorialSteps } from './ui/guide.ts';
 import { mountHud } from './ui/hud.ts';
+import { logbookSpec } from './ui/logbook.ts';
+import { resultSpec, resultTitle } from './ui/result.ts';
+import { clearSave, loadGame, saveGame } from './save/save.ts';
 import type { GaugeId } from './ui/hud.ts';
 import { mountActionMenu, openModal, spawnFloater } from './ui/overlays.ts';
 import type { ModalSpec } from './ui/overlays.ts';
@@ -35,6 +38,15 @@ import type { WatchTask } from './ui/panels.ts';
 export interface Mission {
   seed: number;
   win: WindowData;
+}
+
+/** Seed + window choices live outside the game (main.ts owns Math.random and storage flags). */
+export interface Missions {
+  /** Seed + window for a "New Mission" (first game: window 1, later: random seed, D-011). */
+  next(): Mission;
+  ofSave(seed: number, windowId: string): Mission;
+  fromCode(code: string): Mission | null;
+  codeOf(seed: number, windowId: string): string;
 }
 
 export interface Game {
@@ -78,11 +90,10 @@ function actionsAt(station: StationId, state: GameState): Action[] {
   return list;
 }
 
-/**
- * `first` is the mission shown behind the main menu; `nextMission` picks seed + window for
- * every "New Mission" (first game: window 1, later games: random seed, D-011).
- */
-export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: World, first: Mission, nextMission: () => Mission): Game {
+const REPLAY: Action = { type: 'replayYesterday', crewId };
+
+/** `first` is the mission shown behind the main menu. */
+export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: World, first: Mission, missions: Missions): Game {
   let { seed, win } = first;
   let rng = createRng(seed);
   let state = createInitialState(seed, win);
@@ -97,16 +108,35 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
   const pause = (): void => {
     if (mode !== 'play') return;
     if (closePause) return resume();
+    const playing = state.phase === 'playing';
     closePause = modal(() => ({
       title: t('pause.title'),
-      lines: [],
+      lines: [[t('code.label'), code()]],
       languagePicker: true,
       buttons: [
+        { label: `📖 ${t('logbook.open')}`, onClick: showLogbook },
+        { label: t('pause.exitNoSave'), onClick: () => (playing ? confirmExit() : leave()) },
+        ...(playing ? [{ label: t('pause.saveExit'), onClick: () => { saveGame(state); leave(); } }] : []),
         { label: t('pause.resume'), onClick: resume, primary: true },
-        { label: t('pause.quit'), onClick: () => { resume(); showMenu(); } },
       ],
     }));
   };
+  const leave = (): void => {
+    resume();
+    showMenu();
+  };
+  /** "Exit without saving": today's progress is dropped, the morning autosave stays. */
+  const confirmExit = (): void => {
+    const close = modal(() => ({
+      title: t('pause.confirm.title'),
+      lines: [t('pause.confirm.body')],
+      buttons: [
+        { label: t('pause.confirm.yes'), onClick: () => { close(); leave(); } },
+        { label: t('pause.confirm.no'), onClick: () => close(), primary: true },
+      ],
+    }));
+  };
+  const code = (): string => missions.codeOf(seed, win.id);
   const resume = (): void => {
     closePause?.();
     closePause = null;
@@ -118,7 +148,16 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
   const watch = mountWatch(ui, () => showPusula());
   const marks = mountGuide(ui, () => showPusula());
   const menu = mountActionMenu(ui);
-  const mainMenu = mountMainMenu(ui, () => startMission());
+  const mainMenu = mountMainMenu(ui, {
+    onNewMission: () => newMission(),
+    onContinue: () => continueMission(),
+    savedSol: () => loadGame()?.sol ?? null,
+    onCode: (text) => {
+      const mission = missions.fromCode(text);
+      if (mission) startMission(mission);
+      return mission !== null;
+    },
+  });
 
   function modal(build: () => ModalSpec): () => void {
     modals++;
@@ -159,7 +198,8 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
 
   function render(snapGuide = false): void {
     const playing = mode === 'play';
-    hud.root.hidden = labels.root.hidden = watch.root.hidden = !playing;
+    hud.root.hidden = labels.root.hidden = !playing;
+    watch.root.hidden = !playing || state.phase !== 'playing';
     mainMenu.root.hidden = playing;
     mainMenu.refresh();
     document.title = t('app.title');
@@ -231,7 +271,13 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     const before = state;
     state = reduce(state, action, rng, win);
     debug('action', action, state);
-    if (state.rejection || quiet) return render();
+    if (state.rejection) return render();
+    if (quiet) {
+      // Debug jumps skip the night card, but a finished mission still shows its result.
+      if (before.phase === 'playing' && state.phase !== 'playing') showResult();
+      else if (state.sol !== before.sol) saveGame(state);
+      return render();
+    }
     const sameSol = state.sol === before.sol && state.phase === before.phase;
     if (action.type !== 'endSol') floatNumbers(before, action, sameSol);
     if (!sameSol) {
@@ -283,13 +329,40 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
           morning(before);
         },
         onData: (sol, gained) => showData(sol, allSol, gained),
+        replay: replayButton(() => close()),
       }),
     );
+  }
+
+  /** "Replay yesterday" (PRD §12): same seed, same events, back to the previous morning. */
+  function replayButton(closeCard: () => void): { label: string; onClick: () => void } | null {
+    if (check(state, REPLAY, win)) return null;
+    return {
+      label: `⏪ ${t('replay.button', { n: state.replaysLeft })}`,
+      onClick: () => {
+        closeCard();
+        state = reduce(state, REPLAY, rng, win);
+        saveGame(state);
+        enterPlay();
+        const close = modal(() => ({
+          kind: 'event',
+          title: `⏪ ${t('replay.title', { n: state.sol })}`,
+          lines: [t('replay.body'), t('replay.left', { n: state.replaysLeft })],
+          buttons: [{ label: t('event.ok'), onClick: () => close(), primary: true }],
+        }));
+      },
+    };
+  }
+
+  function showLogbook(): void {
+    const result = state.phase === 'playing' ? '' : resultTitle(state);
+    const close = modal(() => logbookSpec(state, win, { result, code: code() }, () => close()));
   }
 
   function morning(before: GameState): void {
     world.setNight(false);
     if (state.phase !== 'playing') return showResult();
+    saveGame(state);
     world.placeAda('habitat');
     render(true);
     const cards = morningCards(before, state, win, (sol, gained) => showData(sol, BALANCE.hoursPerSol, gained));
@@ -302,27 +375,59 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
   }
 
   function showResult(): void {
-    const key = state.phase === 'won' ? 'won' : 'lost';
-    const close = modal(() => ({
-      kind: 'event',
-      title: t(`end.${key}.title`),
-      lines: [t(`end.${key}.body`)],
-      buttons: [{ label: t('menu.newMission'), onClick: () => { close(); startMission(); }, primary: true }],
-    }));
+    clearSave();
+    world.setNight(false);
+    const close = modal(() =>
+      resultSpec(state, win, {
+        code: code(),
+        replay: replayButton(() => close()),
+        onLogbook: showLogbook,
+        onNewMission: () => { close(); startMission(missions.next()); },
+        onMenu: () => { close(); showMenu(); },
+      }),
+    );
   }
 
-  function startMission(): void {
-    ({ seed, win } = nextMission());
-    rng = createRng(seed);
-    state = createInitialState(seed, win);
+  /** Puts the scene and the UI at the current state (new mission, Continue, replay). */
+  function enterPlay(): void {
     frozen = null;
     mode = 'play';
     walking = false;
     openStation = null;
     menu.close();
     world.setNight(false);
-    world.placeAda('habitat');
+    world.placeAda(state.crew[crewId]?.location ?? 'habitat');
     render(true);
+  }
+
+  function continueMission(): void {
+    const saved = loadGame();
+    if (!saved) return render();
+    ({ seed, win } = missions.ofSave(saved.seed, saved.windowId));
+    rng = createRng(seed);
+    state = saved;
+    enterPlay();
+  }
+
+  /** "New Mission" from the menu: asks first when it would replace a saved mission. */
+  function newMission(): void {
+    if (!loadGame()) return startMission(missions.next());
+    const close = modal(() => ({
+      title: t('menu.replace.title'),
+      lines: [t('menu.replace.body')],
+      buttons: [
+        { label: t('menu.replace.yes'), onClick: () => { close(); startMission(missions.next()); } },
+        { label: t('pause.confirm.no'), onClick: () => close(), primary: true },
+      ],
+    }));
+  }
+
+  function startMission(mission: Mission): void {
+    ({ seed, win } = mission);
+    rng = createRng(seed);
+    state = createInitialState(seed, win);
+    saveGame(state);
+    enterPlay();
     const close = modal(() => ({
       kind: 'event',
       title: `🧭 ${t('tutorial.welcome.title')}`,

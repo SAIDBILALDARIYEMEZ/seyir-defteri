@@ -8,6 +8,7 @@ import type { StationId } from '../sim/actions.ts';
 import { isStationLocked, stationUnlockSol } from '../sim/rules.ts';
 import type { GameState } from '../sim/state.ts';
 import type { ScreenPoint } from '../scene/world.ts';
+import { CODE_LENGTH } from '../lib/missionCode.ts';
 import { button, el } from './dom.ts';
 import { languagePicker } from './overlays.ts';
 import type { RescueProgress } from './rescue.ts';
@@ -99,21 +100,64 @@ export interface MainMenu {
   refresh(): void;
 }
 
-export function mountMainMenu(parent: HTMLElement, onNewMission: () => void): MainMenu {
+export interface MenuHandlers {
+  onNewMission(): void;
+  onContinue(): void;
+  /** Sol of the saved mission, or null when there is no save. */
+  savedSol(): number | null;
+  /** Starts the mission of a code; false when the code is not valid. */
+  onCode(code: string): boolean;
+}
+
+export function mountMainMenu(parent: HTMLElement, on: MenuHandlers): MainMenu {
   const root = el('main', 'main-menu');
   const card = el('div', 'menu-card');
   const title = el('h1');
   const tagline = el('p', 'tagline');
-  const start = button('btn primary big', '', onNewMission);
-  card.append(title, tagline, start, languagePicker());
+  const resume = button('btn primary big', '', on.onContinue);
+  const start = button('btn big', '', on.onNewMission);
+  const codeRow = el('form', 'code-row');
+  const input = el('input', 'code-input');
+  input.maxLength = CODE_LENGTH;
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  const go = el('button', 'btn');
+  go.type = 'submit';
+  const error = el('p', 'code-error');
+  const toggle = button('btn link', '', () => {
+    codeRow.hidden = !codeRow.hidden;
+    if (!codeRow.hidden) input.focus();
+  });
+  codeRow.hidden = true;
+  codeRow.append(input, go);
+  codeRow.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const ok = on.onCode(input.value);
+    error.hidden = ok;
+    if (ok) {
+      input.value = '';
+      codeRow.hidden = true;
+    }
+  });
+  error.hidden = true;
+  card.append(title, tagline, resume, start, toggle, codeRow, error, languagePicker());
   root.append(card);
   parent.append(root);
   return {
     root,
     refresh() {
+      const sol = on.savedSol();
       title.textContent = t('app.title');
       tagline.textContent = t('app.tagline');
+      resume.hidden = sol === null;
+      resume.textContent = t('menu.continue', { n: sol ?? 1 });
       start.textContent = t('menu.newMission');
+      start.classList.toggle('primary', sol === null);
+      toggle.textContent = `🔑 ${t('menu.enterCode')}`;
+      input.placeholder = t('code.placeholder');
+      input.setAttribute('aria-label', t('menu.enterCode'));
+      go.textContent = t('code.start');
+      error.textContent = t('code.invalid');
     },
   };
 }

@@ -28,6 +28,8 @@ export interface NightHandlers {
   onMorning(): void;
   /** Opens the "Where does this number come from?" card for the finished sol. */
   onData(sol: number, gained: number): void;
+  /** "Replay yesterday" button, or null when no replay is possible. */
+  replay: { label: string; onClick: () => void } | null;
 }
 
 /** `before` is the state before the last action of the sol; `state` is the next morning. */
@@ -70,6 +72,7 @@ export function nightSpec(before: GameState, state: GameState, win: WindowData, 
   if (doseOpen && (flags.includes('radEvent') || gained > DOSE_NOTE_MIN)) {
     buttons.unshift({ label: t('data.button'), onClick: () => on.onData(before.sol, gained) });
   }
+  if (on.replay) buttons.unshift(on.replay);
   return { kind: 'night', title: `🌙 ${t('night.title', { n: before.sol })}`, lines, fact, buttons };
 }
 

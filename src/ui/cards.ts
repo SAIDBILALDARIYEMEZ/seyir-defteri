@@ -70,7 +70,7 @@ export function pusulaSpec(state: GameState, win: WindowData, card: PusulaCard):
 const SVG = 'http://www.w3.org/2000/svg';
 const CHART = { w: 360, h: 130, pad: 6, base: 112 };
 
-function svg(tag: string, attrs: Record<string, string | number>): SVGElement {
+export function svg(tag: string, attrs: Record<string, string | number>): SVGElement {
   const node = document.createElementNS(SVG, tag);
   for (const [name, value] of Object.entries(attrs)) node.setAttribute(name, String(value));
   return node;

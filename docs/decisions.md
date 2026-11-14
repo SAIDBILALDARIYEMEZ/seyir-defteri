@@ -214,3 +214,31 @@ Build choices (the first three were confirmed by the human on 2026-11-14):
   most days and a card every morning would be noise.
 - Debug sol-skip now tops up power, air and food, so a jump reaches the storm sol.
 **Not built in F3a:** Replay yesterday button, result screen, save, sound, Sources screen.
+
+## D-012 — 2026-11-14 — F4a choices (rescue chain UI, replay, result, logbook, code, save)
+Build choices (not yet confirmed by the human):
+- **Radio delay is computed, not fetched** (`src/lib/commsDelay.ts`): Keplerian mean elements
+  of Earth and Mars (JPL "Approximate Positions of the Planets") give the distance at noon UTC
+  of the sol's real date; delay = distance / speed of light. May 2024 is about 16 minutes. The
+  card labels it "computed, approximation". The A2 message-journey map is not built.
+- **Coordinates card** shows 4.6° S, 137.4° E (Curiosity's real landing area in Gale Crater)
+  and says the rescue landing itself is made up. Value lives in `content/events.json`.
+- **Replay yesterday** is offered on the night card and on the result screen (lost games only:
+  the sim refuses it after a win). After a loss it returns to the morning of the lost sol, as
+  the sim already did; from the night card it returns to the morning of the sol just played.
+- **Result screen** reads everything from the sim's log codes: the "choice that made the
+  difference" is the sol with the largest storm dose (with the no-shelter comparison), a cold
+  night, or how often oxygen / plants were handled; plus the rescue chain line.
+- **Logbook lines** are built from `SolLog` codes with i18n text; the PNG is drawn on a 1200 px
+  canvas (no library). The logbook also opens from the pause card during a mission.
+- **Mission code**: 6 characters, base 32 without 0/O/1/I, value = seed x 3 + window index.
+  `?seed=` values are folded into the code range. A code starts a mission directly and does
+  not count as the device's "first game".
+- **Save**: one slot in localStorage (`saveVersion` 1): autosave every morning, at mission
+  start and after a replay; "Save and exit" also stores the running day; "Exit without saving"
+  keeps the morning autosave. A finished mission clears the save. "New Mission" asks before
+  replacing a save. Debug sol-skips autosave too and show the result screen when they end the
+  mission.
+- The wrist watch is hidden while the result screen is open.
+**Not built in F4a:** sound, real models, live DONKI, opening scene, Sources screen, A2 map,
+A4 accessibility settings. `src/game.ts` is 470 lines (limit 500): split before adding more.

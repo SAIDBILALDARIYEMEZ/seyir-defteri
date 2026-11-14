@@ -135,3 +135,10 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
   real waits between calls, not with one long script.
 - After the first "New Mission" the pane's localStorage marks the device as played and later
   games get a random seed and window: test with `?seed=20240520` for a repeatable game.
+- Debug-panel actions and sol-skips are "quiet": no night card and no message / beacon cards.
+  To see those cards, use the real station menu. A quiet skip that ends the mission still
+  opens the result screen.
+- To screenshot the result screen without `?debug`: reach sol 30 with `?debug`, "Save and
+  exit", reload without `?debug`, Continue, end the day.
+- Modals stack; when scripting clicks in the pane, target the last `.card` (the hidden action
+  menu also has a "Close" button).

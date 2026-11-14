@@ -47,5 +47,6 @@ mission pages, no numbers computed by us. **URLs still to be re-checked before s
 | Curiosity in Gale Crater since 2012, RAD instrument | science card, tips | NASA Mars Science Laboratory | https://science.nasa.gov/mission/msl-curiosity/ | NASA open content |
 | Global dust storm of 2018 | dust event card | NASA Mars Exploration | https://science.nasa.gov/mars/ | NASA open content |
 | A sol is about 24 h 39 min; radio delay about 4 to 24 minutes | tips, reply card | NASA Mars facts | https://science.nasa.gov/mars/facts/ | NASA open content |
+| Curiosity landing area: about 4.6° S, 137.4° E, Gale Crater (2012) | coordinates card (rescue chain) | NASA Mars Science Laboratory mission pages | https://science.nasa.gov/mission/msl-curiosity/ | NASA open content |
 | OSD-268: lettuce grown on the ISS (topic only, D-002 R8) | food card, tip | NASA OSDR | https://osdr.nasa.gov/bio/repo/data/studies/OSD-268 | NASA open data |
 | Quiet-Sun cosmic rays: about 9 uGy/h in 2019, about 5 in May 2024 | tip | RadLab medians (D-002 R5, `rad-w1.json`) | see RadLab entry above | NASA open data |
