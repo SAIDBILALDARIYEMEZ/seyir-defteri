@@ -14,7 +14,8 @@ export const BALANCE = {
   power: { start: 50, max: 100, dayIncome: 30, dustIncomeFactor: 0.4, nightHeating: 15 },
   air: { start: 70, max: 100, perSol: 10, coldPenalty: 15 },
   food: { start: 8, max: 20, perSol: 1, unlockSol: 3, emptySolsToLose: 2 },
-  panel: { start: 1, decayPerSol: 0.1, dustDecayPerSol: 0.25, cleanAt: 0.9 },
+  /** `initial`: the panels arrive dusty from the landing, so sol 1 can teach cleaning (D-011). */
+  panel: { start: 1, initial: 0.7, decayPerSol: 0.1, dustDecayPerSol: 0.25, cleanAt: 0.9 },
 
   dose: {
     /** Mission storm-dose budget (D-008). Reaching it means Early Evacuation. */

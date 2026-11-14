@@ -11,7 +11,10 @@ import { isDustSol } from './schedule.ts';
 import { doseOver, passDaylight } from './time.ts';
 import { visibleWarnings } from './warnings.ts';
 
-function logLine(state: GameState, flags: string[]): SolLog {
+type Dusk = SolLog['dusk'];
+const duskOf = (s: GameState): Dusk => ({ power: s.power, air: s.air, food: s.food, dose: s.dose });
+
+function logLine(state: GameState, flags: string[], dusk: Dusk = duskOf(state)): SolLog {
   return {
     sol: state.sol,
     actions: state.today.actions,
@@ -23,16 +26,17 @@ function logLine(state: GameState, flags: string[]): SolLog {
     dose: state.dose,
     doseGained: state.dose - state.today.doseStart,
     science: state.science,
+    dusk,
   };
 }
 
-export function lose(state: GameState, reason: LossReason, flags: string[] = []): GameState {
+export function lose(state: GameState, reason: LossReason, flags: string[] = [], dusk?: Dusk): GameState {
   return {
     ...state,
     phase: 'lost',
     lossReason: reason,
     result: 'evacuation',
-    log: [...state.log, logLine(state, flags)],
+    log: [...state.log, logLine(state, flags, dusk)],
   };
 }
 
@@ -74,6 +78,7 @@ export function endSol(input: GameState, win: WindowData): GameState {
   const { power, air, food, panel, dose, daylightHours, hoursPerSol, dayStartHour } = BALANCE;
   let s = passDaylight(input, win, input.hoursLeft, dose.habitatShield);
   s = { ...s, hoursLeft: 0, rejection: null };
+  const dusk = duskOf(s);
   const flags: string[] = [];
   const dusty = isDustSol(s.schedule, s.sol);
   if (dusty) flags.push('dust');
@@ -112,10 +117,10 @@ export function endSol(input: GameState, win: WindowData): GameState {
     greenhouseIdleSols: s.sol >= food.unlockSol ? s.greenhouseIdleSols + 1 : 0,
   };
 
-  if (s.air <= 0) return lose(s, 'air', flags);
-  if (s.dose >= dose.budget) return lose(s, 'dose', flags);
-  if (s.foodEmptySols >= food.emptySolsToLose) return lose(s, 'food', flags);
-  s = { ...s, log: [...s.log, logLine(s, flags)] };
+  if (s.air <= 0) return lose(s, 'air', flags, dusk);
+  if (s.dose >= dose.budget) return lose(s, 'dose', flags, dusk);
+  if (s.foodEmptySols >= food.emptySolsToLose) return lose(s, 'food', flags, dusk);
+  s = { ...s, log: [...s.log, logLine(s, flags, dusk)] };
   if (s.sol >= BALANCE.totalSols) return { ...s, phase: 'won', result: resultOf(s) };
   return nextMorning(s, win);
 }

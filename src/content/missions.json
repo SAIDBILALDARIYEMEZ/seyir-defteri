@@ -1,0 +1,17 @@
+[
+  { "id": "radiationNow", "action": "shelterWait", "when": "eventNow" },
+  { "id": "broken", "action": "repair", "when": "broken" },
+  { "id": "airLow", "action": "moxie", "when": "airLow" },
+  { "id": "panels", "action": "clean", "when": "powerLow" },
+  { "id": "foodLow", "action": "greenhouse", "when": "foodLow" },
+  { "id": "stormAhead", "action": "shelterBuild", "when": "stormAhead" },
+  { "id": "antenna", "action": "antennaRepair", "when": "always" },
+  { "id": "sendLocation", "action": "message", "when": "locationNotSent", "spare": true },
+  { "id": "beacon", "action": "beacon", "when": "always", "spare": true },
+  { "id": "airTopUp", "action": "moxie", "when": "airComfort", "spare": true },
+  { "id": "panelsTidy", "action": "clean", "when": "panelsDusty" },
+  { "id": "greenhouse", "action": "greenhouse", "when": "foodComfort", "spare": true },
+  { "id": "shelterPrep", "action": "shelterBuild", "when": "always" },
+  { "id": "curiosity", "action": "readCuriosity", "when": "always" },
+  { "id": "rock", "action": "scanRock", "when": "always" }
+]

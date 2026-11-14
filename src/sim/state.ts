@@ -35,6 +35,8 @@ export interface SolLog {
   food: number;
   dose: number;
   doseGained: number;
+  /** Gauges at the end of daylight, before the night costs (for the night summary). */
+  dusk: { power: number; air: number; food: number; dose: number };
   science: number;
 }
 
@@ -117,7 +119,7 @@ export function createInitialState(seed: number, win: WindowData, crewCount = 1)
     food: BALANCE.food.start,
     dose: 0,
     science: 0,
-    panelEff: BALANCE.panel.start,
+    panelEff: BALANCE.panel.initial,
     shelterLevel: 0,
     rescueStage: 0,
     messagePending: false,

@@ -22,6 +22,7 @@ const step = (s: GameState, a: Action): GameState => reduce(s, a, rng, win);
 const calm = (over: Partial<GameState> = {}): GameState => ({
   ...createInitialState(1, win),
   schedule: { dust: [], malfunctions: [] },
+  panelEff: BALANCE.panel.start,
   ...over,
 });
 const atSol = (sol: number, over: Partial<GameState> = {}): GameState => calm({ sol, ...over });
@@ -68,6 +69,12 @@ describe('time and night', () => {
 });
 
 describe('disabled reasons', () => {
+  it('a fresh base has dusty panels, so sol 1 can teach cleaning (D-011)', () => {
+    const fresh = createInitialState(1, win);
+    expect(check(fresh, act('clean'), win)).toBeNull();
+    expect(step(fresh, act('clean')).panelEff).toBe(BALANCE.panel.start);
+  });
+
   it('returns a reason code and leaves the game untouched', () => {
     const s = step(calm(), act('clean'));
     expect(s.rejection).toBe('panelsClean');
