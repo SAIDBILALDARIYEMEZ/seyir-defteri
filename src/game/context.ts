@@ -23,6 +23,10 @@ export interface Missions {
   ofSave(seed: number, windowId: string): Mission;
   fromCode(code: string): Mission | null;
   codeOf(seed: number, windowId: string): string;
+  /** The three real months, for the storm picker. */
+  windows(): WindowData[];
+  /** A new random-seed mission in the picked window. */
+  pick(win: WindowData): Mission;
 }
 
 export interface Session {

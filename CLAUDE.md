@@ -64,7 +64,8 @@ phase without the human's approval.
     models, textures <= 1024 px, total `dist/` <= 40 MB. Link to playable in ~3 seconds.
 13. **Space Apps rules.** Every code file starts with the SI-assistance note (copy from any
     existing file). No AI-generated images, video or audio. No NASA logo, flag or mission
-    patch anywhere. Agency names appear only as data sources, never in slogans. No quizzes.
+    patch anywhere. Agency names appear only as data sources, never in slogans. No graded
+    quizzes: only the optional, skippable recall question of the profile layer (D-016).
 14. **Kid-safe.** Plain language, no death, blood or fear. Failure is "Early Evacuation".
 
 ## Structure
@@ -156,4 +157,9 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
   hot-update without a reload.
 - A fresh page load clears the pane's screenshot cache: take a screenshot before clicking by
   coordinate.
-
+- Sol 1 starts with nothing placed (D-015): every action, end the day too, is refused with
+  `needSetup` until the habitat and the panels are placed. Test helpers place both
+  (`builtBase()` / `ready()`); the bot's `withSetup` wrapper does it for every strategy.
+- The learning layer (XP, capsules, rank) lives in `src/profile/` + `game/learn.ts` and
+  never touches the sim. To test the recall question, preset the profile in localStorage
+  (`seyir-defteri.profile`, `seen` counts at 3) so the next showing is the 4th.

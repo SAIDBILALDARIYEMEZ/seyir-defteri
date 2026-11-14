@@ -348,3 +348,34 @@ science limit 72 confirmed.
 - **Collision:** Ada walks around buildings and the rocket: A* on a 1-unit grid plus corner
   cutting (`scene/path.ts`, visual only).
 - `saveVersion` 3.
+
+## D-016 — 2026-11-14 — B3 part B: learning layer (profile, capsules, recall question, XP)
+Human request (B3). The sim is untouched: everything lives in a separate profile layer.
+- **Profile** (`src/profile/`): XP, wins, per-concept counters, XP at mission start; one
+  localStorage key, every access in try/catch, a broken value becomes a fresh profile.
+  Numbers in `src/config/progression.ts` (XP: build done 25, part found 10, PUSULA task 4,
+  shelter during a storm 15 once per sol, correct answer 20; ranks Cadet 0 / Rookie 150 /
+  Specialist 500 / Commander 1200 / Mission Legend 2500).
+- **Hard Rule 13 ("No quizzes") revised by the human:** an optional recall question on
+  every 4th showing of a concept: fill-the-gap sentence, 3 big buttons, no timer, no
+  keyboard, "Skip", no penalty (a wrong answer shows the right one and the explanation).
+- **Concepts** (`src/content/concepts.json` = ids, answer, linked stations; texts in i18n
+  under `concept.<id>.*`, Hard Rule 2): sol, MOXIE, regolith, flare / CME, RAD, Gale Crater,
+  message delay, Curiosity. Checked facts: sol 24 h 39 min; MOXIE 2021-2023, 122 g O2;
+  Gale ~154 km; Curiosity landed August 2012, nuclear powered. **Delay is "3 to 22 minutes"
+  one way, not 4-24** (light time at closest / farthest distance).
+- **Natural moments:** at most one capsule per moment per sol: a station menu opens (concept
+  of that station), a build starts (its station), the morning queue after the night card.
+  The least-shown concept is picked.
+- **5 hazards** (NASA HRP): shelter = radiation, antenna = isolation, MOXIE / greenhouse /
+  marker = distance from Earth, habitat / panels = hostile closed environment, gravity =
+  whole mission. One line on store cards; table on every gauge info card.
+- **"This storm was real"** opens on top of the result: the window's highest hourly RAD
+  reading (w1 20 May 2024, w2 11 Sep 2017, w3 15 Mar 2023 "Earth hit, Mars quiet"), SVG line
+  of the RAD curve sol ±3, the player's dose that sol, habitat-only and full-shelter
+  what-ifs, source line (RAD + DONKI with SAVED dates). No logo.
+- **Storm picker:** after the first win "New Mission" opens "Pick a storm" (3 months, date
+  + one sentence, random seed). Locked = old behaviour.
+- **HUD:** rank badge + XP bar top-left, "+XP" toast, big toast on rank up; result shows XP
+  this mission and the rank. Pause has a confirmed "Reset progress".
+- Smart board: capsule / question / picker / storm cards use >= 64 px buttons, 18-24 px text.

@@ -281,3 +281,54 @@ button.chip.star { cursor: pointer; }
   .watch { bottom: 132px; right: 8px; width: 210px; }
   .place-banner { top: auto; bottom: 140px; left: 8px; transform: none; font-size: 13px; }
 }
+
+/* B3 learning layer: rank badge, XP toast, capsule / question cards, hazards, storm card.
+   Touch targets >= 64 px and large text so the cards work on a classroom smart board. */
+.rank-badge {
+  position: fixed; top: 64px; left: 12px; z-index: 6; display: grid; gap: 4px; min-width: 170px;
+  padding: 8px 12px; background: var(--panel); border-radius: 14px; pointer-events: none;
+}
+.rank-name { font-size: 16px; }
+.xp-bar { display: block; height: 8px; background: rgba(255, 255, 255, 0.18); border-radius: 6px; overflow: hidden; }
+.xp-fill { display: block; height: 100%; background: #7fe0a0; transition: width 0.5s; }
+.xp-note { font-size: 12px; color: var(--ink-dim); }
+.xp-toasts { position: fixed; top: 128px; left: 12px; z-index: 30; display: grid; gap: 6px; pointer-events: none; }
+.xp-toast {
+  padding: 8px 14px; background: #2f7a4a; color: #fff; font-weight: 800; font-size: 18px; border-radius: 12px;
+  animation: xp-pop 1.6s ease-out forwards;
+}
+.xp-toast.big { font-size: 24px; background: var(--accent); color: #2a140c; animation-duration: 3.2s; }
+@keyframes xp-pop {
+  0% { transform: translateY(8px); opacity: 0; } 12% { transform: none; opacity: 1; }
+  80% { opacity: 1; } 100% { transform: translateY(-14px); opacity: 0; }
+}
+.card.learn { width: min(94vw, 560px); font-size: 20px; }
+.card.learn h2 { font-size: 24px; }
+.card.learn .btn, .card.pick .btn, .card.storm-real .btn { min-height: 64px; min-width: 120px; font-size: 20px; }
+.quiz-options { display: grid; gap: 12px; margin: 14px 0; }
+.quiz-option { min-height: 72px; font-size: 22px; text-align: left; padding: 12px 20px; }
+.quiz-option.right { background: #2f7a4a; border-color: #7fe0a0; color: #fff; }
+.quiz-option.wrong { background: #7a2f2f; border-color: #ff9a8a; color: #fff; }
+.quiz-option:disabled { cursor: default; opacity: 1; }
+.quiz-verdict { font-weight: 800; font-size: 22px; }
+.quiz-verdict.right { color: #7fe0a0; }
+.quiz-verdict.wrong { color: var(--accent); }
+.quiz-foot { display: flex; justify-content: flex-end; gap: 10px; }
+.card.pick { width: min(94vw, 560px); font-size: 19px; }
+.pick-list { display: grid; gap: 12px; margin-top: 12px; }
+.pick-option { min-height: 80px; display: grid; gap: 4px; text-align: left; padding: 12px 18px; font-size: 18px; }
+.pick-option b { font-size: 21px; }
+.card.storm-real { width: min(94vw, 560px); font-size: 18px; }
+.storm-chart { width: 100%; height: auto; }
+.storm-line { stroke: #ffb347; stroke-width: 2; }
+.storm-band { fill: rgba(201, 162, 255, 0.22); }
+.hazards h3 { margin: 14px 0 6px; font-size: 16px; }
+.hazard-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.hazard-table th { text-align: left; color: var(--ink-dim); font-size: 12px; padding: 4px 6px; }
+.hazard-table td { padding: 6px; border-top: 1px solid rgba(255, 255, 255, 0.12); vertical-align: top; }
+.hazard-table small { display: block; color: var(--ink-dim); }
+.depot-hazard { display: block; font-size: 12px; color: #c9a2ff; }
+.depot-card.ready .depot-hazard { display: none; }
+.rank-up { font-size: 20px; font-weight: 800; color: var(--accent); text-align: center; }
+@media (max-width: 600px) { .rank-badge { top: 104px; min-width: 0; } .xp-toasts { top: 160px; } }
+.card.learn, .card.pick, .card.storm-real { background: rgb(38, 17, 10); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); }

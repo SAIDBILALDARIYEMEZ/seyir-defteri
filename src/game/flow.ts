@@ -18,13 +18,16 @@ import { morningCards, nightSpec } from '../ui/dayCards.ts';
 import type { GaugeId } from '../ui/hud.ts';
 import { logbookSpec } from '../ui/logbook.ts';
 import { resultSpec, resultTitle } from '../ui/result.ts';
+import { hazardTable, pickStormSpec } from '../ui/learn.ts';
+import { stormSpec } from '../ui/storm.ts';
 import { CREW_ID } from './context.ts';
 import type { Ctx, Mission } from './context.ts';
 import type { Guide } from './guide.ts';
+import type { Learn } from './learn.ts';
 
 const REPLAY: Action = { type: 'replayYesterday', crewId: CREW_ID };
 
-export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: StationId) => void) {
+export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: StationId) => void, learn: Learn) {
   const { s, world, menu, missions } = ctx;
   const code = (): string => missions.codeOf(s.seed, s.win.id);
 
@@ -48,6 +51,18 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     }));
   };
 
+  /** Settings: wipe XP, rank, concept counters and the storm picker (asks first). */
+  const confirmReset = (): void => {
+    const close = ctx.modal(() => ({
+      title: t('reset.title'),
+      lines: [t('reset.body')],
+      buttons: [
+        { label: t('reset.yes'), onClick: () => { close(); learn.reset(); } },
+        { label: t('pause.confirm.no'), onClick: () => close(), primary: true },
+      ],
+    }));
+  };
+
   function pause(): void {
     if (s.mode !== 'play') return;
     if (s.closePause) return resume();
@@ -60,6 +75,7 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
         { label: `📖 ${t('logbook.open')}`, onClick: showLogbook },
         { label: t('pause.exitNoSave'), onClick: () => (playing ? confirmExit() : leave()) },
         ...(playing ? [{ label: t('pause.saveExit'), onClick: () => { saveGame(s.state); leave(); } }] : []),
+        { label: `♻️ ${t('pause.reset')}`, onClick: confirmReset },
         { label: t('pause.resume'), onClick: resume, primary: true },
       ],
     }));
@@ -72,7 +88,7 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
   function showInfo(id: GaugeId): void {
     if (s.mode !== 'play') return;
     const close = ctx.modal(() => {
-      const spec = infoSpec(id, s.win, () => close());
+      const spec = { ...infoSpec(id, s.win, () => close()), extra: hazardTable };
       const measured = Math.floor(clockOf(s.state) - BALANCE.dayStartHour);
       if (id === 'dose') spec.buttons.unshift({ label: t('data.button'), onClick: () => showData(s.state.sol, measured, null) });
       return spec;
@@ -138,6 +154,8 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     world.placeAda('habitat');
     ctx.render(true);
     const cards = morningCards(before, s.state, s.win, (sol, gained) => showData(sol, BALANCE.hoursPerSol, gained));
+    const capsule = learn.nightCard();
+    if (capsule) cards.push(capsule);
     const next = (): void => {
       const build = cards.shift();
       if (!build) return;
@@ -149,14 +167,26 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
   function showResult(): void {
     clearSave();
     world.setNight(false);
+    const progress = learn.finish(s.state);
     const close = ctx.modal(() =>
       resultSpec(s.state, s.win, {
         code: code(),
+        progress,
         replay: replayButton(() => close()),
         onLogbook: showLogbook,
-        onNewMission: () => { close(); startMission(missions.next()); },
+        onNewMission: () => { close(); newMission(); },
         onMenu: () => { close(); showMenu(); },
       }),
+    );
+    // On top of the result: the window's biggest real storm.
+    const closeStorm = ctx.modal(() => stormSpec(s.state, s.win, () => closeStorm()));
+  }
+
+  /** After the first win the player picks the real month (window); before that, as always. */
+  function newMission(): void {
+    if (!learn.canPickStorm()) return confirmReplace(() => missions.next());
+    const close = ctx.modal(() =>
+      pickStormSpec(missions.windows(), (win) => confirmReplace(() => missions.pick(win)), () => close()),
     );
   }
 
@@ -180,6 +210,7 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     ({ seed: s.seed, win: s.win } = missions.ofSave(saved.seed, saved.windowId));
     s.rng = createRng(s.seed);
     s.state = saved;
+    learn.start(s.seed);
     enterPlay();
   }
 
@@ -208,6 +239,7 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     s.rng = createRng(s.seed);
     s.state = createInitialState(s.seed, s.win);
     saveGame(s.state);
+    learn.start(s.seed);
     enterPlay();
     const close = ctx.modal(() => ({
       kind: 'event',
@@ -231,7 +263,7 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     showNight,
     showResult,
     continueMission,
-    newMission: () => confirmReplace(() => missions.next()),
+    newMission,
     codeMission,
   };
 }

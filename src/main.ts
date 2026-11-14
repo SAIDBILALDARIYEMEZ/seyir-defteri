@@ -52,6 +52,8 @@ const missions: Missions = {
     return { seed: found.seed, win: getWindow(WINDOW_IDS[found.windowIndex] ?? 'w1') };
   },
   codeOf: (seed, windowId) => encodeMission(seed, windowIndex(windowId), WINDOW_IDS.length),
+  windows: () => WINDOW_IDS.map((id) => getWindow(id)),
+  pick: (win) => ({ seed: 1 + Math.floor(Math.random() * MAX_SEED), win }),
 };
 const game = createGame(canvas, ui, world, first, missions);
 /** Debug skip: tops up the life gauges first, so a skipped sol never ends the mission. */

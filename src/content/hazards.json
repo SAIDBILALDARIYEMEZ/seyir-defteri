@@ -1,0 +1,7 @@
+[
+  { "id": "radiation", "icon": "☢️", "stations": ["shelter"] },
+  { "id": "isolation", "icon": "📡", "stations": ["antenna"] },
+  { "id": "distance", "icon": "🌍", "stations": ["moxie", "greenhouse", "beacon"] },
+  { "id": "gravity", "icon": "🪐", "stations": [] },
+  { "id": "hostile", "icon": "🏠", "stations": ["habitat", "panels"] }
+]

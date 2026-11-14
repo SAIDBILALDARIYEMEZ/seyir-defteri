@@ -114,6 +114,8 @@ function realDataBox(win: WindowData): HTMLElement {
 
 export interface ResultHandlers {
   code: string;
+  /** Profile layer (B3): XP earned this mission and the rank. */
+  progress: { gained: number; rank: string; rankUp: string | null };
   /** Null when no replay is possible. */
   replay: { label: string; onClick: () => void } | null;
   onLogbook(): void;
@@ -153,7 +155,10 @@ export function resultSpec(state: GameState, win: WindowData, on: ResultHandlers
       stat(t('hud.science'), `⭐ ${state.science}`);
       stat(t('rescue.title'), `🚀 ${rescueSteps}/3`);
       stat(t('result.sols'), `${state.log.length}/${BALANCE.totalSols}`);
+      stat(t('result.xp'), `+${on.progress.gained} XP`);
+      stat(t('result.rank'), on.progress.rank);
       box.append(stats);
+      if (on.progress.rankUp) box.append(el('p', 'rank-up', t('result.rankUp', { rank: on.progress.rankUp })));
       section(`💡 ${t('learned.title')}`, learned(state));
       box.append(realDataBox(win));
       const code = el('p', 'mission-code');

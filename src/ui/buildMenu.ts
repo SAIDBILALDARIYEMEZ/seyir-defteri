@@ -11,6 +11,7 @@ import type { PlacedId } from '../sim/actions.ts';
 import type { GameState } from '../sim/state.ts';
 import { PLACEABLES, buildStatus, isStarter, lockReason, setupDone } from '../sim/systems/build.ts';
 import { el } from './dom.ts';
+import { hazardOf } from './learn.ts';
 
 export interface BuildMenu {
   root: HTMLElement;
@@ -38,8 +39,9 @@ export function mountBuildMenu(parent: HTMLElement, on: BuildMenuHandlers): Buil
     const cost = el('span', 'depot-cost');
     const status = el('span', 'depot-status');
     const meta = el('span', 'depot-meta');
+    const hazard = el('span', 'depot-hazard');
     meta.append(cost, status);
-    card.append(name, meta);
+    card.append(name, meta, hazard);
     card.addEventListener('pointerdown', (e) => {
       if (card.classList.contains('usable')) on.onPress(id, e);
     });
@@ -48,7 +50,7 @@ export function mountBuildMenu(parent: HTMLElement, on: BuildMenuHandlers): Buil
       if (e.detail === 0 && card.classList.contains('usable')) on.onSelect(id);
     });
     list.append(card);
-    return { id, card, name, cost, status };
+    return { id, card, name, cost, status, hazard };
   });
 
   return {
@@ -56,7 +58,9 @@ export function mountBuildMenu(parent: HTMLElement, on: BuildMenuHandlers): Buil
     update(state, selected, hint) {
       title.textContent = `📦 ${t('build.title')} · 🔩 ${state.parts}`;
       const ready = setupDone(state);
-      for (const { id, card, name, cost, status } of cards) {
+      for (const { id, card, name, cost, status, hazard } of cards) {
+        hazard.textContent = `⚠️ ${hazardOf(id) ?? ''}`;
+        hazard.hidden = hazardOf(id) === null;
         if (isStarter(id)) {
           const waiting = !state.buildings[id];
           card.hidden = !waiting;

@@ -38,7 +38,7 @@ export function placeAction(state: GameState, id: PlacedId, cell: Cell): Action 
   return { type: 'build', crewId: CREW_ID, station: id, cell };
 }
 
-export function createStationUi(ctx: Ctx, guide: () => Guide) {
+export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id: StationId) => void = () => undefined) {
   const { s, world, menu } = ctx;
 
   function showStationMenu(station: StationId): void {
@@ -91,7 +91,10 @@ export function createStationUi(ctx: Ctx, guide: () => Guide) {
 
   function selectStation(station: StationId): void {
     if (!ctx.free() || isStationLocked(s.state, station)) return;
-    walkThen((done) => world.walkTo(station, done), () => showStationMenu(station));
+    walkThen((done) => world.walkTo(station, done), () => {
+      showStationMenu(station);
+      onStationOpen(station);
+    });
   }
 
   /** Click-to-walk: purely visual; the sim charges walking with the next action (D-010). */

@@ -1,0 +1,10 @@
+[
+  { "id": "sol", "icon": "🌅", "answer": 1, "stations": ["habitat", "panels"] },
+  { "id": "moxie", "icon": "🫧", "answer": 0, "stations": ["moxie"] },
+  { "id": "regolith", "icon": "🛡️", "answer": 2, "stations": ["shelter"] },
+  { "id": "flare", "icon": "🌞", "answer": 1, "stations": ["shelter", "panels"] },
+  { "id": "rad", "icon": "☢️", "answer": 0, "stations": ["curiosity"] },
+  { "id": "gale", "icon": "🏜️", "answer": 2, "stations": ["science", "curiosity"] },
+  { "id": "delay", "icon": "📡", "answer": 1, "stations": ["antenna", "beacon"] },
+  { "id": "curiosity", "icon": "🚙", "answer": 0, "stations": ["curiosity", "greenhouse"] }
+]

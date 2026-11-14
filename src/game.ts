@@ -7,6 +7,7 @@
 import { createFlow } from './game/flow.ts';
 import { bubbleOf, computeGuide } from './game/guide.ts';
 import type { Guide } from './game/guide.ts';
+import { createLearn } from './game/learn.ts';
 import { createStationUi, placeAction } from './game/stationUi.ts';
 import type { Ctx, Mission, Missions, Session } from './game/context.ts';
 import { onLangChange, t } from './i18n/i18n.ts';
@@ -20,6 +21,7 @@ import { reduce } from './sim/reducer.ts';
 import { createRng } from './sim/rng.ts';
 import { check } from './sim/rules.ts';
 import { createInitialState } from './sim/state.ts';
+import { advise } from './sim/systems/advisor.ts';
 import type { GameState } from './sim/state.ts';
 import { isDustSol } from './sim/systems/schedule.ts';
 import { isEventNow } from './sim/systems/time.ts';
@@ -81,8 +83,9 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
   const ctx: Ctx = { s, ui, world, missions, menu, placement, render, modal, perform, free };
   const guide = (): Guide =>
     computeGuide(s.state, s.win, { goStation: (id) => stations.selectStation(id), goBuild: (id) => placement.select(id) });
-  const stations = createStationUi(ctx, guide);
-  const flow = createFlow(ctx, guide, (id) => stations.selectStation(id));
+  const learn = createLearn(ctx);
+  const stations = createStationUi(ctx, guide, (id) => learn.onStation(id));
+  const flow = createFlow(ctx, guide, (id) => stations.selectStation(id), learn);
 
   const hud = mountHud(ui, flow.pause, (id) => flow.showInfo(id));
   const labels = mountLabels(ui, (id) => stations.selectStation(id));
@@ -112,6 +115,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     const playing = s.mode === 'play';
     const view = s.frozen ?? s.state;
     hud.root.hidden = labels.root.hidden = !playing;
+    learn.render(playing);
     watch.root.hidden = depot.root.hidden = !playing || s.state.phase !== 'playing';
     mainMenu.root.hidden = playing;
     mainMenu.refresh();
@@ -142,9 +146,14 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
 
   function perform(action: Action, quiet = false): void {
     const before = s.state;
+    const station = 'station' in action ? action.station : null;
+    const wasTask = !quiet && advise(before, s.win).some((x) => x.action.type === action.type && ('station' in x.action ? x.action.station : null) === station);
     s.state = reduce(s.state, action, s.rng, s.win);
     debug('action', action, s.state);
     if (s.state.rejection) return render();
+    if (!quiet) learn.onAction(before, s.state, action, s.win, wasTask);
+    // The setup is part of the sol-1 morning: keep it in the autosave.
+    if (action.type === 'place') saveGame(s.state);
     if (quiet) {
       // Debug jumps skip the night card, but a finished mission still shows its result.
       if (before.phase === 'playing' && s.state.phase !== 'playing') flow.showResult();
