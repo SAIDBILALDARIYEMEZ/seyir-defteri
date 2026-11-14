@@ -22,6 +22,7 @@ import { mountCamControls } from './ui/camControls.ts';
 import { debug } from './lib/debug.ts';
 import { listSaves, loadGame, saveGame } from './save/save.ts';
 import type { World } from './scene/world.ts';
+import { debrisIndex, isDebrisTag } from './scene/entities/debris.ts';
 import type { Action } from './sim/actions.ts';
 import { reduce } from './sim/reducer.ts';
 import { createRng } from './sim/rng.ts';
@@ -112,7 +113,11 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
   const ctx: Ctx = { s, ui, world, missions, menu, placement, cinema, render, modal, perform, free, canWalk, save, enterShelter: () => shelter.enter() };
   const shelter = createShelter(ctx);
   const guide = (): Guide =>
-    computeGuide(s.state, s.win, { goStation: (id) => stations.selectStation(id), goBuild: (id) => placement.select(id) });
+    computeGuide(s.state, s.win, {
+      goStation: (id) => stations.selectStation(id),
+      goBuild: (id) => placement.select(id),
+      goDebris: (i) => stations.selectDebris(i),
+    });
   const learn = createLearn(ctx);
   const stations = createStationUi(ctx, guide, (id) => {
     // F5b: coming home to the habitat saves the game.
@@ -285,6 +290,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     onPick: (id) => {
       if (s.mode !== 'play') return;
       if (id === 'pusula') return flow.showPusula();
+      if (isDebrisTag(id)) return stations.selectDebris(debrisIndex(id) ?? 0);
       // A station under construction, a locked one or the rocket: only the info card (F5a).
       if (id === 'lander' || !world.isUsable(id) || isStationLocked(s.state, id)) return info.show(id, s.state);
       stations.selectStation(id);

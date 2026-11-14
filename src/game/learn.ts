@@ -76,6 +76,7 @@ export function createLearn(ctx: Ctx) {
     const finished = PLACEABLES.filter((id) => (before.buildings[id]?.solsLeft ?? 0) > 0 && after.buildings[id]?.solsLeft === 0);
     if (finished.length) gain('buildDone', finished.length);
     if (after.parts > before.parts) gain('partFound');
+    if (action.type === 'upgrade') gain('upgradeDone');
     if (action.type === 'shelterWait' && isEventNow(before, win) && shelterSol !== before.sol) {
       shelterSol = before.sol;
       gain('shelterInStorm');

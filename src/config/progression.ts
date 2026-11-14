@@ -8,6 +8,8 @@ export const PROGRESSION = {
   xp: {
     buildDone: 25,
     partFound: 10,
+    /** F6: an upgrade bought with rocket parts. */
+    upgradeDone: 20,
     taskDone: 4,
     shelterInStorm: 15,
     quizCorrect: 20,

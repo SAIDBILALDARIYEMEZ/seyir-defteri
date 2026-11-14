@@ -7,6 +7,7 @@
 import { BALANCE } from '../config/balance.ts';
 import { t } from '../i18n/i18n.ts';
 import type { GameState } from '../sim/state.ts';
+import { foodMax } from '../sim/systems/explore.ts';
 import { dateOfSol } from '../sim/window.ts';
 import type { WindowData } from '../sim/window.ts';
 import { button, el, fmt, formatDate } from './dom.ts';
@@ -103,7 +104,7 @@ export function mountHud(parent: HTMLElement, onPause: () => void, onInfo: (id: 
       lifeTitle.textContent = `❤️ ${t('hud.life')}`;
       air.set(t('hud.air'), state.air / BALANCE.air.max, fmt(state.air), state.air <= a.airLow);
       // F5b: the food store shows how full it is (x/y).
-      food.set(t('hud.food'), state.food / BALANCE.food.max, `${fmt(state.food)}/${BALANCE.food.max}`, state.food <= a.foodLow);
+      food.set(t('hud.food'), state.food / foodMax(state), `${fmt(state.food)}/${foodMax(state)}`, state.food <= a.foodLow);
       const share = state.dose / BALANCE.dose.budget;
       dose.set(t('hud.dose'), share, `${Math.round(share * 100)}%`, share >= 0.5);
       doseGroup.classList.toggle('shielded', sheltered);

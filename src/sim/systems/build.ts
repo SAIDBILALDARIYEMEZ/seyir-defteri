@@ -6,6 +6,7 @@
 import { BALANCE } from '../../config/balance.ts';
 import type { BuildableId, Cell, PlacedId, ReasonCode, StarterId, StationId, Turn } from '../actions.ts';
 import { snapshotOf } from '../state.ts';
+import { debrisCells } from './explore.ts';
 import type { GameState } from '../state.ts';
 
 export type BuildStatus = 'locked' | 'available' | 'building' | 'ready';
@@ -88,6 +89,8 @@ export function placementReason(state: GameState, cell: Cell, ignore: PlacedId |
   if (g.craters.some((c) => gap(c, cell) <= c.r)) return 'nearCrater';
   const others = occupiedCells(state, ignore);
   if (others.some((o) => gap(o, cell) === 0)) return 'cellTaken';
+  // F6: a rocket piece still lying there blocks its own cell (not the gap around it).
+  if (debrisCells(state).some((o) => gap(o, cell) === 0)) return 'cellTaken';
   return others.some((o) => gap(o, cell) < g.minGap) ? 'tooClose' : null;
 }
 
@@ -178,13 +181,4 @@ export function progressBuilds(state: GameState): { state: GameState; finished: 
   // The finished antenna opens the radio link: rescue chain step 1.
   if (finished.includes('antenna') && next.rescueStage < 1) next = { ...next, rescueStage: 1 };
   return { state: next, finished };
-}
-
-/** Room for B3: crates found while exploring add bonus parts and science. */
-export function addBonus(state: GameState, parts: number, science: number): GameState {
-  return {
-    ...state,
-    parts: state.parts + Math.max(0, Math.floor(parts)),
-    science: state.science + Math.max(0, Math.floor(science)),
-  };
 }

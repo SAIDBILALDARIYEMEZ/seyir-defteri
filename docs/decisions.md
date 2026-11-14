@@ -656,3 +656,31 @@ start spot) and sits 0.35 sunk, with a scorch mark and four broken panels on the
 (`scene/entities/wreck.ts`). Only an inner "wreck" pivot tilts: the rocket group keeps its pick tag,
 position and walk blocker; the details are outside the group, so they are not pickable. The opening
 crash rocks back into exactly this pose before the swap, and it never flies in either closing.
+
+## D-022 — 2026-11-15 — F6: exploring, learning from mistakes, night card, shelter balance
+Human request (F6), done unattended overnight: where the request left room the most reasonable
+choice was made and is written here (marked **Choice**).
+
+**1. Rocket debris and upgrades** (`sim/systems/explore.ts`, numbers in `BALANCE.debris` /
+`BALANCE.upgrades`, scene `scene/entities/debris.ts`).
+- Nine pieces of the crashed rocket lie around the landing site and the crater (cells in
+  `BALANCE.debris.pieces`; same pale panel metal as the pieces thrown out in the opening crash,
+  simple metal shapes made in code, no files, nothing to log in asset-sources). Each has a soft
+  unlit glint (no real light, D-021) and is drawn 1.6x so a child can spot and tap it.
+- Tap -> Ada walks there -> "Collect" (1 h + the walk, 0 power) -> +1..3 🔩 parts and
+  +10 XP (`partFound`, the profile layer). The sim's old placeholder `bonus` action now carries the
+  piece index (`{ type: 'bonus', debris }`); the parts come from balance.ts, never from the action.
+  No science: Legend stays a science goal. A piece blocks only its own grid cell until collected.
+- **Choice: one piece per sol** (`debris.perSol`). Without it the pusula bot collected all nine by
+  sol 8 and bought the extra panel on sol 4 (win 89 -> 100%, hard-choice days 7 -> 2.3).
+- Upgrades, once each, at their station (it must be built): **bigger food store** (6 🔩, 2 h,
+  greenhouse: store 20 -> 30) and **extra solar panel** (10 🔩, 2 h, panels: +15% power per
+  daylight hour). Shown in the station menu with their parts cost; in 3D a crate stack next to the
+  greenhouse and a tilted panel next to the panels. +20 XP (`upgradeDone`).
+- PUSULA: when the day's list is empty it suggests an upgrade (only with **spare** parts: parts
+  left after every station not placed yet is paid for, so PUSULA never spends build parts) or the
+  next rocket piece ("Something is shining at the crater rim…"). The suggestion is a watch row that
+  walks Ada there; it is never part of the plan (never overdue, never charged); "End the day" stays.
+- Bots: `pusula` follows the suggestion (`nextTask ?? exploreTask ?? end`); `balanced` takes it
+  only when its own list is empty (rare). Other strategies never explore.
+- Saves without the new fields read as empty lists (`debris` / `upgrades` are optional).

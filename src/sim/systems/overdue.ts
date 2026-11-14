@@ -12,6 +12,8 @@ import { suggestCell } from './build.ts';
 
 /** Same task = same action type on the same station. */
 export function taskKey(action: Action): string {
+  if (action.type === 'upgrade') return `upgrade:${action.upgrade}`;
+  if (action.type === 'bonus') return `bonus:${action.debris}`;
   return 'station' in action ? `${action.type}:${action.station}` : action.type;
 }
 

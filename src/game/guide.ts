@@ -2,13 +2,14 @@
 // Concept, story, design and decisions: team Seyir Defteri.
 // What PUSULA points at now: the tutorial / build-chain step, else the first daily task.
 
+import { BALANCE } from '../config/balance.ts';
 import stationContent from '../content/stations.json';
 import { t } from '../i18n/i18n.ts';
 import type { TextKey } from '../i18n/i18n.ts';
 import type { Action, ActionType, PlacedId, StationId } from '../sim/actions.ts';
 import { check, costOf } from '../sim/rules.ts';
 import type { GameState } from '../sim/state.ts';
-import { liveDay, nextTask, urgentNeeds } from '../sim/systems/advisor.ts';
+import { exploreTask, liveDay, nextTask, urgentNeeds } from '../sim/systems/advisor.ts';
 import type { Task } from '../sim/systems/advisor.ts';
 import { setupDone } from '../sim/systems/build.ts';
 import { taskKey } from '../sim/systems/overdue.ts';
@@ -39,6 +40,8 @@ export interface Guide {
 export interface GuideActions {
   goStation(station: StationId): void;
   goBuild(id: PlacedId): void;
+  /** F6: walk to a rocket piece. */
+  goDebris(index: number): void;
 }
 
 export function labelOf(state: GameState, action: Action): string {
@@ -55,10 +58,12 @@ export function computeGuide(state: GameState, win: WindowData, go: GuideActions
     label: labelOf(state, task.action),
     overdue: task.overdue === true,
     waiting: check(state, task.action, win) === 'noPower',
-    onPick: () =>
-      task.action.type === 'build' || task.action.type === 'place'
-        ? go.goBuild(task.action.station)
-        : go.goStation(costOf(state, task.action).station),
+    onPick: () => {
+      const a = task.action;
+      if (a.type === 'build' || a.type === 'place') return go.goBuild(a.station);
+      if (a.type === 'bonus') return go.goDebris(a.debris);
+      go.goStation(costOf(state, a).station);
+    },
   });
   const day = liveDay(state, win);
   const next = nextTask(state, win);
@@ -83,6 +88,13 @@ export function computeGuide(state: GameState, win: WindowData, go: GuideActions
     };
   }
   if (!next) {
+    // F6: nothing left on the list: PUSULA suggests an upgrade or a rocket piece to collect.
+    const extra = step ? null : exploreTask(state, win);
+    if (extra) {
+      const text = t(`task.${extra.why}` as TextKey, { n: BALANCE.upgrades.foodStore.food });
+      const station = extra.action.type === 'upgrade' ? costOf(state, extra.action).station : 'habitat';
+      return { station, card: null, text, tasks: [toTask(extra)], deferred, endDay: playing, stepType: null, danger };
+    }
     const text = step ? t(step.text) : t('watch.allDone');
     return { station: 'habitat', card: null, text, tasks, deferred, endDay: playing, stepType: null, danger };
   }

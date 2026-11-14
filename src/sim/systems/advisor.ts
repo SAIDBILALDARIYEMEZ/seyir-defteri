@@ -9,6 +9,7 @@ import { check, costOf, locationOf, walkHours } from '../rules.ts';
 import type { GameState, PlannedTask } from '../state.ts';
 import type { WindowData } from '../window.ts';
 import { setupDone, STARTERS, suggestCell } from './build.ts';
+import { debrisLeft, foodMax, spareParts, UPGRADES } from './explore.ts';
 import { missedTasks, taskDone, taskKey } from './overdue.ts';
 import { isDustSol } from './schedule.ts';
 import { incomePerHour, isEventNow } from './time.ts';
@@ -61,7 +62,7 @@ const CONDITIONS: Record<string, Condition> = {
   panelsDusty: (s) => s.panelEff <= BALANCE.advisor.panelCleanAt,
   foodComfort: (s) =>
     s.food <= BALANCE.advisor.foodComfort ||
-    (s.greenhouseIdleSols >= 1 && s.food <= BALANCE.food.max - BALANCE.actions.greenhouse.food),
+    (s.greenhouseIdleSols >= 1 && s.food <= foodMax(s) - BALANCE.actions.greenhouse.food),
 };
 
 function actionsOf(rule: MissionRule, state: GameState, crewId: number): Action[] {
@@ -213,4 +214,22 @@ function ruleTasks(state: GameState, win: WindowData, max: number, urgentOnly = 
     }
   }
   return tasks;
+}
+
+/**
+ * F6: PUSULA's extra idea when the day's list is empty: an affordable upgrade first, else the
+ * nearest rocket piece still lying around. Never part of the plan (never overdue, no cost).
+ */
+export function exploreTask(state: GameState, win: WindowData): Task | null {
+  if (!setupDone(state) || state.phase !== 'playing' || liveDay(state, win).tasks.length > 0) return null;
+  for (const upgrade of UPGRADES) {
+    const action: Action = { type: 'upgrade', crewId: 0, upgrade };
+    const affordable = spareParts(state) >= BALANCE.upgrades[upgrade].parts;
+    if (affordable && check(state, action, win) === null) return { action, why: `upgrade.${upgrade}` };
+  }
+  for (const debris of debrisLeft(state)) {
+    const action: Action = { type: 'bonus', crewId: 0, debris };
+    if (check(state, action, win) === null) return { action, why: 'explore' };
+  }
+  return null;
 }

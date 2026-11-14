@@ -8,7 +8,8 @@ import type { OrbitCamera } from './camera.ts';
 import type { Cutscene, Stage } from './cutscenes/cutscene.ts';
 import type { StormMode } from './fx/storm.ts';
 
-export type PickId = StationId | 'pusula' | 'lander';
+/** F6: `debris:<index>` is a rocket piece to collect. */
+export type PickId = StationId | 'pusula' | 'lander' | `debris:${number}`;
 
 export interface ScreenPoint {
   x: number;
@@ -30,6 +31,8 @@ export interface World {
   walkTo(station: StationId, onArrive: () => void): void;
   /** Ada walks to the front of a grid cell (building site). */
   walkToCell(cell: Cell, onArrive: () => void): void;
+  /** F6: Ada walks to a rocket piece (index into BALANCE.debris.pieces). */
+  walkToDebris(index: number, onArrive: () => void): void;
   /** Free walk on the ground (click-to-walk); stops outside buildings. */
   walkToPoint(x: number, z: number, onArrive?: () => void): void;
   placeAda(station: StationId): void;

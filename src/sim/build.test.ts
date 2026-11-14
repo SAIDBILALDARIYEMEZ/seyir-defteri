@@ -116,12 +116,6 @@ describe('build mode', () => {
     expect(s.broken).toEqual([]);
   });
 
-  it('bonus adds parts and science and costs no time', () => {
-    const s = step(fresh(), { type: 'bonus', crewId: 0, parts: 2, science: 1 });
-    expect(s.parts).toBe(BALANCE.parts.start + 2);
-    expect(s.science).toBe(1);
-    expect(s.hoursLeft).toBe(BALANCE.daylightHours);
-  });
 
   it('ending the day is always a habitat action', () => {
     const s = step(fresh(), build('moxie'));

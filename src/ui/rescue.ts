@@ -55,6 +55,7 @@ export function rescueProgress(state: GameState): RescueProgress | null {
 
 /** The first message of the chain is "send our location"; later ones are plain messages. */
 export function actionLabel(state: GameState, action: Action): string {
+  if (action.type === 'upgrade') return t(`action.upgrade.${action.upgrade}`);
   return action.type === 'message' && state.rescueStage === 1 ? t('action.sendLocation') : t(`action.${action.type}`);
 }
 

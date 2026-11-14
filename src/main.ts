@@ -91,6 +91,9 @@ const debugPanel = isDebug
     })
   : null;
 
+// ?debug only: handles for browser-pane test scripts (state, picking, walking).
+if (isDebug) Object.assign(window, { sdGame: game, sdWorld: world });
+
 let last = performance.now();
 const frame = (now: number): void => {
   const dt = Math.min((now - last) / 1000, 0.1);

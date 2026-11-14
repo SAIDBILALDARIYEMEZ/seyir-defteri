@@ -141,7 +141,8 @@ export interface MenuItem {
 }
 
 export interface ActionMenu {
-  open(title: string, items: MenuItem[], closeLabel: string): void;
+  /** `note`: one optional line under the title (F6 rocket piece). */
+  open(title: string, items: MenuItem[], closeLabel: string, note?: string): void;
   close(): void;
   isOpen(): boolean;
 }
@@ -154,8 +155,9 @@ export function mountActionMenu(parent: HTMLElement): ActionMenu {
     root.hidden = true;
   };
   return {
-    open(title, items, closeLabel) {
+    open(title, items, closeLabel, note) {
       root.replaceChildren(el('h2', '', title));
+      if (note) root.append(el('p', 'action-note', note));
       for (const item of items) {
         const b = button(item.hint ? 'action hint' : 'action', '', item.onPick);
         b.disabled = item.reason !== null;

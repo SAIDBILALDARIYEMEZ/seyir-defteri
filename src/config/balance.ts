@@ -80,6 +80,37 @@ export const BALANCE = {
   /** Parts from the ship. The start stock covers every build (exploring is a bonus, B3). */
   parts: { start: 18 },
   /**
+   * F6 exploring: pieces of the crashed rocket lie around the landing site and the crater.
+   * Ada walks over and collects one (`bonus` action): work hours, then parts (no science, so
+   * Legend stays a science goal). `cell`: where it lies on the build grid (it blocks only that
+   * cell until collected). Game rule, not NASA data.
+   */
+  debris: {
+    hours: 1,
+    /** One piece per sol: exploring stays a small daily extra (F6 bot: all 9 by sol 8 otherwise). */
+    perSol: 1,
+    pieces: [
+      { x: 15, y: 13, parts: 2 },
+      { x: 11, y: 13, parts: 2 },
+      { x: 16, y: 10, parts: 1 },
+      { x: 15, y: 16, parts: 2 },
+      { x: 11, y: 16, parts: 3 },
+      { x: 14, y: 17, parts: 1 },
+      { x: 17, y: 13, parts: 2 },
+      { x: 10, y: 15, parts: 2 },
+      { x: 14, y: 9, parts: 1 },
+    ],
+  },
+  /**
+   * F6 upgrades bought with collected parts (once each). `station`: where Ada does the work
+   * (it must be built and ready). foodStore: the food store holds `food` more. extraPanel:
+   * the panels bring `incomeFactor` more power per daylight hour.
+   */
+  upgrades: {
+    foodStore: { parts: 6, hours: 2, station: 'greenhouse', food: 10 },
+    extraPanel: { parts: 10, hours: 2, station: 'panels', incomeFactor: 0.15 },
+  },
+  /**
    * Build grid (sim rule). Fixed stations, the lander and craters block cells; `minGap` is in
    * cells. B3: 18 x 18; the habitat and the panels are placed by the player on sol 1 (free).
    */

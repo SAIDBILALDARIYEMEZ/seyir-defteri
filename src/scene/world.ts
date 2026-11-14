@@ -14,6 +14,7 @@ import { ROVER_DECOR_MODEL, SCENE_MODELS } from './entities/stationModels.ts';
 import { addRoverDecor, swapLander, swapStation, syncModelLooks } from './modelSwap.ts';
 import type { SwapView } from './modelSwap.ts';
 import { loadModels } from './models/loader.ts';
+import { createExtras } from './entities/debris.ts';
 import { createMarker } from './entities/marker.ts';
 import { PUSULA_HEAD_HEIGHT, createPusula } from './entities/pusula.ts';
 import { buildStation } from './entities/stations.ts';
@@ -114,7 +115,8 @@ export function createWorld(canvas: HTMLCanvasElement): World {
   const ghost = createGhost();
   scene.add(ghost.group);
   const marker = createMarker();
-  scene.add(marker.group);
+  const extras = createExtras(); // F6: rocket debris + upgrade props
+  scene.add(marker.group, extras.group);
 
   const storm = createStorm(scene);
   let stormMode: StormMode = 'none';
@@ -163,6 +165,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
       ada.update(dt);
       pusula.update(dt);
       marker.update(dt);
+      extras.update(dt);
       storm.update(dt, orbit.focus());
       cut?.update(dt);
       lighting.setMode(cut?.sky ?? (night ? 'night' : stormMode === 'none' ? 'day' : stormMode));
@@ -178,7 +181,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
     },
     pick(clientX, clientY) {
       const shown = STATION_IDS.filter((id) => views[id].group.visible).map((id) => views[id].group);
-      return picker.tagged(clientX, clientY, [pusula.group, lander, ...shown]) as PickId | null;
+      return picker.tagged(clientX, clientY, [pusula.group, lander, ...extras.roots(), ...shown]) as PickId | null;
     },
     isUsable: (id) => views[id].usable && views[id].group.visible,
     pickGround: (clientX, clientY) => picker.ground(clientX, clientY),
@@ -188,6 +191,10 @@ export function createWorld(canvas: HTMLCanvasElement): World {
     walkToCell(cell, onArrive) {
       const [x, z] = cellToWorld(cell);
       walk(x, z + 2.6, onArrive, [x, z]);
+    },
+    walkToDebris(index, onArrive) {
+      const [x, z] = extras.spot(index);
+      walk(x, z + 1.6, onArrive, [x, z]);
     },
     walkToPoint(x, z, onArrive) {
       walk(x, z, onArrive ?? (() => undefined));
@@ -236,6 +243,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
       const level = state.shelterLevel / BALANCE.actions.shelterBuild.maxLevel;
       views.shelter.mound?.scale.set(1 + level * 0.25, 0.55 + level * 0.6, 1 + level * 0.25);
       syncModelLooks(views.panels, views.shelter, state.panelEff, state.shelterLevel);
+      extras.sync(state, { panels: views.panels.group, greenhouse: views.greenhouse.group });
     },
     setNight(value) {
       night = value;

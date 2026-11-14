@@ -3,7 +3,7 @@
 // GameState: plain serializable data. No text, no functions, no window data.
 
 import { BALANCE } from '../config/balance.ts';
-import type { Action, Cell, PlacedId, ReasonCode, StationId, Turn } from './actions.ts';
+import type { Action, Cell, PlacedId, ReasonCode, StationId, Turn, UpgradeId } from './actions.ts';
 import { createRng } from './rng.ts';
 import { rollSchedule } from './systems/schedule.ts';
 import type { Schedule } from './systems/schedule.ts';
@@ -105,6 +105,10 @@ export interface GameState {
   broken: StationId[];
   /** Undone tasks carried from earlier sols, at most BALANCE.overdue.max (F5a). */
   overdue: PlannedTask[];
+  /** F6: rocket debris collected (indices into BALANCE.debris.pieces). Missing in older saves. */
+  debris?: number[];
+  /** F6: upgrades bought with parts. Missing in older saves. */
+  upgrades?: UpgradeId[];
   /** All random events are rolled once from the seed, so a replayed day sees the same events. */
   schedule: Schedule;
   today: Today;
@@ -163,6 +167,8 @@ export function createInitialState(seed: number, win: WindowData, crewCount = 1)
     foodEmptySols: 0,
     broken: [],
     overdue: [],
+    debris: [],
+    upgrades: [],
     schedule: rollSchedule(createRng(seed)),
     today: freshToday(0),
     log: [],

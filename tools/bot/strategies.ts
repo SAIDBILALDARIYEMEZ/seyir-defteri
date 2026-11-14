@@ -8,7 +8,7 @@ import type { Action, BuildableId, SimpleActionType } from '../../src/sim/action
 import type { Rng } from '../../src/sim/rng.ts';
 import { check } from '../../src/sim/rules.ts';
 import type { GameState } from '../../src/sim/state.ts';
-import { nextTask } from '../../src/sim/systems/advisor.ts';
+import { exploreTask, nextTask } from '../../src/sim/systems/advisor.ts';
 import { STARTERS } from '../../src/sim/systems/build.ts';
 import { isEventNow } from '../../src/sim/systems/time.ts';
 import { sepWarnedToday, visibleWarnings } from '../../src/sim/systems/warnings.ts';
@@ -69,6 +69,8 @@ const greedy: Strategy = (state, win) => {
 interface PlanOptions {
   shelter: 'smart' | 'never' | 'always';
   antenna: boolean;
+  /** F6: when nothing is left, follow PUSULA's explore idea (upgrade / rocket piece). */
+  explore?: boolean;
 }
 
 /** Simple priorities + shelter on warning. The option flags make the PRD §13 variants. */
@@ -97,7 +99,7 @@ function planner(opts: PlanOptions): Strategy {
     list.push(simple('readCuriosity'), simple('scanRock'));
     // Only the first message matters to this bot (it sends the location).
     const pick = list.find((x) => ok(x) && !(x.type === 'message' && state.rescueStage !== 1));
-    return pick ?? END;
+    return pick ?? (opts.explore ? exploreTask(state, win)?.action : null) ?? END;
   };
 }
 
@@ -105,7 +107,7 @@ function planner(opts: PlanOptions): Strategy {
  * Does PUSULA's list top to bottom and ends the day when it is empty (F5b: the list fits the
  * daylight, overdue tasks included; sheltering while PUSULA says so).
  */
-const pusula: Strategy = (state, win) => nextTask(state, win)?.action ?? END;
+const pusula: Strategy = (state, win) => nextTask(state, win)?.action ?? exploreTask(state, win)?.action ?? END;
 
 /** Sol-1 setup first: every bot puts the habitat and the panels on their fixed slots. */
 const withSetup = (strategy: Strategy): Strategy => (state, win, rng) => {
@@ -118,7 +120,7 @@ export const strategies: Record<string, Strategy> = Object.fromEntries(
   Object.entries({
     random,
     greedy,
-    balanced: planner({ shelter: 'smart', antenna: true }),
+    balanced: planner({ shelter: 'smart', antenna: true, explore: true }),
     pusula,
     'never-shelter': planner({ shelter: 'never', antenna: true }),
     'always-shelter': planner({ shelter: 'always', antenna: true }),

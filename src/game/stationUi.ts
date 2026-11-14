@@ -11,6 +11,7 @@ import type { Action, ActionType, Cell, PlacedId, ReasonCode, StationId, Turn } 
 import { check, costOf, isStationLocked } from '../sim/rules.ts';
 import type { GameState } from '../sim/state.ts';
 import { isPlaceable, isStarter } from '../sim/systems/build.ts';
+import { foodMax, hasUpgrade, UPGRADES, upgradeStation } from '../sim/systems/explore.ts';
 import { fmt } from '../ui/dom.ts';
 import { spawnFloater } from '../ui/overlays.ts';
 import { CREW_ID } from './context.ts';
@@ -26,7 +27,11 @@ function actionsAt(station: StationId, state: GameState): Action[] {
   for (const type of stationContent[station].actions as ActionType[]) {
     if (type === 'repair') continue;
     if (type === 'shelterWait') list.push({ type, crewId, hours: BALANCE.actions.shelterWait.stepHours });
-    else if (type !== 'build' && type !== 'bonus' && type !== 'place' && type !== 'relocate' && type !== 'rotate') list.push({ type, crewId });
+    else if (type !== 'build' && type !== 'bonus' && type !== 'upgrade' && type !== 'place' && type !== 'relocate' && type !== 'rotate') list.push({ type, crewId });
+  }
+  // F6: upgrades bought with rocket parts are done at their station, once each.
+  for (const upgrade of UPGRADES) {
+    if (upgradeStation(upgrade) === station && !hasUpgrade(state, upgrade)) list.push({ type: 'upgrade', crewId, upgrade });
   }
   return list;
 }
@@ -49,7 +54,7 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
   /** Why an action is greyed out; "no time" and "store full" say the numbers (F5b). */
   function reasonText(reason: ReasonCode, hours: number): string {
     if (reason === 'noTime') return t('reason.noTimeFor', { need: fmt(hours), have: fmt(s.state.hoursLeft) });
-    if (reason === 'foodFull') return t('reason.foodFullStore', { n: fmt(s.state.food), max: BALANCE.food.max });
+    if (reason === 'foodFull') return t('reason.foodFullStore', { n: fmt(s.state.food), max: foodMax(s.state) });
     return t(`reason.${reason}`);
   }
 
@@ -60,10 +65,11 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
       const cost = costOf(s.state, action);
       const reason = check(s.state, action, s.win);
       const hours = cost.walk + cost.hours;
-      const store = action.type === 'greenhouse' ? ` · 🥫 ${t('menu.store', { n: fmt(s.state.food), max: BALANCE.food.max })}` : '';
+      const store = action.type === 'greenhouse' ? ` · 🥫 ${t('menu.store', { n: fmt(s.state.food), max: foodMax(s.state) })}` : '';
+      const parts = action.type === 'upgrade' ? ` · ${t('upgrade.cost', { n: BALANCE.upgrades[action.upgrade].parts })}` : '';
       return {
         label: `${labelOf(s.state, action)}${store}`,
-        cost: costLine(hours, cost.power),
+        cost: costLine(hours, cost.power) + parts,
         reason: reason ? reasonText(reason, hours) : null,
         hint: g.station === station && g.stepType === action.type,
         onPick: () => (action.type === 'shelterWait' ? ctx.enterShelter() : ctx.perform(action)),
@@ -117,6 +123,31 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
     });
   }
 
+  /** F6: walk to a rocket piece and offer "Collect" (1 h + walk, gives its parts). */
+  function selectDebris(index: number): void {
+    if (!ctx.canWalk()) return;
+    const action: Action = { type: 'bonus', crewId: CREW_ID, debris: index };
+    if (check(s.state, action, s.win) === 'collected') return;
+    walkThen((done) => world.walkToDebris(index, done), () => {
+      s.openStation = null;
+      const cost = costOf(s.state, action);
+      const reason = check(s.state, action, s.win);
+      const piece = BALANCE.debris.pieces[index];
+      menu.open(`🔩 ${t('debris.name')}`, [
+        {
+          label: `${labelOf(s.state, action)} · ${t('debris.gain', { n: piece?.parts ?? 0 })}`,
+          cost: costLine(cost.walk + cost.hours, 0),
+          reason: reason ? reasonText(reason, cost.walk + cost.hours) : null,
+          hint: true,
+          onPick: () => {
+            menu.close();
+            ctx.perform(action);
+          },
+        },
+      ], t('menu.close'), t('debris.info'));
+    });
+  }
+
   /** Click-to-walk: purely visual; the sim charges walking with the next action (D-010). */
   function walkGround(x: number, z: number): void {
     if (!ctx.canWalk()) return;
@@ -163,7 +194,7 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
     texts.forEach((text, i) => spawnFloater(ctx.ui, at.x, at.y, text, i * FLOATER_GAP_MS));
   }
 
-  return { showStationMenu, selectStation, walkGround, placeBuilding, floatNumbers };
+  return { showStationMenu, selectStation, selectDebris, walkGround, placeBuilding, floatNumbers };
 }
 
 export type StationUi = ReturnType<typeof createStationUi>;

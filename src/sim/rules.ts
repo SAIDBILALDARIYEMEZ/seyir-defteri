@@ -8,6 +8,7 @@ import type { Action, ReasonCode, StationId } from './actions.ts';
 import { RESCUE_DONE } from './state.ts';
 import type { GameState, MorningSnapshot } from './state.ts';
 import { buildReason, isBuildable, notReadyReason, placeReason, relocateReason, setupDone } from './systems/build.ts';
+import { collectReason, foodMax, upgradeReason, upgradeStation } from './systems/explore.ts';
 import { isEventNow } from './systems/time.ts';
 import { sepWarnedToday } from './systems/warnings.ts';
 import type { WindowData } from './window.ts';
@@ -36,8 +37,18 @@ export function costOf(state: GameState, action: Action): Cost {
   if (action.type === 'endSol' || action.type === 'replayYesterday') {
     return { station: 'habitat', walk: 0, hours: 0, power: 0 };
   }
-  if (action.type === 'bonus' || action.type === 'place' || action.type === 'rotate') {
+  if (action.type === 'place' || action.type === 'rotate') {
     return { station: locationOf(state, action.crewId), walk: 0, hours: 0, power: 0 };
+  }
+  if (action.type === 'bonus') {
+    // F6: the debris lies around the landing site: a walk from Ada's spot, she ends at the habitat side.
+    const from = locationOf(state, action.crewId);
+    const walk = (BALANCE.walk.farStations as readonly string[]).includes(from) ? BALANCE.walk.far : BALANCE.walk.near;
+    return { station: 'habitat', walk, hours: BALANCE.debris.hours, power: 0 };
+  }
+  if (action.type === 'upgrade') {
+    const station = upgradeStation(action.upgrade);
+    return { station, walk: walkHours(locationOf(state, action.crewId), station), hours: BALANCE.upgrades[action.upgrade].hours, power: 0 };
   }
   const station =
     action.type === 'repair' || action.type === 'build' || action.type === 'relocate'
@@ -99,7 +110,7 @@ function specific(state: GameState, action: Action, win: WindowData): ReasonCode
     case 'moxie':
       return state.air >= a.moxie.disabledAtAir ? 'airFull' : null;
     case 'greenhouse':
-      return state.food >= BALANCE.food.max ? 'foodFull' : null;
+      return state.food >= foodMax(state) ? 'foodFull' : null;
     case 'shelterBuild':
       return state.shelterLevel >= a.shelterBuild.maxLevel ? 'shelterMax' : null;
     case 'shelterWait':
@@ -123,6 +134,10 @@ function specific(state: GameState, action: Action, win: WindowData): ReasonCode
       return state.today.scannedRock ? 'alreadyToday' : null;
     case 'repair':
       return state.broken.includes(action.station) ? null : 'notBroken';
+    case 'bonus':
+      return collectReason(state, action.debris);
+    case 'upgrade':
+      return upgradeReason(state, action.upgrade);
     default:
       return null;
   }
@@ -136,13 +151,13 @@ export function check(state: GameState, action: Action, win: WindowData): Reason
     return replayTarget(state) ? null : 'nothingToReplay';
   }
   if (state.phase !== 'playing') return 'gameOver';
-  if (action.type === 'bonus') return null;
   if (action.type === 'rotate') return state.buildings[action.station] ? null : 'notBuilt';
   if (action.type === 'place') return specific(state, action, win);
   if (!setupDone(state)) return 'needSetup';
   if (action.type === 'endSol') return null;
   const placing = action.type === 'build' || action.type === 'relocate';
-  if (!placing && state.sol < BALANCE.unlockSol[action.type]) return 'locked';
+  const extra = action.type === 'bonus' || action.type === 'upgrade';
+  if (!placing && !extra && state.sol < BALANCE.unlockSol[action.type]) return 'locked';
   const cost = costOf(state, action);
   if (!placing) {
     const notReady = notReadyReason(state, cost.station);

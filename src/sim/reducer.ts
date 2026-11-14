@@ -9,7 +9,8 @@ import type { Action } from './actions.ts';
 import type { Rng } from './rng.ts';
 import { check, costOf, replayTarget } from './rules.ts';
 import type { GameState } from './state.ts';
-import { addBonus, placeStarter, relocate, rotateBuilding, setupDone, startBuilding } from './systems/build.ts';
+import { placeStarter, relocate, rotateBuilding, setupDone, startBuilding } from './systems/build.ts';
+import { buyUpgrade, collect, foodMax } from './systems/explore.ts';
 import { endSol, lose, morningPlan } from './systems/night.ts';
 import { passDaylight, shelterShield } from './systems/time.ts';
 import type { WindowData } from './window.ts';
@@ -26,7 +27,7 @@ function applyEffect(state: GameState, action: Action): GameState {
     case 'greenhouse': {
       const idle = state.greenhouseIdleSols >= a.greenhouse.idleSolsToHalve;
       const gain = a.greenhouse.food * (idle ? a.greenhouse.idleFactor : 1);
-      return { ...state, food: Math.min(BALANCE.food.max, state.food + gain), greenhouseIdleSols: 0 };
+      return { ...state, food: Math.min(foodMax(state), state.food + gain), greenhouseIdleSols: 0 };
     }
     case 'shelterBuild':
       return { ...state, shelterLevel: state.shelterLevel + 1 };
@@ -52,6 +53,10 @@ function applyEffect(state: GameState, action: Action): GameState {
       };
     case 'repair':
       return { ...state, broken: state.broken.filter((s) => s !== action.station) };
+    case 'bonus':
+      return collect(state, action.debris);
+    case 'upgrade':
+      return buyUpgrade(state, action.upgrade);
     default:
       return state;
   }
@@ -78,7 +83,6 @@ export function reduce(state: GameState, action: Action, _rng: Rng, win: WindowD
     return { ...placed, today: { ...placed.today, plan: morningPlan(placed, win) } };
   }
   if (action.type === 'rotate') return { ...rotateBuilding(state, action.station), rejection: null };
-  if (action.type === 'bonus') return { ...addBonus(state, action.parts, action.science), rejection: null };
 
   const cost = costOf(state, action);
   let s = passDaylight({ ...state, rejection: null }, win, cost.walk, BALANCE.dose.habitatShield);

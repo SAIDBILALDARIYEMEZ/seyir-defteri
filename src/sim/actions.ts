@@ -28,6 +28,9 @@ export type SimpleActionType =
 /** Stations that are placed and built in build mode (the others are ready from sol 1). */
 export type BuildableId = 'moxie' | 'greenhouse' | 'shelter' | 'antenna' | 'beacon';
 
+/** F6 upgrades bought with parts from the rocket debris. */
+export type UpgradeId = 'foodStore' | 'extraPanel';
+
 /** Stations that land in the depot and are placed for free on sol 1 (B3). */
 export type StarterId = 'habitat' | 'panels';
 
@@ -52,8 +55,10 @@ export type Action =
   | { type: 'relocate'; crewId: number; station: PlacedId; cell: Cell; rot?: Turn }
   /** Turn a placed station 90 degrees (free, instant, cosmetic). */
   | { type: 'rotate'; crewId: number; station: PlacedId }
-  /** Room for B3: bonus parts / science from crates found while exploring. */
-  | { type: 'bonus'; crewId: number; parts: number; science: number }
+  /** F6 exploring: collect rocket piece `debris` (index into BALANCE.debris.pieces). */
+  | { type: 'bonus'; crewId: number; debris: number }
+  /** F6: buy an upgrade with collected parts. */
+  | { type: 'upgrade'; crewId: number; upgrade: UpgradeId }
   | { type: 'shelterWait'; crewId: number; hours: number }
   | { type: 'repair'; crewId: number; station: StationId };
 
@@ -92,6 +97,7 @@ export type ReasonCode =
   | 'tooEarly'
   | 'beaconDone'
   | 'alreadyToday'
+  | 'collected'
   | 'noReplaysLeft'
   | 'nothingToReplay';
 
@@ -111,6 +117,7 @@ export const STATION_OF: Record<ActionType, StationId> = {
   relocate: 'habitat',
   rotate: 'habitat',
   bonus: 'habitat',
+  upgrade: 'habitat',
   endSol: 'habitat',
   replayYesterday: 'habitat',
 };

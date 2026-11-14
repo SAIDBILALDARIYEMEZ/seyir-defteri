@@ -6,6 +6,7 @@ import { BALANCE } from '../../config/balance.ts';
 import type { GameState } from '../state.ts';
 import { isEventRate, rateAt } from '../window.ts';
 import type { WindowData } from '../window.ts';
+import { incomeFactor } from './explore.ts';
 import { isDustSol } from './schedule.ts';
 
 const EPS = 1e-9;
@@ -50,7 +51,7 @@ export function isEventNow(state: GameState, win: WindowData): boolean {
 export function incomePerHour(state: GameState): number {
   if (state.broken.includes('panels')) return 0;
   const dust = isDustSol(state.schedule, state.sol) ? BALANCE.power.dustIncomeFactor : 1;
-  return (BALANCE.power.dayIncome / BALANCE.daylightHours) * state.panelEff * dust;
+  return (BALANCE.power.dayIncome / BALANCE.daylightHours) * state.panelEff * dust * incomeFactor(state);
 }
 
 /** Spends daylight hours: adds dose and panel income. Does not end the sol. */
