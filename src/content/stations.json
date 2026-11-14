@@ -1,0 +1,11 @@
+{
+  "habitat": { "icon": "🏠", "actions": ["endSol"] },
+  "panels": { "icon": "☀️", "actions": ["clean"] },
+  "moxie": { "icon": "💨", "actions": ["moxie"] },
+  "greenhouse": { "icon": "🌱", "actions": ["greenhouse"] },
+  "shelter": { "icon": "🛡️", "actions": ["shelterBuild", "shelterWait"] },
+  "antenna": { "icon": "📡", "actions": ["antennaRepair", "message"] },
+  "beacon": { "icon": "🛬", "actions": ["beacon"] },
+  "curiosity": { "icon": "🤖", "actions": ["readCuriosity"] },
+  "science": { "icon": "🔬", "actions": ["scanRock"] }
+}

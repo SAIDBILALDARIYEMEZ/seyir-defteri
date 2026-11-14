@@ -1,7 +1,7 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
 // All player-facing text comes from {lang}.json (Hard Rule 2).
-// Default: Turkish if the browser language is Turkish, otherwise English.
+// Default: English whatever the browser language is; Turkish is chosen in settings (D-010).
 
 import en from './en.json';
 import tr from './tr.json';
@@ -18,9 +18,9 @@ function detectLang(): Lang {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === 'tr' || saved === 'en') return saved;
   } catch {
-    // Storage may be blocked (private mode); fall through to the browser language.
+    // Storage may be blocked (private mode); use the default.
   }
-  return navigator.language.toLowerCase().startsWith('tr') ? 'tr' : 'en';
+  return 'en';
 }
 
 let current: Lang = detectLang();
@@ -39,12 +39,15 @@ export function setLang(lang: Lang): void {
   listeners.forEach((fn) => fn());
 }
 
-export function t(key: TextKey): string {
-  return tables[current][key];
+export function t(key: TextKey, params?: Record<string, string | number>): string {
+  let text = tables[current][key];
+  if (params) for (const [name, value] of Object.entries(params)) text = text.replace(`{${name}}`, String(value));
+  return text;
 }
 
-/** Calls fn now and on every language change. */
-export function onLangChange(fn: () => void): void {
+/** Calls fn now and on every language change. Returns an unsubscribe function. */
+export function onLangChange(fn: () => void): () => void {
   listeners.add(fn);
   fn();
+  return () => listeners.delete(fn);
 }
