@@ -114,13 +114,6 @@ export function buildStation(id: StationId): StationParts {
     case 'curiosity': curiosity(group); break;
     case 'science': science(group); break;
   }
-  // Generous invisible hit area so small stations are easy to tap.
-  const hit = mesh(
-    new THREE.CylinderGeometry(3, 3, 4, 8),
-    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
-    0, 2, 0,
-  );
-  group.add(hit);
   return parts;
 }
 

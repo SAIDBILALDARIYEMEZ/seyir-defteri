@@ -41,7 +41,7 @@ phase without the human's approval.
 
 1. **500-line rule.** No source file over 500 lines; aim for 200-300. UI/scene modules max 300.
 2. **English code.** Names, comments, docs in English. **All player-facing text comes from
-   `src/i18n/{tr,en}.json`**, never hardcoded. Default language: `tr` browser -> TR, else EN.
+   `src/i18n/{tr,en}.json`**, never hardcoded. Default language: EN (any browser); TR is chosen in settings (D-010).
 3. **Simulation is pure.** `src/sim/` never imports three.js, DOM or `Math.random`. It is
    `(state, action, rng) -> newState`. Relative imports use the `.ts` extension so the bot
    runs under plain Node.
@@ -121,3 +121,7 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
   24.5 uGy per point, budget 45 (D-008). Never describe it to players as total radiation.
 - `node tools/bot/probe.ts` prints dose / science spreads of winning games: use it before
   touching the Legend limits.
+- Browser-pane clicks use the screenshot's coordinate frame (800x600 for a 1024x768 viewport),
+  not CSS pixels: take a full screenshot first and click what you see there.
+- Station picking raycasts real meshes only. Do not add invisible hit volumes: they overlapped
+  and sent Ada to the wrong station (D-010).

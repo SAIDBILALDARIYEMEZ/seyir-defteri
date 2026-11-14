@@ -155,3 +155,31 @@ Legend 0 / 0 / 9.5%; random <= 1%; balanced Legend 26% in window 1.
   in w2 / w3 (target was only for window 1).
 - pusula untouched by request (0% Legend, 53-66% wins) until F3.
 These need rule or content changes (not numbers), so they wait for the human.
+
+## D-010 — 2026-11-14 — F2 choices (3D valley, click-to-walk, HUD)
+Human decisions:
+- **Default language is English** whatever the browser language is; Turkish is chosen in the
+  main menu or the pause card (saved in localStorage). Replaces the old "tr browser -> TR" rule.
+- **No "Coming soon" buttons or texts**: the main menu has no Moon / Crew buttons; capsules and
+  the ship are passive scenery (not clickable). The tagline is the subtitle of the main menu.
+- **Landing marker (`beacon`) is a station in the valley** (the sim's rescue chain needs it).
+- **Wrist watch tasks** come from the sim's `advise()` and are shown as action names; the
+  PUSULA text field is a fixed hint until F3.
+- **Walking time is charged with the action**, as the sim does: walking to a station and
+  closing the menu costs no time. The menu shows walk + work hours as one number.
+- The date badge shows the window's real start date (window 1 starts on 3 May 2024).
+Build choices:
+- Picking raycasts the stations' own meshes (nearest hit wins); name labels are also buttons,
+  so small stations stay easy to tap. Invisible hit cylinders overlapped and were removed.
+- Walk animation length = sim walk hours (near 0.5 h / far 1 h) x 2.4 s; layout and camera
+  numbers are visual only and live in `src/scene/layout.ts`, not in `balance.ts`.
+- Floating numbers show the action's own cost and effect (hours, power, air, food, science,
+  shelter level); solar income during the work hours only shows in the HUD.
+- Night summary lines use the `balance.ts` night costs plus the sol's log flags; the storm dose
+  line is the sol's gain as a share of the budget (label duty from D-008).
+- Morning cards (one text + OK): unlocks on sol 3 / 4, new malfunction, dust storm start,
+  particle-storm warning, Earth's reply. Result screen is a placeholder card until F4.
+- Station -> action lists live in `src/content/stations.json`.
+**Known gaps (not built in F2):** opening scene, sound, real models, save / Continue, "end the
+day?" confirmation, Replay yesterday button, Info & Sources screen. While the night card is
+open the HUD already shows the next morning's numbers.
