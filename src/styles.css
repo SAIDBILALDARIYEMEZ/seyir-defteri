@@ -37,3 +37,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #c98a6b; col
 }
 .debug-panel strong { display: block; margin-bottom: 4px; color: #fff; }
 .debug-panel button { margin-top: 6px; font: inherit; cursor: pointer; }
+.debug-panel { max-width: 420px; pointer-events: auto; }
+.debug-panel pre { margin: 0; font: inherit; white-space: pre-wrap; }
+.debug-panel button, .debug-panel select, .debug-panel input { margin: 6px 4px 0 0; font: inherit; }
+.debug-panel input { width: 64px; }

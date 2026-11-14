@@ -79,3 +79,40 @@ rover driving, multiplayer and pod wake-up (stay "Coming soon"), many small tool
   npm dependency, and no Actions workflow because the CLI token lacks the `workflow` scope.
 - **Dependencies:** `three`; dev: `vite`, `typescript`, `vitest`, `@types/three`, `@types/node`.
 - **SI note** is a two-line header in every code file; JSON files are covered by the README.
+
+## D-006 — 2026-11-14 — F1 simulation choices (first pass, not balance-tuned)
+- **Dose math is the RadLab curve only:** dose points = uGy / 100 (R2). Result with the real
+  snapshots: 2024-05-20 is about **16 points unshielded** (11 behind the habitat shield, 6 with
+  4 h in a level-3 shelter), not 64. A whole month unshielded is 49 (w1), 58 (w2), 41 (w3)
+  points, so the 100-point budget cannot be reached. **Open, needs the human:** see D-007.
+- **Clock:** one sol = one UTC calendar day of the window; work is 05:00-15:00 UTC (10 h), the
+  other 14 h are spent in the habitat (habitat shield). Labeled as a game simplification.
+  March 2023 uses its first 30 days.
+- **Warnings = DONKI SEP days plus days RAD itself measured an event at Mars.** DONKI has no
+  SEP entry on 2024-05-19..21 (its SEP days in window 1 are May 9, 10, 11, 13), so a
+  DONKI-only rule would leave the real Mars event without a warning. Lead time stays 1 sol /
+  3 sols with the antenna. The warning lead itself is a game simplification.
+- **Radiation event hour** = RAD hourly mean >= 2 x the month median (`eventRateFactor`).
+  "Wait in shelter" is enabled on warned days and during event hours.
+- **Random events are rolled once from the seed** into `state.schedule` (1-2 dust storms,
+  2 malfunctions), so "Replay yesterday" sees the same events. The reducer is
+  `reduce(state, action, rng, window)`: window data is passed in, not stored in the state.
+- **Small rules the PRD leaves open:** Curiosity reading and rock scan once per sol; walking
+  0.5 h (1 h to or from the Curiosity / science spots), crew starts each sol at the habitat;
+  broken panels give no power; a neglected greenhouse gives 1.5 food; only the first antenna
+  message advances the rescue chain, later replies are `forecast` / `advice` codes.
+- **Hard-choice day (bot metric)** = a sol that starts with two or more urgent needs
+  (thresholds in `BALANCE.advisor`).
+- **RAD gaps** (12 h in w2, some in w3) are filled with the month median when a window is built.
+- **DONKI flare notifications** carry the alert threshold that was crossed (for example M5.0),
+  not the final flare class; the snapshot field is named `threshold` for that reason.
+- No endpoint failed on 2026-11-14; all six snapshot files were written.
+
+## D-007 — 2026-11-14 — OPEN: radiation is not yet a real threat (human decision needed)
+First bot report (200 games x 7 strategies x 3 windows, no tuning): no game is ever lost to
+dose, every win is a "Legend" win, `never-shelter` wins 91.5%, `always-shelter` loses only
+through air. The PRD §13 targets for the shelter strategies cannot be met by tuning other
+gauges. Options, all inside `balance.ts`: (a) lower `uGyPerPoint` so the same real curve fills
+more of the budget, described honestly as "mission dose budget" (for example 25 uGy per point);
+(b) lower the budget and the Legend limit; (c) keep the honest scale and make the trade-off
+about the Legend limit only. Not decided here: game design belongs to the human.

@@ -1,12 +1,80 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
 // ALL balance numbers live here (Hard Rule 5). No magic numbers in sim or UI.
-// F0 placeholder: only what the placeholder sim needs. F1 fills this from the PRD.
+// Starting values come from PRD §6-§9 with the D-002 revisions. Change only here, then run the bot.
 
 export const BALANCE = {
   totalSols: 30,
   daylightHours: 10,
+  hoursPerSol: 24,
+  /** Game simplification: a sol is one UTC calendar day and work starts at 05:00 UTC. */
+  dayStartHour: 5,
   maxCrew: 7,
+
+  power: { start: 50, max: 100, dayIncome: 30, dustIncomeFactor: 0.4, nightHeating: 15 },
+  air: { start: 70, max: 100, perSol: 10, coldPenalty: 15 },
+  food: { start: 8, max: 20, perSol: 1, unlockSol: 3, emptySolsToLose: 2 },
+  panel: { start: 1, decayPerSol: 0.1, dustDecayPerSol: 0.25, cleanAt: 0.9 },
+
+  dose: {
+    budget: 100,
+    /** D-002 R2: 1 dose point is about 100 uGy (quiet 2024 sol, unshielded). */
+    uGyPerPoint: 100,
+    habitatShield: 0.3,
+    /** Shield while waiting in the shelter, by shelter level 0-3. */
+    shelterShield: [0.5, 0.7, 0.85, 0.95],
+    /** An hour counts as a radiation event when the rate is this many times the quiet rate. */
+    eventRateFactor: 2,
+    legendMax: 50,
+  },
+  science: { legendMin: 8 },
+
+  actions: {
+    clean: { hours: 2 },
+    moxie: { hours: 1, power: 15, air: 20, disabledAtAir: 95 },
+    greenhouse: { hours: 2, power: 5, food: 3, idleSolsToHalve: 2, idleFactor: 0.5 },
+    shelterBuild: { hours: 3, maxLevel: 3 },
+    shelterWait: { stepHours: 1 },
+    antennaRepair: { hours: 3 },
+    message: { hours: 1, power: 5 },
+    beacon: { hours: 2, power: 10, afterSol: 15 },
+    readCuriosity: { hours: 2, science: 2 },
+    scanRock: { hours: 2, science: 1 },
+    repair: { hours: 2 },
+  },
+  unlockSol: {
+    clean: 1,
+    moxie: 1,
+    greenhouse: 3,
+    shelterBuild: 4,
+    shelterWait: 4,
+    antennaRepair: 4,
+    message: 4,
+    beacon: 4,
+    readCuriosity: 4,
+    scanRock: 4,
+    repair: 1,
+  },
+  walk: { near: 0.5, far: 1, farStations: ['curiosity', 'science'] },
+
+  warnings: { sepLead: 1, sepLeadAntenna: 3, dustLead: 1, dustLeadAntenna: 2 },
+  dust: { minStorms: 1, maxStorms: 2, minLen: 2, maxLen: 3, earliestSol: 5 },
+  malfunction: { count: 2, earliestSol: 5, stations: ['panels', 'moxie', 'greenhouse'] },
+  replay: { uses: 3 },
+
+  /** PUSULA advisor and "urgent need" thresholds (also used for the hard-choice-day metric). */
+  advisor: {
+    maxTasks: 3,
+    airLow: 40,
+    airComfort: 60,
+    powerLow: 20,
+    foodLow: 2,
+    foodComfort: 5,
+    panelDirty: 0.5,
+    panelCleanAt: 0.7,
+    shelterHoursOnEvent: 4,
+    hardChoiceNeeds: 2,
+  },
 } as const;
 
 export type Balance = typeof BALANCE;

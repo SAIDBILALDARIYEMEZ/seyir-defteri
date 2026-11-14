@@ -100,6 +100,7 @@ npm run build     # Type-check + production build into dist/
 npm run preview   # Serve dist/ locally
 npm test          # Vitest (sim + adapters)
 npm run bot       # Headless playtest bot (-- --games 200)
+node tools/data/fetch.mjs   # Refresh the real-data snapshots in src/data/
 npm run deploy    # Build, then publish dist/ to the gh-pages branch
 ```
 
@@ -111,3 +112,8 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
   is `npm run deploy` (pushes `dist/` to `gh-pages`), not an Actions workflow.
 - Pages can serve a cached build for a minute or two after deploy: hard-reload (Cmd+Shift+R)
   and test with a fresh game.
+- The sim takes the window data as a 4th argument: `reduce(state, action, rng, window)`.
+  Tests use `builtinWindow()` (stable numbers); the bot and the game use the snapshots.
+- DONKI lists no SEP on 2024-05-20: the big Mars event is only in the RAD curve. Warnings
+  therefore use DONKI SEP days plus RAD-measured event days (D-006).
+- DONKI `notifications?type=FLR` gives the alert threshold crossed, not the flare class.

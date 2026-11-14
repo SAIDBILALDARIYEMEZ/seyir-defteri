@@ -1,32 +1,137 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
-// GameState: plain serializable data. F0 placeholder shape; F1 adds gauges and events.
+// GameState: plain serializable data. No text, no functions, no window data.
 
 import { BALANCE } from '../config/balance.ts';
+import type { ReasonCode, StationId } from './actions.ts';
+import { createRng } from './rng.ts';
+import { rollSchedule } from './systems/schedule.ts';
+import type { Schedule } from './systems/schedule.ts';
+import type { WindowData } from './window.ts';
 
 export interface CrewMember {
   id: number;
   awake: boolean;
+  location: StationId;
 }
 
 export type GamePhase = 'playing' | 'won' | 'lost';
+export type LossReason = 'air' | 'dose' | 'food';
+export type Result = 'legend' | 'success' | 'hardRescue' | 'evacuation';
+export type ReplyKind = 'coords' | 'forecast' | 'advice';
+
+/** Rescue chain: 0 none, 1 antenna repaired, 2 location sent, 3 coordinates received, 4 beacon set. */
+export type RescueStage = 0 | 1 | 2 | 3 | 4;
+export const RESCUE_DONE: RescueStage = 4;
+
+/** One line per sol for the Commander's Logbook (codes only; text comes from i18n). */
+export interface SolLog {
+  sol: number;
+  actions: string[];
+  urgent: string[];
+  flags: string[];
+  power: number;
+  air: number;
+  food: number;
+  dose: number;
+  doseGained: number;
+  science: number;
+}
+
+export interface Today {
+  actions: string[];
+  urgent: string[];
+  flags: string[];
+  doseStart: number;
+  shelterHours: number;
+  readCuriosity: boolean;
+  scannedRock: boolean;
+}
 
 export interface GameState {
   seed: number;
+  windowId: string;
   sol: number;
   hoursLeft: number;
   phase: GamePhase;
+  lossReason: LossReason | null;
+  result: Result | null;
   /** Array from day one: the data model supports up to BALANCE.maxCrew astronauts. */
   crew: CrewMember[];
+  power: number;
+  air: number;
+  food: number;
+  dose: number;
+  science: number;
+  panelEff: number;
+  shelterLevel: number;
+  rescueStage: RescueStage;
+  messagePending: boolean;
+  lastReply: ReplyKind | null;
+  greenhouseIdleSols: number;
+  foodEmptySols: number;
+  broken: StationId[];
+  /** All random events are rolled once from the seed, so a replayed day sees the same events. */
+  schedule: Schedule;
+  today: Today;
+  log: SolLog[];
+  replaysLeft: number;
+  /** Why the last action was refused, or null if it was applied. */
+  rejection: ReasonCode | null;
+  /** State at the last two sol mornings ("Replay yesterday"). */
+  mornings: MorningSnapshot[];
 }
 
-export function createInitialState(seed: number, crewCount = 1): GameState {
-  const count = Math.max(1, Math.min(BALANCE.maxCrew, crewCount));
+export type MorningSnapshot = Omit<GameState, 'mornings'>;
+
+export function freshToday(dose: number): Today {
   return {
+    actions: [],
+    urgent: [],
+    flags: [],
+    doseStart: dose,
+    shelterHours: 0,
+    readCuriosity: false,
+    scannedRock: false,
+  };
+}
+
+export function snapshotOf(state: GameState): MorningSnapshot {
+  const { mornings: _mornings, ...rest } = state;
+  return structuredClone(rest);
+}
+
+export function createInitialState(seed: number, win: WindowData, crewCount = 1): GameState {
+  const count = Math.max(1, Math.min(BALANCE.maxCrew, crewCount));
+  const state: GameState = {
     seed,
+    windowId: win.id,
     sol: 1,
     hoursLeft: BALANCE.daylightHours,
     phase: 'playing',
-    crew: Array.from({ length: count }, (_, id) => ({ id, awake: id === 0 })),
+    lossReason: null,
+    result: null,
+    crew: Array.from({ length: count }, (_, id) => ({ id, awake: id === 0, location: 'habitat' })),
+    power: BALANCE.power.start,
+    air: BALANCE.air.start,
+    food: BALANCE.food.start,
+    dose: 0,
+    science: 0,
+    panelEff: BALANCE.panel.start,
+    shelterLevel: 0,
+    rescueStage: 0,
+    messagePending: false,
+    lastReply: null,
+    greenhouseIdleSols: 0,
+    foodEmptySols: 0,
+    broken: [],
+    schedule: rollSchedule(createRng(seed)),
+    today: freshToday(0),
+    log: [],
+    replaysLeft: BALANCE.replay.uses,
+    rejection: null,
+    mornings: [],
   };
+  state.mornings = [snapshotOf(state)];
+  return state;
 }
