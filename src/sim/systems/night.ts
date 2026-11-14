@@ -6,9 +6,9 @@ import { BALANCE } from '../../config/balance.ts';
 import { RESCUE_DONE, freshToday, snapshotOf } from '../state.ts';
 import type { GameState, LossReason, ReplyKind, Result, SolLog } from '../state.ts';
 import type { WindowData } from '../window.ts';
-import { advise, urgentNeeds } from './advisor.ts';
-import { isReady, progressBuilds } from './build.ts';
-import { carryOver, missedTasks, payOverdue } from './overdue.ts';
+import { chargedTasks, planDay, urgentNeeds } from './advisor.ts';
+import { isReady, progressBuilds, setupDone } from './build.ts';
+import { carryOver, missedTasks, payOverdue, waitingTasks } from './overdue.ts';
 import { isDustSol } from './schedule.ts';
 import { doseOver, passDaylight } from './time.ts';
 import { visibleWarnings } from './warnings.ts';
@@ -17,9 +17,10 @@ type Dusk = SolLog['dusk'];
 type Planned = GameState['overdue'];
 const duskOf = (s: GameState): Dusk => ({ power: s.power, air: s.air, food: s.food, dose: s.dose });
 
-function logLine(state: GameState, flags: string[], dusk: Dusk = duskOf(state), missed: Planned = []): SolLog {
+function logLine(state: GameState, flags: string[], dusk: Dusk = duskOf(state), missed: Planned = [], charged: Planned = []): SolLog {
   return {
     missed: missed.map((task) => task.why),
+    charged: charged.map((task) => task.why),
     sol: state.sol,
     actions: state.today.actions,
     urgent: state.today.urgent,
@@ -50,12 +51,13 @@ function resultOf(state: GameState): Result {
   return legend ? 'legend' : 'success';
 }
 
-/** PUSULA's morning list, kept to find the undone tasks at night (F5a). */
+/** PUSULA's morning list, kept to find the undone tasks at night (F5a; F5b: fits the daylight). */
 export function morningPlan(state: GameState, win: WindowData): GameState['today']['plan'] {
-  return state.sol >= BALANCE.overdue.fromSol ? advise(state, win) : [];
+  return state.sol >= BALANCE.overdue.fromSol && setupDone(state) ? planDay(state, win).tasks : [];
 }
 
-function nextMorning(state: GameState, win: WindowData, missed: Planned): GameState {
+/** `carry`: undone tasks of today's list plus overdue tasks that did not fit today. */
+function nextMorning(state: GameState, win: WindowData, carry: Planned): GameState {
   const sol = state.sol + 1;
   // A station that is not built (or still building) cannot break down.
   const newlyBroken = state.schedule.malfunctions
@@ -79,7 +81,7 @@ function nextMorning(state: GameState, win: WindowData, missed: Planned): GameSt
     }
     next = { ...next, messagePending: false, lastReply: reply };
   }
-  next = { ...next, overdue: carryOver(next, missed, win) };
+  next = { ...next, overdue: carryOver(next, carry, win) };
   next = { ...next, today: { ...next.today, urgent: urgentNeeds(next, win), plan: morningPlan(next, win) } };
   return { ...next, mornings: [...state.mornings, snapshotOf(next)].slice(-2) };
 }
@@ -87,6 +89,8 @@ function nextMorning(state: GameState, win: WindowData, missed: Planned): GameSt
 /** Ends the sol: leftover daylight in the habitat, the night, then win / lose / next morning. */
 export function endSol(input: GameState, win: WindowData): GameState {
   const { power, air, food, panel, dose, daylightHours, hoursPerSol, dayStartHour } = BALANCE;
+  // Judged before the leftover daylight passes: did the undone overdue tasks still fit?
+  const charged = chargedTasks(input);
   let s = passDaylight(input, win, input.hoursLeft, dose.habitatShield);
   s = { ...s, hoursLeft: 0, rejection: null };
   const dusk = duskOf(s);
@@ -130,8 +134,9 @@ export function endSol(input: GameState, win: WindowData): GameState {
     greenhouseIdleSols: s.sol >= food.unlockSol ? s.greenhouseIdleSols + 1 : 0,
   };
 
-  // Only tasks that were already overdue pay: a new task gets one sol of grace.
-  s = payOverdue(s, missed.filter((task) => task.overdue));
+  // Only tasks that were already overdue pay (a new task gets one sol of grace), and only
+  // when they still fitted the daylight (F5b): one that ran out of time moves on for free.
+  s = payOverdue(s, charged);
 
   const built = progressBuilds(s);
   s = built.state;
@@ -140,7 +145,7 @@ export function endSol(input: GameState, win: WindowData): GameState {
   if (s.air <= 0) return lose(s, 'air', flags, dusk, missed);
   if (s.dose >= dose.budget) return lose(s, 'dose', flags, dusk, missed);
   if (s.foodEmptySols >= food.emptySolsToLose) return lose(s, 'food', flags, dusk, missed);
-  s = { ...s, log: [...s.log, logLine(s, flags, dusk, missed)] };
+  s = { ...s, log: [...s.log, logLine(s, flags, dusk, missed, charged)] };
   if (s.sol >= BALANCE.totalSols) return { ...s, phase: 'won', result: resultOf(s) };
-  return nextMorning(s, win, missed);
+  return nextMorning(s, win, [...missed, ...waitingTasks(s)]);
 }

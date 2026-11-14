@@ -16,7 +16,7 @@ import { createPlacement } from './input/placement.ts';
 import { attachPointer } from './input/pointer.ts';
 import { mountCamControls } from './ui/camControls.ts';
 import { debug } from './lib/debug.ts';
-import { loadGame, saveGame } from './save/save.ts';
+import { listSaves, loadGame, saveGame } from './save/save.ts';
 import type { World } from './scene/world.ts';
 import type { Action } from './sim/actions.ts';
 import { reduce } from './sim/reducer.ts';
@@ -32,11 +32,14 @@ import { mountBuildMenu } from './ui/buildMenu.ts';
 import { mountGuide } from './ui/guide.ts';
 import { mountInfoCard } from './ui/infoCard.ts';
 import { mountHud } from './ui/hud.ts';
-import { endDayWarning } from './ui/overdue.ts';
+import { endDaySpec, nightNote } from './ui/overdue.ts';
 import { feedOf } from './ui/watchFeed.ts';
 import { mountActionMenu, openModal } from './ui/overlays.ts';
 import type { ModalSpec } from './ui/overlays.ts';
-import { mountLabels, mountMainMenu, mountWatch } from './ui/panels.ts';
+import { mountLabels, mountWatch } from './ui/panels.ts';
+import { mountMainMenu } from './ui/mainMenu.ts';
+import { mountShelterBand } from './ui/shelterBand.ts';
+import { createShelter } from './game/shelter.ts';
 import { beaconSetSpec, messageSentSpec, rescueProgress } from './ui/rescue.ts';
 
 export type { Mission, Missions } from './game/context.ts';
@@ -59,6 +62,8 @@ const DEPOT_MIN_PX = 120;
 const DEPOT_GAP_PX = 10;
 /** The morning alarm waits until the night swoosh has faded. */
 const ALARM_DELAY_MS = 1600;
+/** Autosave waits a moment after an action, so quick taps write once. */
+const AUTOSAVE_MS = 600;
 
 /** `first` is the mission shown behind the main menu. */
 export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: World, first: Mission, missions: Missions): Game {
@@ -70,11 +75,14 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     frozen: null,
     mode: 'menu',
     walking: false,
+    sheltered: false,
     openStation: null,
     modals: 0,
     closePause: null,
   };
-  const free = (): boolean => s.mode === 'play' && !s.walking && s.modals === 0 && s.state.phase === 'playing';
+  const canWalk = (): boolean => s.mode === 'play' && !s.sheltered && s.modals === 0 && s.state.phase === 'playing';
+  const free = (): boolean => canWalk() && !s.walking;
+  const save = (): boolean => s.mode === 'play' && saveGame(s.state);
   const menu = mountActionMenu(ui);
   const placement = createPlacement({
     ui,
@@ -90,29 +98,38 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
       render();
     },
   });
-  const ctx: Ctx = { s, ui, world, missions, menu, placement, render, modal, perform, free };
+  const ctx: Ctx = { s, ui, world, missions, menu, placement, render, modal, perform, free, canWalk, save, enterShelter: () => shelter.enter() };
+  const shelter = createShelter(ctx);
   const guide = (): Guide =>
     computeGuide(s.state, s.win, { goStation: (id) => stations.selectStation(id), goBuild: (id) => placement.select(id) });
   const learn = createLearn(ctx);
   const stations = createStationUi(ctx, guide, (id) => {
+    // F5b: coming home to the habitat saves the game.
+    if (id === 'habitat') save();
     learn.onStation(id);
     info.show(id, s.state, true);
   });
   const flow = createFlow(ctx, guide, (id) => stations.selectStation(id), learn);
 
   const hud = mountHud(ui, flow.pause, (id) => flow.showInfo(id));
+  hud.left.append(learn.badge);
   const labels = mountLabels(ui, (id) => stations.selectStation(id));
   const depot = mountBuildMenu(ui, { onPress: (id, e) => placement.press(id, e), onSelect: (id) => placement.select(id) });
-  const watch = mountWatch(ui, () => flow.showPusula());
+  const watch = mountWatch(ui, () => flow.showPusula(), () => perform({ type: 'endSol', crewId: 0 }));
+  const band = mountShelterBand(ui, () => shelter.exit());
   const cam = mountCamControls(ui, { step: (dir) => world.view.step(dir), reset: () => world.view.reset(), azimuth: () => world.view.azimuth() });
   const marks = mountGuide(ui, () => flow.showPusula());
   // Mounted after the labels and the action menu, so it sits above them (no z-index: modals
   // opened later must stay on top).
   const info = mountInfoCard(ui);
   const mainMenu = mountMainMenu(ui, {
+    onContinue: () => flow.continueMission(),
     onNewMission: flow.newMission,
-    onContinue: flow.continueMission,
+    onSaves: flow.showSaves,
+    onInfo: flow.showInfoScreen,
+    onSettings: flow.showSettings,
     savedSol: () => loadGame()?.sol ?? null,
+    saveCount: () => listSaves().length,
     onCode: flow.codeMission,
   });
 
@@ -139,11 +156,21 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     mainMenu.root.hidden = playing;
     mainMenu.refresh();
     document.title = t('app.title');
-    hud.update(view, s.win);
+    hud.update(view, s.win, s.sheltered);
+    band.update(playing && s.sheltered ? shelter.hoursLeft() : null);
     labels.refresh(s.state);
     const g = guide();
     depot.update(s.state, placement.selected(), g.card);
-    if (!s.frozen) watch.update(g.text, g.tasks, rescueProgress(s.state), feedOf(s.state, s.win));
+    if (!s.frozen) {
+      watch.update({
+        text: g.text,
+        tasks: s.sheltered ? [] : g.tasks,
+        deferred: g.deferred,
+        endDay: g.endDay && !s.sheltered ? { night: nightNote(s.state) } : null,
+        rescue: rescueProgress(s.state),
+        feed: feedOf(s.state, s.win),
+      });
+    }
     fitDepot();
     const show = playing && s.modals === 0 && s.state.phase === 'playing';
     const menuHere = menu.isOpen() && s.openStation === g.station;
@@ -165,18 +192,26 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     depot.root.style.maxHeight = narrow ? '' : `${Math.max(DEPOT_MIN_PX, watchTop - top - DEPOT_GAP_PX)}px`;
   }
 
-  /** PUSULA warns before the day ends with tasks left undone (F5a). */
+  /**
+   * Ending the day always asks first (F5b), and PUSULA lists the tasks left undone (F5a).
+   * Every other action is saved a moment after it lands (F5b autosave).
+   */
   function perform(action: Action, quiet = false): void {
     if (action.type === 'endSol' && !quiet && s.state.phase === 'playing' && check(s.state, action, s.win) === null) {
+      if (s.modals > 0 || s.sheltered) return;
       let close = (): void => undefined;
-      const spec = endDayWarning(s.state, (a) => labelOf(s.state, a), () => { close(); apply(action); }, () => close());
-      if (spec) {
-        sfx.warn();
-        close = modal(() => spec);
-        return;
-      }
+      const spec = endDaySpec(s.state, (a) => labelOf(s.state, a), () => { close(); apply(action); }, () => close());
+      if (spec.kind === 'event') sfx.warn();
+      close = modal(() => spec);
+      return;
     }
     apply(action, quiet);
+  }
+
+  let saveTimer = 0;
+  function autosave(): void {
+    window.clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(save, AUTOSAVE_MS);
   }
 
   function apply(action: Action, quiet = false): void {
@@ -193,8 +228,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
       learn.onAction(before, s.state, action, s.win, wasTask);
       actionSound(before, action, wasTask);
     }
-    // The setup is part of the sol-1 morning: keep it in the autosave.
-    if (action.type === 'place') saveGame(s.state);
+    if (s.state.sol === before.sol && s.state.phase === 'playing') autosave();
     if (quiet) {
       // Debug jumps skip the night card, but a finished mission still shows its result.
       if (before.phase === 'playing' && s.state.phase !== 'playing') flow.showResult();
@@ -250,6 +284,11 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     else flow.pause();
   });
   onLangChange(() => render());
+  // F5b: the page hides or closes (tab switch, phone lock, reload): save right away.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') save();
+  });
+  window.addEventListener('pagehide', () => save());
   window.addEventListener('resize', fitDepot);
 
   return {

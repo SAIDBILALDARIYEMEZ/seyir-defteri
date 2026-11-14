@@ -1,6 +1,6 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
-// Wrist watch (PUSULA text + tappable task list), station name labels and the main menu.
+// Wrist watch (PUSULA text + tappable task list) and the station name labels.
 
 import stations from '../content/stations.json';
 import { t } from '../i18n/i18n.ts';
@@ -9,9 +9,10 @@ import { isStationLocked, stationUnlockSol } from '../sim/rules.ts';
 import { buildStatus, isBuildable } from '../sim/systems/build.ts';
 import type { GameState } from '../sim/state.ts';
 import type { ScreenPoint } from '../scene/world.ts';
-import { CODE_LENGTH } from '../lib/missionCode.ts';
 import { button, el } from './dom.ts';
-import { languagePicker } from './overlays.ts';
+import { sentences } from './overlays.ts';
+import { glossify, setGlossText } from './glossary.ts';
+import { BALANCE } from '../config/balance.ts';
 import type { RescueProgress } from './rescue.ts';
 import type { FeedItem } from './watchFeed.ts';
 
@@ -21,35 +22,72 @@ export interface WatchTask {
   onPick: () => void;
   /** Carried over from an earlier sol (F5a). */
   overdue?: boolean;
+  /** Not enough power yet: the panels fill the battery as the day goes on (F5b). */
+  waiting?: boolean;
+}
+
+export interface WatchView {
+  text: string;
+  tasks: WatchTask[];
+  /** Tasks that do not fit today's daylight (F5b), already translated. */
+  deferred: string[];
+  /** Nothing meaningful left: the big "End the day" button and what the night brings. */
+  endDay: { night: string } | null;
+  rescue: RescueProgress | null;
+  feed: FeedItem[];
 }
 
 export interface Watch {
   root: HTMLElement;
-  update(pusulaText: string, tasks: WatchTask[], rescue: RescueProgress | null, feed?: FeedItem[]): void;
+  update(view: WatchView): void;
 }
 
 const FEED_ICON: Record<FeedItem['kind'], string> = { alert: '⚠️', pusula: '🧭', fact: '💡' };
 
-export function mountWatch(parent: HTMLElement, onPusula: () => void): Watch {
+/** "Today" and "Overdue" groups, at most `listMax` rows; more overdue ones as "+N overdue". */
+function taskRows(tasks: WatchTask[]): HTMLElement[] {
+  const max = BALANCE.overdue.listMax;
+  const today = tasks.filter((x) => !x.overdue);
+  const late = tasks.filter((x) => x.overdue);
+  const shownToday = today.slice(0, max);
+  const shownLate = late.slice(0, Math.max(0, max - shownToday.length));
+  const row = (task: WatchTask): HTMLElement => {
+    const b = button(`watch-task${task.overdue ? ' is-overdue' : ''}${task.waiting ? ' is-waiting' : ''}`, task.label, task.onPick);
+    if (task.waiting) b.append(el('small', 'task-wait', `⚡ ${t('watch.waitPower')}`));
+    return b;
+  };
+  const out: HTMLElement[] = [];
+  if (shownToday.length > 0) out.push(el('span', 'watch-group', t('watch.today')), ...shownToday.map(row));
+  if (late.length > 0) out.push(el('span', 'watch-group late', `⏰ ${t('overdue.tag')}`), ...shownLate.map(row));
+  const hidden = late.length - shownLate.length;
+  if (hidden > 0) out.push(el('span', 'watch-more', t('watch.moreLate', { n: hidden })));
+  return out;
+}
+
+export function mountWatch(parent: HTMLElement, onPusula: () => void, onEndDay: () => void): Watch {
   const root = el('aside', 'watch');
   const title = button('watch-title', '', onPusula);
   const text = el('p', 'watch-text');
-  const tasksTitle = el('span', 'watch-sub');
   const list = el('div', 'watch-tasks');
+  const later = el('p', 'watch-later');
+  const end = el('div', 'watch-end');
+  const endBtn = button('btn primary big end-day', '', onEndDay);
+  const endNote = el('p', 'end-note');
+  end.append(endBtn, endNote);
   const chain = el('div', 'watch-rescue');
   const feedBox = el('ol', 'watch-feed');
   feedBox.setAttribute('aria-live', 'polite');
-  root.append(title, text, tasksTitle, list, chain, feedBox);
+  root.append(title, text, list, later, end, chain, feedBox);
   parent.append(root);
   return {
     root,
-    update(pusulaText, tasks, rescue, feed = []) {
+    update({ text: pusulaText, tasks, deferred, endDay, rescue, feed }) {
       feedBox.hidden = feed.length === 0;
       feedBox.replaceChildren(
         ...feed.map((item) => {
           const li = el('li', `feed-item ${item.kind}`);
           if (item.kind === 'fact') li.append(el('strong', '', `💡 ${t('feed.fact')}: `));
-          li.append(item.kind === 'fact' ? item.text : `${FEED_ICON[item.kind]} ${item.text}`);
+          li.append(...glossify(item.kind === 'fact' ? item.text : `${FEED_ICON[item.kind]} ${item.text}`));
           return li;
         }),
       );
@@ -63,16 +101,14 @@ export function mountWatch(parent: HTMLElement, onPusula: () => void): Watch {
         if (rescue.note) chain.append(el('span', 'rescue-note', rescue.note));
       }
       title.textContent = `🧭 ${t('watch.title')}`;
-      text.textContent = pusulaText;
-      tasksTitle.textContent = t('watch.tasks');
-      if (tasks.length === 0) return list.replaceChildren(el('span', 'watch-none', t('watch.noTasks')));
-      list.replaceChildren(
-        ...tasks.map((task, i) => {
-          const row = button(`watch-task${task.overdue ? ' is-overdue' : ''}`, `${i + 1}. ${task.label}`, task.onPick);
-          if (task.overdue) row.prepend(el('span', 'overdue-tag', `⏰ ${t('overdue.tag')}`));
-          return row;
-        }),
-      );
+      // F5b: the watch shows PUSULA's first two sentences; the PUSULA card has the rest.
+      setGlossText(text, sentences(pusulaText).slice(0, 2).join(' '));
+      list.replaceChildren(...taskRows(tasks));
+      later.hidden = deferred.length === 0;
+      later.textContent = `🌙 ${t('watch.later', { list: deferred.join(', ') })}`;
+      end.hidden = !endDay;
+      endBtn.textContent = `🌙 ${t('watch.endDay')}`;
+      endNote.textContent = endDay?.night ?? '';
     },
   };
 }
@@ -116,78 +152,61 @@ export function mountLabels(parent: HTMLElement, onPick: (id: StationId) => void
       });
     },
     place(screenOf) {
-      nodes.forEach((node, i) => {
-        const p = screenOf(ids[i] ?? 'habitat');
-        node.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px) translate(-50%, -100%)`;
-        node.style.visibility = p.visible ? 'visible' : 'hidden';
-      });
+      // F5b: no label sits on another label or under the HUD, the camera buttons, the watch
+      // or a panel. The nearest station is placed first; a label that clashes moves up, down
+      // or sideways, and hides when no spot is free.
+      const blocks = [...document.querySelectorAll<HTMLElement>(LABEL_BLOCKERS)]
+        .filter((b) => !b.hidden && b.offsetParent !== null)
+        .map((b) => b.getBoundingClientRect());
+      const items = nodes
+        .map((node, i) => ({ node, p: screenOf(ids[i] ?? 'habitat') }))
+        .filter(({ node, p }) => {
+          if (!p.visible || node.hidden) node.style.visibility = 'hidden';
+          return p.visible && !node.hidden;
+        })
+        .sort((a, b) => (a.p.depth ?? 0) - (b.p.depth ?? 0));
+      const taken: Box[] = [];
+      for (const { node, p } of items) {
+        const w = node.offsetWidth;
+        const h = node.offsetHeight;
+        const spot = freeSpot(p.x, p.y, w, h, taken, blocks);
+        if (!spot) {
+          node.style.visibility = 'hidden';
+          continue;
+        }
+        taken.push(spot);
+        node.style.transform = `translate(${Math.round(spot.left)}px, ${Math.round(spot.top)}px)`;
+        node.style.visibility = 'visible';
+      }
     },
   };
 }
 
-export interface MainMenu {
-  root: HTMLElement;
-  refresh(): void;
+/** UI that labels must not hide under. */
+const LABEL_BLOCKERS = '.hud-group, .hud-chips, .chip.star, .chip.gear, .rank-badge, .date-badge, .cam-controls, .watch, .depot, .info-card, .action-menu, .shelter-band, .place-banner, .guide-bubble';
+const LABEL_GAP = 4;
+
+interface Box {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
 }
 
-export interface MenuHandlers {
-  onNewMission(): void;
-  onContinue(): void;
-  /** Sol of the saved mission, or null when there is no save. */
-  savedSol(): number | null;
-  /** Starts the mission of a code; false when the code is not valid. */
-  onCode(code: string): boolean;
-}
+const hits = (a: Box, b: Box): boolean => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 
-export function mountMainMenu(parent: HTMLElement, on: MenuHandlers): MainMenu {
-  const root = el('main', 'main-menu');
-  const card = el('div', 'menu-card');
-  const title = el('h1');
-  const tagline = el('p', 'tagline');
-  const resume = button('btn primary big', '', on.onContinue);
-  const start = button('btn big', '', on.onNewMission);
-  const codeRow = el('form', 'code-row');
-  const input = el('input', 'code-input');
-  input.maxLength = CODE_LENGTH;
-  input.autocomplete = 'off';
-  input.spellcheck = false;
-  const go = el('button', 'btn');
-  go.type = 'submit';
-  const error = el('p', 'code-error');
-  const toggle = button('btn link', '', () => {
-    codeRow.hidden = !codeRow.hidden;
-    if (!codeRow.hidden) input.focus();
-  });
-  codeRow.hidden = true;
-  codeRow.append(input, go);
-  codeRow.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const ok = on.onCode(input.value);
-    error.hidden = ok;
-    if (ok) {
-      input.value = '';
-      codeRow.hidden = true;
+/** First free box for a label centred above (x, y): as is, up, down, then clear of the UI. */
+function freeSpot(x: number, y: number, w: number, h: number, taken: Box[], blocks: Box[]): Box | null {
+  const box = (cx: number, bottom: number): Box => ({ left: cx - w / 2, top: bottom - h, right: cx + w / 2, bottom });
+  const step = h + LABEL_GAP;
+  const tries = [box(x, y), box(x, y - step), box(x, y + step), box(x, y - 2 * step)];
+  // Clear of a panel by a short slide only: a label never wanders far from its station.
+  for (const b of blocks) {
+    if (!hits(tries[0] as Box, b)) continue;
+    for (const cx of [b.right + w / 2 + LABEL_GAP, b.left - w / 2 - LABEL_GAP]) {
+      if (Math.abs(cx - x) <= w) tries.push(box(cx, y));
     }
-  });
-  error.hidden = true;
-  card.append(title, tagline, resume, start, toggle, codeRow, error, languagePicker());
-  root.append(card);
-  parent.append(root);
-  return {
-    root,
-    refresh() {
-      const sol = on.savedSol();
-      title.textContent = t('app.title');
-      tagline.textContent = t('app.tagline');
-      resume.hidden = sol === null;
-      resume.textContent = t('menu.continue', { n: sol ?? 1 });
-      start.textContent = t('menu.newMission');
-      start.classList.toggle('primary', sol === null);
-      toggle.textContent = `🔑 ${t('menu.enterCode')}`;
-      input.placeholder = t('code.placeholder');
-      input.setAttribute('aria-label', t('menu.enterCode'));
-      go.textContent = t('code.start');
-      error.textContent = t('code.invalid');
-    },
-  };
+  }
+  const inView = (b: Box): boolean => b.left >= 0 && b.top >= 0 && b.right <= window.innerWidth && b.bottom <= window.innerHeight;
+  return tries.find((b) => inView(b) && !taken.some((o) => hits(b, o)) && !blocks.some((o) => hits(b, o))) ?? null;
 }

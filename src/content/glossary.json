@@ -1,0 +1,10 @@
+[
+  { "id": "sol", "cs": false, "en": ["sols?"], "tr": ["sol(?:ü|de|da|den|dan|e|a|ler|lerde|ü|un|ün)?"] },
+  { "id": "rad", "cs": true, "en": ["RAD"], "tr": ["RAD"] },
+  { "id": "regolith", "cs": false, "en": ["regolith"], "tr": ["regolit\\p{L}*"] },
+  { "id": "cme", "cs": false, "en": ["CMEs?", "particle storms?"], "tr": ["CME", "parçacık fırtına\\p{L}*"] },
+  { "id": "dose", "cs": false, "en": ["dose"], "tr": ["doz\\p{L}*"] },
+  { "id": "moxie", "cs": true, "en": ["MOXIE"], "tr": ["MOXIE\\p{L}*"] },
+  { "id": "curiosity", "cs": true, "en": ["Curiosity"], "tr": ["Curiosity\\p{L}*"] },
+  { "id": "gale", "cs": false, "en": ["Gale Crater"], "tr": ["Gale Krater\\p{L}*"] }
+]

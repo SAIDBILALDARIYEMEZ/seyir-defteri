@@ -107,6 +107,8 @@ export function createLearn(ctx: Ctx) {
       };
     },
     canPickStorm: (): boolean => canPickStorm(profile),
+    /** The rank badge; game.ts puts it under the HUD's left chips (F5b: no overlap). */
+    badge: badge.root,
     reset(): void {
       profile = resetProfile();
       badge.update(profile.xp);

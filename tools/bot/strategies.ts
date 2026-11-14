@@ -8,7 +8,7 @@ import type { Action, BuildableId, SimpleActionType } from '../../src/sim/action
 import type { Rng } from '../../src/sim/rng.ts';
 import { check } from '../../src/sim/rules.ts';
 import type { GameState } from '../../src/sim/state.ts';
-import { advise } from '../../src/sim/systems/advisor.ts';
+import { nextTask } from '../../src/sim/systems/advisor.ts';
 import { STARTERS } from '../../src/sim/systems/build.ts';
 import { isEventNow } from '../../src/sim/systems/time.ts';
 import { sepWarnedToday, visibleWarnings } from '../../src/sim/systems/warnings.ts';
@@ -101,14 +101,11 @@ function planner(opts: PlanOptions): Strategy {
   };
 }
 
-/** Does only PUSULA's daily tasks (at most 3 per sol), plus sheltering while PUSULA says so. */
-const pusula: Strategy = (state, win) => {
-  const task = advise(state, win, 1)[0];
-  if (!task) return END;
-  if (task.why === 'radiationNow') return task.action;
-  const done = state.today.actions.filter((x) => x !== 'shelterWait').length;
-  return done >= BALANCE.advisor.maxTasks ? END : task.action;
-};
+/**
+ * Does PUSULA's list top to bottom and ends the day when it is empty (F5b: the list fits the
+ * daylight, overdue tasks included; sheltering while PUSULA says so).
+ */
+const pusula: Strategy = (state, win) => nextTask(state, win)?.action ?? END;
 
 /** Sol-1 setup first: every bot puts the habitat and the panels on their fixed slots. */
 const withSetup = (strategy: Strategy): Strategy => (state, win, rng) => {

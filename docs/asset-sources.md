@@ -5,8 +5,8 @@
 **Status on 2026-11-14 (F5a):** low-poly models are in the repo (below). Every model has a
 primitive fallback made in code, used until (or if never) the file loads. Sounds are
 synthesized with the Web Audio API (`src/audio/sound.ts`, no audio files). Fonts: system fonts
-only. No AI-generated images, video or audio. The in-game Credits / Sources screen is not built
-yet (D-012); this file is its source.
+only. No AI-generated images, video or audio. The in-game "Info & Sources" screen (main menu,
+F5b, D-019) lists these packs from `src/content/credits.json`; keep both in step.
 
 ## In the repo
 

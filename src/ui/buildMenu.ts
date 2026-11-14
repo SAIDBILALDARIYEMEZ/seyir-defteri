@@ -77,7 +77,8 @@ export function mountBuildMenu(parent: HTMLElement, on: BuildMenuHandlers): Buil
         const st = buildStatus(state, id);
         const b = state.buildings[id];
         name.textContent = `${st === 'locked' || !ready ? '🔒' : stations[id].icon} ${t(`station.${id}`)}`;
-        cost.textContent = `🔩${rule.parts} · ${t('build.sols', { n: rule.sols })}`;
+        // F5b: work time and power too, like every action button.
+        cost.textContent = `🔩${rule.parts} · ⏱${BALANCE.build.placeHours} · ⚡−${rule.power} · ${t('build.sols', { n: rule.sols })}`;
         const reason = ready ? lockReason(state, id) : 'needSetup';
         const noParts = st === 'available' && state.parts < rule.parts;
         status.textContent =

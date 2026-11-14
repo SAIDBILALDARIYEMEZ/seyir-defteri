@@ -1,19 +1,36 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
-// Single-slot save in localStorage with a versioned schema (PRD §14). The game state is plain
-// data, so the save is the state itself plus a version and a timestamp.
+// Saved games in localStorage with a versioned schema (PRD §14). The game state is plain
+// data, so a save is the state itself plus a version and a timestamp. F5b: one save per
+// mission (seed + real month), a short list the main menu shows; Continue loads the newest.
 
 import type { GameState } from '../sim/state.ts';
 
 /** 3 = B3 village layout (placed starters). Older saves are not loaded. */
 export const SAVE_VERSION = 3;
-const STORAGE_KEY = 'seyir-defteri.save';
+/** Before F5b: a single slot. Read once and moved into the list. */
+const OLD_KEY = 'seyir-defteri.save';
+const LIST_KEY = 'seyir-defteri.saves';
+/** The list never grows past this: the oldest save goes first. */
+export const MAX_SAVES = 6;
 
 interface SaveFile {
   saveVersion: number;
   savedAt: string;
   state: GameState;
 }
+
+/** One row of the saved-games list. */
+export interface SaveInfo {
+  id: string;
+  sol: number;
+  seed: number;
+  windowId: string;
+  savedAt: string;
+}
+
+/** One save per mission: the same seed in the same real month overwrites itself. */
+export const saveIdOf = (state: Pick<GameState, 'seed' | 'windowId'>): string => `${state.seed}-${state.windowId}`;
 
 function isState(value: unknown): value is GameState {
   if (typeof value !== 'object' || value === null) return false;
@@ -44,31 +61,63 @@ function withOverdue<T extends Omit<GameState, 'mornings'>>(state: T): T {
   return 'mornings' in s && Array.isArray(s.mornings) ? { ...s, mornings: s.mornings.map(withOverdue) } : s;
 }
 
-/** Only a running mission is saved. Returns false when storage is blocked. */
-export function saveGame(state: GameState): boolean {
-  if (state.phase !== 'playing') return false;
-  const file: SaveFile = { saveVersion: SAVE_VERSION, savedAt: new Date().toISOString(), state: { ...state, rejection: null } };
+function readList(): SaveFile[] {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(file));
+    const raw = localStorage.getItem(LIST_KEY);
+    const list = raw ? (JSON.parse(raw) as Partial<SaveFile>[]) : [];
+    const files = Array.isArray(list) ? list.filter((f): f is SaveFile => migrate(f) !== null) : [];
+    const old = localStorage.getItem(OLD_KEY);
+    if (old) {
+      localStorage.removeItem(OLD_KEY);
+      const file = JSON.parse(old) as Partial<SaveFile>;
+      if (migrate(file) && !files.some((f) => saveIdOf(f.state) === saveIdOf(file.state as GameState))) files.push(file as SaveFile);
+      writeList(files);
+    }
+    return files;
+  } catch {
+    return [];
+  }
+}
+
+function writeList(files: SaveFile[]): boolean {
+  try {
+    localStorage.setItem(LIST_KEY, JSON.stringify(files));
     return true;
   } catch {
     return false;
   }
 }
 
-export function loadGame(): GameState | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? migrate(JSON.parse(raw) as Partial<SaveFile>) : null;
-  } catch {
-    return null;
-  }
+const newestFirst = (a: SaveFile, b: SaveFile): number => b.savedAt.localeCompare(a.savedAt);
+
+/** Only a running mission is saved. Returns false when storage is blocked. */
+export function saveGame(state: GameState): boolean {
+  if (state.phase !== 'playing') return false;
+  const file: SaveFile = { saveVersion: SAVE_VERSION, savedAt: new Date().toISOString(), state: { ...state, rejection: null } };
+  const id = saveIdOf(state);
+  const rest = readList().filter((f) => saveIdOf(f.state) !== id).sort(newestFirst);
+  return writeList([file, ...rest].slice(0, MAX_SAVES));
 }
 
-export function clearSave(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // Storage blocked: nothing was saved either.
-  }
+/** The save of `id`, or the newest one when no id is given. */
+export function loadGame(id?: string): GameState | null {
+  const files = readList().sort(newestFirst);
+  const file = id ? files.find((f) => saveIdOf(f.state) === id) : files[0];
+  return file ? migrate(file) : null;
+}
+
+/** Saved games, newest first. */
+export function listSaves(): SaveInfo[] {
+  return readList()
+    .sort(newestFirst)
+    .map((f) => ({ id: saveIdOf(f.state), sol: f.state.sol, seed: f.state.seed, windowId: f.state.windowId, savedAt: f.savedAt }));
+}
+
+export function deleteSave(id: string): void {
+  writeList(readList().filter((f) => saveIdOf(f.state) !== id));
+}
+
+/** A finished mission drops its save. */
+export function clearSave(state: Pick<GameState, 'seed' | 'windowId'>): void {
+  deleteSave(saveIdOf(state));
 }

@@ -6,12 +6,18 @@
 import { getLang, onLangChange, setLang, t } from '../i18n/i18n.ts';
 import type { Lang } from '../i18n/i18n.ts';
 import { button, el } from './dom.ts';
+import { glossify } from './glossary.ts';
+
+/** A card button, or a custom node in the button list (e.g. the language picker). */
+export type ModalButton = { label: string; onClick: () => void; primary?: boolean; danger?: boolean } | { node: () => HTMLElement };
 
 export interface ModalSpec {
   title: string;
   /** Plain text lines, or [label, value] rows. */
   lines: (string | [string, string])[];
-  buttons: { label: string; onClick: () => void; primary?: boolean }[];
+  buttons: ModalButton[];
+  /** Show every sentence (no "More ▾" fold): logbooks, results, quiz cards. */
+  full?: boolean;
   /** Real-world date badge under the title. */
   date?: string;
   /** One-sentence real fact, shown in a highlighted box. */
@@ -43,6 +49,57 @@ export function languagePicker(): HTMLElement {
   return row;
 }
 
+/** F5b: cards lead with at most two short sentences; the rest folds under "More ▾". */
+const LEAD_SENTENCES = 2;
+/** Card kinds that always show everything (lists, charts, results, quiz). */
+const FULL_KINDS = ['logbook', 'result', 'data', 'quiz', 'pick', 'storm-real', 'menu-list'];
+
+export function sentences(text: string): string[] {
+  return text.split(/(?<=[.!?…])\s+(?=\S)/u).filter((x) => x.length > 0);
+}
+
+function para(text: string, className = ''): HTMLElement {
+  const p = el('p', className);
+  p.append(...glossify(text));
+  return p;
+}
+
+/** Card body: rows stay where they are; plain text past the first two sentences folds. */
+function body(spec: ModalSpec): HTMLElement[] {
+  const full = spec.full || FULL_KINDS.some((k) => (spec.kind ?? '').split(' ').includes(k));
+  const out: HTMLElement[] = [];
+  const more: string[] = [];
+  let budget = full ? Number.POSITIVE_INFINITY : LEAD_SENTENCES;
+  for (const line of spec.lines) {
+    if (typeof line !== 'string') {
+      const row = el('p', 'row');
+      row.append(el('span', '', line[0]), el('b', '', line[1]));
+      out.push(row);
+      continue;
+    }
+    const parts = sentences(line);
+    if (parts.length <= budget) {
+      out.push(para(line));
+      budget -= parts.length;
+    } else {
+      if (budget > 0) out.push(para(parts.slice(0, budget).join(' ')));
+      more.push(parts.slice(Math.max(0, budget)).join(' '));
+      budget = 0;
+    }
+  }
+  if (more.length > 0) out.push(moreBox(more));
+  return out;
+}
+
+/** "More ▾": the details of a card, folded until tapped. */
+export function moreBox(lines: string[]): HTMLElement {
+  const box = el('details', 'more');
+  const summary = el('summary', '', t('more.show'));
+  box.append(summary, ...lines.map((line) => para(line)));
+  box.addEventListener('toggle', () => (summary.textContent = t(box.open ? 'more.hide' : 'more.show')));
+  return box;
+}
+
 /** Opens a modal card. `build` is re-run when the language changes. Returns close(). */
 export function openModal(parent: HTMLElement, build: () => ModalSpec): () => void {
   const backdrop = el('div', 'backdrop');
@@ -55,20 +112,16 @@ export function openModal(parent: HTMLElement, build: () => ModalSpec): () => vo
     card.className = `card ${spec.kind ?? ''}`;
     card.replaceChildren(el('h2', '', spec.title));
     if (spec.date) card.append(el('span', 'card-date', spec.date));
-    for (const line of spec.lines) {
-      if (typeof line === 'string') card.append(el('p', '', line));
-      else {
-        const row = el('p', 'row');
-        row.append(el('span', '', line[0]), el('b', '', line[1]));
-        card.append(row);
-      }
-    }
+    card.append(...body(spec));
     if (spec.extra) card.append(spec.extra());
-    if (spec.fact) card.append(el('p', 'card-fact', spec.fact));
+    if (spec.fact) card.append(para(spec.fact, 'card-fact'));
     if (spec.source) card.append(el('p', 'card-source', spec.source));
     if (spec.languagePicker) card.append(languagePicker());
     const actions = el('div', 'card-actions');
-    for (const b of spec.buttons) actions.append(button(b.primary ? 'btn primary' : 'btn', b.label, b.onClick));
+    for (const b of spec.buttons) {
+      if ('node' in b) actions.append(b.node());
+      else actions.append(button(`btn${b.primary ? ' primary' : ''}${b.danger ? ' danger' : ''}`, b.label, b.onClick));
+    }
     card.append(actions);
   });
   return () => {

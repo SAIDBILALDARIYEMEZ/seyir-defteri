@@ -34,7 +34,7 @@ button { font: inherit; color: inherit; }
   flex-direction: column; justify-content: center; gap: 4px; min-width: 190px;
 }
 .group-title { font-size: 12px; font-weight: 700; color: var(--ink-dim); }
-.gauge { display: grid; grid-template-columns: 22px auto 1fr 40px; gap: 6px; align-items: center; font-size: 14px; }
+.gauge { display: grid; grid-template-columns: 22px auto 1fr minmax(40px, auto); gap: 6px; align-items: center; font-size: 14px; }
 .gauge-bar { height: 10px; min-width: 50px; background: rgba(255, 255, 255, 0.18); border-radius: 6px; overflow: hidden; }
 .gauge-fill { display: block; height: 100%; background: var(--accent); border-radius: 6px; transition: width 0.4s; }
 .gauge-num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -296,7 +296,7 @@ button.chip.star { cursor: pointer; }
 /* B3 learning layer: rank badge, XP toast, capsule / question cards, hazards, storm card.
    Touch targets >= 64 px and large text so the cards work on a classroom smart board. */
 .rank-badge {
-  position: fixed; top: 64px; left: 12px; z-index: 6; display: grid; gap: 4px; min-width: 170px;
+  position: static; display: grid; gap: 4px; min-width: 170px; align-self: flex-start;
   padding: 8px 12px; background: var(--panel); border-radius: 14px; pointer-events: none;
 }
 .rank-name { font-size: 16px; }
@@ -341,7 +341,7 @@ button.chip.star { cursor: pointer; }
 .depot-hazard { display: block; font-size: 12px; color: #c9a2ff; }
 .depot-card.ready .depot-hazard { display: none; }
 .rank-up { font-size: 20px; font-weight: 800; color: var(--accent); text-align: center; }
-@media (max-width: 600px) { .rank-badge { top: 104px; min-width: 0; } .xp-toasts { top: 160px; } }
+@media (max-width: 600px) { .rank-badge { min-width: 0; } .xp-toasts { top: 160px; } }
 .card.learn, .card.pick, .card.storm-real { background: rgb(38, 17, 10); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); }
 
 /* B4 camera buttons and the turn button of the placement banner (>= 64 px, smart board). */
@@ -417,3 +417,73 @@ button.chip.star { cursor: pointer; }
 .feed-item.alert { color: #ffd2a0; font-weight: 700; }
 .feed-item.fact { color: var(--ink-dim); }
 .feed-item.fact strong { color: var(--accent); }
+
+/* F5b: HUD left column (chips, then the rank badge under them: they never overlap). */
+.hud-side.left { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; }
+.hud-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.dose-shield { font-size: 12px; font-weight: 800; color: #7fe3d6; }
+.hud-group.dose.shielded { box-shadow: 0 0 0 2px #7fe3d6; }
+
+/* F5b: watch groups, waiting tasks, "moves to tomorrow", the big End the day button. */
+.watch { max-height: min(52vh, calc(100vh - 260px)); overflow-y: auto; }
+@media (max-width: 900px) { .watch { max-height: 46vh; } }
+.watch-group { margin-top: 4px; font-size: 12px; font-weight: 800; letter-spacing: 0.04em; color: var(--accent); }
+.watch-group.late { color: #ffb040; }
+.watch-more { font-size: 13px; font-weight: 700; color: #ffb040; }
+.watch-task.is-waiting { opacity: 0.75; }
+.task-wait { display: block; font-size: 12px; font-weight: 600; color: var(--ink-dim); }
+.watch-later { margin: 6px 0 0; font-size: 12px; color: var(--ink-dim); }
+.watch-end { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.btn.end-day { width: 100%; padding: 14px 10px; font-size: 20px; }
+.end-note { margin: 0; font-size: 13px; line-height: 1.35; color: var(--ink-dim); }
+.card.night-ask { background: rgba(24, 28, 58, 0.94); }
+
+/* F5b: shelter band. */
+.shelter-band {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px;
+  width: min(92vw, 520px); padding: 10px 12px 10px 18px; font-size: 16px; font-weight: 700;
+  background: rgba(20, 60, 70, 0.92); border: 2px solid #7fe3d6; border-radius: 18px;
+}
+.shelter-text { flex: 1; }
+
+/* F5b: toast, glossary words, "More" fold. */
+.toast {
+  position: absolute; left: 50%; top: 120px; transform: translateX(-50%); z-index: 40; padding: 10px 18px;
+  font-size: 18px; font-weight: 800; background: #2f7a4a; color: #fff; border-radius: 12px; pointer-events: none !important;
+  animation: xp-pop 1.8s ease-out forwards;
+}
+.term { text-decoration: underline dotted; text-decoration-thickness: 2px; text-underline-offset: 3px; cursor: help; }
+.term:focus-visible { outline: 2px solid #fff; border-radius: 3px; }
+.gloss-pop {
+  position: fixed; z-index: 100; max-width: min(320px, 90vw); padding: 10px 12px; font-size: 15px; line-height: 1.4;
+  color: #2a140c; background: #fff7ea; border: 2px solid #35b8ac; border-radius: 12px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+details.more { margin: 6px 0; }
+details.more summary { cursor: pointer; font-weight: 700; color: var(--accent); min-height: 32px; list-style: none; }
+details.more summary::-webkit-details-marker { display: none; }
+.card.logbook details.more summary { color: #b4532a; }
+
+/* F5b: menu cards (pause, settings, saves, info): one tidy column. */
+.card.menu-list .card-actions { flex-direction: column; align-items: stretch; }
+.card.menu-list .card-actions .btn { width: 100%; min-height: 52px; font-size: 17px; text-align: left; }
+.card.menu-list .card-actions .btn.primary { text-align: center; }
+.card.menu-list .lang-row { justify-content: flex-start; margin: 0; padding: 4px 2px; }
+.btn.danger { margin-top: 14px; background: transparent; border-color: rgba(255, 120, 100, 0.6); color: #ffb3a1; }
+.btn.danger:hover { border-color: #ff7a64; }
+.menu-kicker { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); }
+.menu-buttons { display: flex; flex-direction: column; gap: 10px; width: min(100%, 340px); }
+.menu-buttons .btn { width: 100%; }
+.menu-buttons .btn:disabled { opacity: 0.5; cursor: default; }
+.save-list { display: flex; flex-direction: column; gap: 8px; margin: 6px 0; }
+.save-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(255, 255, 255, 0.08); border-radius: 12px; }
+.save-text { flex: 1; display: flex; flex-direction: column; }
+.save-text small { color: var(--ink-dim); font-size: 12px; }
+.save-empty { color: var(--ink-dim); }
+.credits h3 { margin: 12px 0 4px; }
+.credit { margin: 4px 0; font-size: 14px; }
+.credit a { color: var(--accent); }
+.credit small { color: var(--ink-dim); }
+.credit-note { font-size: 13px; color: var(--ink-dim); }
+/* A card opened over another card stands out (save prompt over the pause menu). */
+.backdrop ~ .backdrop .card { background: rgb(52, 24, 14); box-shadow: 0 0 0 2px rgba(255, 179, 71, 0.6), 0 14px 44px rgba(0, 0, 0, 0.6); }
+.card.menu-list { background: rgb(38, 17, 10); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); }

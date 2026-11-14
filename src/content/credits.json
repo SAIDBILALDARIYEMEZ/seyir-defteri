@@ -1,0 +1,15 @@
+{
+  "data": [
+    { "name": "MSL RAD (Curiosity) surface dose rate, via NASA OSDR RadLab", "url": "https://visualization.osdr.nasa.gov/radlab/", "license": "NASA open data", "use": "credits.use.rad" },
+    { "name": "NASA DONKI (space weather notifications: SEP, CME, GST, flares)", "url": "https://api.nasa.gov/", "license": "NASA open data", "use": "credits.use.donki" },
+    { "name": "NASA OSDR studies OSD-268, OSD-984", "url": "https://osdr.nasa.gov/", "license": "NASA open data", "use": "credits.use.osdr" },
+    { "name": "MOXIE facts (NASA/JPL, MIT)", "url": "https://mars.nasa.gov/mars2020/spacecraft/instruments/moxie/", "license": "NASA media guidelines", "use": "credits.use.facts" }
+  ],
+  "assets": [
+    { "name": "KayKit Space Base Bits (Kay Lousberg)", "url": "https://kaylousberg.itch.io/space-base-bits", "license": "CC0 1.0", "use": "credits.use.models" },
+    { "name": "Ultimate Space Kit (Quaternius)", "url": "https://quaternius.com/packs/ultimatespacekit.html", "license": "CC0 1.0", "use": "credits.use.models" },
+    { "name": "Mars 2020 Perseverance Rover model (NASA/JPL-Caltech)", "url": "https://github.com/nasa/NASA-3D-Resources", "license": "NASA media guidelines", "use": "credits.use.decor" },
+    { "name": "three.js", "url": "https://threejs.org/", "license": "MIT", "use": "credits.use.engine" },
+    { "name": "Draco decoder (Google)", "url": "https://github.com/google/draco", "license": "Apache 2.0", "use": "credits.use.draco" }
+  ]
+}

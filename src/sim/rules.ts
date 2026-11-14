@@ -25,7 +25,7 @@ export function locationOf(state: GameState, crewId: number): StationId {
   return (state.crew.find((c) => c.id === crewId) ?? state.crew[0])?.location ?? 'habitat';
 }
 
-function walkHours(from: StationId, to: StationId): number {
+export function walkHours(from: StationId, to: StationId): number {
   if (from === to) return 0;
   const far: readonly string[] = BALANCE.walk.farStations;
   return far.includes(from) || far.includes(to) ? BALANCE.walk.far : BALANCE.walk.near;

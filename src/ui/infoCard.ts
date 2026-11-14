@@ -11,6 +11,7 @@ import type { StationId } from '../sim/actions.ts';
 import type { GameState } from '../sim/state.ts';
 import { isPlaceable } from '../sim/systems/build.ts';
 import { button, el } from './dom.ts';
+import { glossify } from './glossary.ts';
 
 export type InfoId = StationId | 'lander';
 
@@ -44,7 +45,9 @@ export function mountInfoCard(parent: HTMLElement): InfoCard {
   };
   const section = (title: TextKey, body: string, cls = ''): HTMLElement => {
     const box = el('section', `info-sec ${cls}`);
-    box.append(el('h3', '', t(title)), el('p', '', body));
+    const p = el('p');
+    p.append(...glossify(body));
+    box.append(el('h3', '', t(title)), p);
     return box;
   };
   return {

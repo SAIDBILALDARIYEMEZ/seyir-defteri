@@ -8,7 +8,7 @@ import { reduce } from './reducer.ts';
 import { createRng } from './rng.ts';
 import { createInitialState } from './state.ts';
 import type { GameState, PlannedTask } from './state.ts';
-import { advise } from './systems/advisor.ts';
+import { advise, fitDaylight, planDay } from './systems/advisor.ts';
 import { morningPlan } from './systems/night.ts';
 import { overdueCost, taskKey } from './systems/overdue.ts';
 
@@ -43,10 +43,68 @@ const morning = (plan: PlannedTask[], over: Partial<GameState> = {}): GameState 
 };
 
 describe('overdue tasks (F5a)', () => {
-  it('no morning list during the tutorial sols', () => {
-    const s = morning([]);
-    expect(morningPlan({ ...s, sol: BALANCE.overdue.fromSol - 1 }, win)).toEqual([]);
-    expect(morningPlan(s, win).length).toBeGreaterThan(0);
+  it('no morning list before the sol-1 setup; the list is made once the base is placed (F5b)', () => {
+    const fresh = createInitialState(1, win);
+    expect(morningPlan(fresh, win)).toEqual([]);
+    const placed = step(step(fresh, { type: 'place', crewId: 0, station: 'habitat', cell: slots.habitat }), {
+      type: 'place',
+      crewId: 0,
+      station: 'panels',
+      cell: slots.panels,
+    });
+    expect(placed.today.plan.length).toBeGreaterThan(0);
+    expect(morningPlan(morning([]), win).length).toBeGreaterThan(0);
+  });
+
+  it('sol-1 tasks left undone reach sol 2, and the lists pile up day by day (F5b)', () => {
+    const fresh = createInitialState(1, win);
+    let s = step(step(fresh, { type: 'place', crewId: 0, station: 'habitat', cell: slots.habitat }), {
+      type: 'place',
+      crewId: 0,
+      station: 'panels',
+      cell: slots.panels,
+    });
+    const sol1 = s.today.plan.map((x) => taskKey(x.action));
+    s = step(s, END);
+    expect(s.sol).toBe(2);
+    const carried = s.overdue.map((x) => taskKey(x.action));
+    expect(carried.length).toBeGreaterThan(0);
+    for (const key of carried) expect(sol1).toContain(key);
+    // Sol 2 left undone too: sol 3 carries sol 1's and sol 2's tasks together.
+    const sol2 = s.today.plan.map((x) => taskKey(x.action));
+    s = step(s, END);
+    const both = new Set([...sol1, ...sol2]);
+    expect(s.overdue.length).toBeGreaterThanOrEqual(carried.length);
+    for (const x of s.overdue) expect(both.has(taskKey(x.action))).toBe(true);
+  });
+
+  it('the daily list fits the daylight left, walking included; the rest moves to tomorrow (F5b)', () => {
+    const s = { ...morning([]), hoursLeft: 2 };
+    // Curiosity: 1 h walk + 2 h work does not fit 2 h; MOXIE: 0.5 h walk + 1 h fits.
+    const plan = fitDaylight(s, [task('readCuriosity'), task('moxie')]);
+    expect(plan.tasks.map((x) => x.action.type)).toEqual(['moxie']);
+    expect(plan.deferred.map((x) => x.action.type)).toEqual(['readCuriosity']);
+    const day = planDay({ ...morning([]), hoursLeft: 1.2 }, win);
+    for (const x of day.tasks) expect(x.action.type === 'moxie' || x.action.type === 'build').toBe(true);
+  });
+
+  it('an overdue task that ran out of daylight moves on without a cost; a skipped one pays (F5b)', () => {
+    const plan = [late('readCuriosity')];
+    const free = step(morning(plan, { hoursLeft: 1 }), END);
+    const base = step(morning([], { hoursLeft: 1 }), END);
+    expect(free.science).toBe(base.science);
+    expect(free.overdue.map((x) => taskKey(x.action))).toContain('readCuriosity');
+    expect(free.log.at(-1)?.charged).toEqual([]);
+    const skipped = step(morning(plan), END);
+    expect(skipped.log.at(-1)?.charged).toEqual(['readCuriosity']);
+  });
+
+  it('an overdue task that did not fit today is carried again without a cost (F5b)', () => {
+    const waiting = late('readCuriosity');
+    const a = step(morning([], { overdue: [] }), END);
+    const b = step(morning([], { overdue: [waiting] }), END);
+    expect(b.science).toBe(a.science);
+    expect(b.overdue.map((x) => taskKey(x.action))).toContain('readCuriosity');
   });
 
   it('an undone task is carried to the next sol as overdue', () => {

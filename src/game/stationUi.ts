@@ -7,7 +7,7 @@
 import { BALANCE } from '../config/balance.ts';
 import stationContent from '../content/stations.json';
 import { t } from '../i18n/i18n.ts';
-import type { Action, ActionType, Cell, PlacedId, StationId, Turn } from '../sim/actions.ts';
+import type { Action, ActionType, Cell, PlacedId, ReasonCode, StationId, Turn } from '../sim/actions.ts';
 import { check, costOf, isStationLocked } from '../sim/rules.ts';
 import type { GameState } from '../sim/state.ts';
 import { isPlaceable, isStarter } from '../sim/systems/build.ts';
@@ -38,8 +38,20 @@ export function placeAction(state: GameState, id: PlacedId, cell: Cell, rot?: Tu
   return { type: 'build', crewId: CREW_ID, station: id, cell, rot };
 }
 
+/** F5b: every action shows its time (walking included) and its power, even when 0. */
+function costLine(hours: number, power: number): string {
+  return `⏱ ${t('menu.hours', { n: fmt(hours) })} · ⚡ ${power > 0 ? `−${power}` : '0'}`;
+}
+
 export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id: StationId) => void = () => undefined) {
   const { s, world, menu } = ctx;
+
+  /** Why an action is greyed out; "no time" and "store full" say the numbers (F5b). */
+  function reasonText(reason: ReasonCode, hours: number): string {
+    if (reason === 'noTime') return t('reason.noTimeFor', { need: fmt(hours), have: fmt(s.state.hoursLeft) });
+    if (reason === 'foodFull') return t('reason.foodFullStore', { n: fmt(s.state.food), max: BALANCE.food.max });
+    return t(`reason.${reason}`);
+  }
 
   function showStationMenu(station: StationId): void {
     s.openStation = station;
@@ -48,13 +60,13 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
       const cost = costOf(s.state, action);
       const reason = check(s.state, action, s.win);
       const hours = cost.walk + cost.hours;
-      const parts = [hours > 0 ? `⏱ ${t('menu.hours', { n: fmt(hours) })}` : '', cost.power > 0 ? `−${cost.power}⚡` : ''];
+      const store = action.type === 'greenhouse' ? ` · 🥫 ${t('menu.store', { n: fmt(s.state.food), max: BALANCE.food.max })}` : '';
       return {
-        label: labelOf(s.state, action),
-        cost: parts.filter(Boolean).join('  '),
-        reason: reason ? t(`reason.${reason}`) : null,
+        label: `${labelOf(s.state, action)}${store}`,
+        cost: costLine(hours, cost.power),
+        reason: reason ? reasonText(reason, hours) : null,
         hint: g.station === station && g.stepType === action.type,
-        onPick: () => ctx.perform(action),
+        onPick: () => (action.type === 'shelterWait' ? ctx.enterShelter() : ctx.perform(action)),
       };
     });
     const placed = isPlaceable(station) ? s.state.buildings[station] : undefined;
@@ -64,8 +76,8 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
       const cost = costOf(s.state, move);
       items.push({
         label: `↔️ ${t('action.relocate')}`,
-        cost: `⏱ ${t('menu.hours', { n: fmt(cost.walk + cost.hours) })}`,
-        reason: s.state.hoursLeft < cost.walk + cost.hours ? t('reason.noTime') : null,
+        cost: costLine(cost.walk + cost.hours, 0),
+        reason: s.state.hoursLeft < cost.walk + cost.hours ? reasonText('noTime', cost.walk + cost.hours) : null,
         hint: false,
         onPick: () => {
           menu.close();
@@ -98,7 +110,7 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
   }
 
   function selectStation(station: StationId): void {
-    if (!ctx.free() || isStationLocked(s.state, station)) return;
+    if (!ctx.canWalk() || isStationLocked(s.state, station)) return;
     walkThen((done) => world.walkTo(station, done), () => {
       showStationMenu(station);
       onStationOpen(station);
@@ -107,7 +119,7 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
 
   /** Click-to-walk: purely visual; the sim charges walking with the next action (D-010). */
   function walkGround(x: number, z: number): void {
-    if (!ctx.free()) return;
+    if (!ctx.canWalk()) return;
     walkThen((done) => world.walkToPoint(x, z, done), () => undefined);
   }
 

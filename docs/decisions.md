@@ -470,3 +470,69 @@ repo; every model must keep a primitive fallback.
 (skipped science tasks now cost a star); always-shelter w3 Legend 13.5% -> 1%. Other rows
 unchanged. `node tools/bot/missed.ts <strategy> <window>` lists which morning tasks a
 strategy leaves undone.
+
+## D-019 — 2026-11-14 — F5b: play flow and clarity (second player test, ages 10-14)
+Human request (F5b): nine fixes from a second player's test. What was built and the choices
+made where the request left room:
+
+1. **Walk retarget.** A tap on the ground or another station while Ada walks cancels the old
+   walk at once (its callback never runs) and turns her to the new target (`ctx.canWalk()`;
+   `world.walk` drops stale legs, `astronaut.stop()`).
+2. **Saving.** Autosave 0.6 s after every action that lands, on `visibilitychange` (hidden) and
+   `pagehide`, and when Ada reaches the habitat. Pause menu "Save" with a "Saved ✓" toast.
+   "Main menu" asks: Save and exit / Don't save (the save goes back to this morning's
+   snapshot) / Cancel. **Saved games list:** one save per mission (`seed-window`), at most 6,
+   newest first; Continue loads the newest; load / delete (asks first) in "Saved games". The
+   old single-slot save is moved into the list once. Save version unchanged (3).
+3. **Overdue tasks pile up from sol 2** (`BALANCE.overdue.fromSol` 4 -> 1): the sol-1 list is
+   made once the habitat and the panels are placed, so sol-1 tasks reach sol 2, and sol 1 + 2
+   tasks reach sol 3. The watch shows "Today" and "Overdue" groups, at most 6 rows
+   (`overdue.listMax`); more overdue ones show as "+N overdue". The sim keeps up to 8
+   (`overdue.max`, was 3). Grace and costs unchanged.
+4. **Daylight fit.** The morning list (`planDay`) and the live list (`liveDay`) keep only what
+   fits the daylight left when done in order, walking included (`fitDaylight`); the rest is
+   "Moves to tomorrow (no cost)". Order: urgent rules (`urgent` in missions.json: radiation
+   now, broken, low air / power / food), then overdue tasks, then the other rules. The live
+   list = urgent needs that came up + this morning's tasks still undone; empty list -> the
+   watch shows a big "End the day" and one sentence on the night (`nightNote`). Ending the
+   day always asks first (`endDaySpec`). A greyed button with no time says "Needs X h, Y h
+   left: moves to tomorrow".
+   - **Choice (cost rule kept, made consistent with "no cost"):** an overdue task is charged
+     at night only when it was left undone although it still fitted the daylight when the day
+     ended (`chargedTasks`, logged as `SolLog.charged`). One that ran out of time moves on
+     free, as the watch promised. Skipped work still pays exactly as before.
+   - **Choice (morning battery):** the morning plan judges power with what the panels bring
+     by dusk (the morning is the battery's low point) and puts tasks that can be paid now
+     first; a planned task still waiting for power stays listed ("needs more power"). Without
+     this the pusula bot fell to 58-74% (MOXIE dropped from every low-power morning).
+   - The pusula bot now does the live list top to bottom (`nextTask`) and ends the day when
+     it is empty (was: at most 3 tasks).
+5. **Shelter.** "Wait in the shelter" walks Ada in and hides her; the game then waits one hour
+   at a time (1.4 s real time per hour) until PUSULA's advised hours
+   (`advisor.shelterHoursOnEvent`) are done, waiting is no longer allowed, the daylight ends or
+   "Go outside" is tapped. Band: "You are in the shelter: safe from the storm dose. X h left"
+   (X = advised hours still to wait, never more than the daylight). Dose gauge: 🛡️ "In the
+   shelter: shielded". No future of the RAD curve is used for X.
+6. **Greenhouse and costs.** Food gauge shows x/20; the greenhouse button shows "store x/20";
+   a full store greys harvest out and says why with the numbers. Every action button shows
+   time (walking included) and power, also when 0; store cards show 🔩 parts, ⏱ work hours,
+   ⚡ power and build sols.
+7. **Text.** Cards lead with at most two sentences; the rest folds under "More ▾"
+   (`ui/overlays.ts`, automatic; lists, results, charts and the quiz show everything). The
+   watch shows PUSULA's first two sentences. Long tutorial texts were cut to two sentences.
+   **Glossary** (`content/glossary.json`, text `gloss.*`): sol, RAD, regolith, CME / particle
+   storm, dose, MOXIE, Curiosity, Gale Crater get a dotted underline in cards, the watch and
+   the station info card (first time per text); a tap shows one sentence.
+8. **Menus.** Pause: one column — Continue, Save, Logbook, Sound, Language, Main menu, then
+   Reset progress apart. Main menu as in the trial build: Continue, New mission, Saved games,
+   Info & Sources, Settings (language, sound, reset); the class mission code stays as a small
+   link. No "coming soon" buttons. **Info & Sources** is now built (`content/credits.json`).
+9. **Labels.** Station labels never overlap each other or the HUD / camera buttons / watch /
+   store / cards: nearest first, a clashing label moves up or down one step or slides a short
+   way (at most its own width) clear of a panel, else hides. The rank badge now sits in the
+   HUD's left column under the chips, so the hours chip can never slide under it.
+
+**Bot report after F5b** (200 games per strategy per window): balanced 81.0 / 78.0 / 87.0%
+(Legend 29.0 / 69.5 / 86.5%), pusula 86.0 / 90.5 / 89.5%, never-shelter w1 0%, random 0%.
+Before F5b: balanced 81.5 / 78 / 87%, pusula 88.5 / 92 / 93%. All targets met
+(balanced >= 70%, pusula >= 80%, never-shelter w1 <= 30%, random <= 20%).

@@ -9,8 +9,8 @@ import type { Action } from './actions.ts';
 import type { Rng } from './rng.ts';
 import { check, costOf, replayTarget } from './rules.ts';
 import type { GameState } from './state.ts';
-import { addBonus, placeStarter, relocate, rotateBuilding, startBuilding } from './systems/build.ts';
-import { endSol, lose } from './systems/night.ts';
+import { addBonus, placeStarter, relocate, rotateBuilding, setupDone, startBuilding } from './systems/build.ts';
+import { endSol, lose, morningPlan } from './systems/night.ts';
 import { passDaylight, shelterShield } from './systems/time.ts';
 import type { WindowData } from './window.ts';
 
@@ -71,7 +71,12 @@ export function reduce(state: GameState, action: Action, _rng: Rng, win: WindowD
     };
   }
   if (action.type === 'endSol') return endSol(state, win);
-  if (action.type === 'place') return { ...placeStarter(state, action.station, action.cell, action.rot), rejection: null };
+  if (action.type === 'place') {
+    const placed = { ...placeStarter(state, action.station, action.cell, action.rot), rejection: null };
+    // Sol 1: the day's list is made once the base is set up (F5b), so sol-1 tasks can carry.
+    if (!setupDone(placed) || placed.today.plan.length > 0) return placed;
+    return { ...placed, today: { ...placed.today, plan: morningPlan(placed, win) } };
+  }
   if (action.type === 'rotate') return { ...rotateBuilding(state, action.station), rejection: null };
   if (action.type === 'bonus') return { ...addBonus(state, action.parts, action.science), rejection: null };
 

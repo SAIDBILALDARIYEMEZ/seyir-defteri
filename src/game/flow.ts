@@ -13,7 +13,7 @@ import { check } from '../sim/rules.ts';
 import { createInitialState } from '../sim/state.ts';
 import type { GameState } from '../sim/state.ts';
 import { clockOf } from '../sim/systems/time.ts';
-import { clearSave, loadGame, saveGame } from '../save/save.ts';
+import { clearSave, loadGame, saveGame, saveIdOf } from '../save/save.ts';
 import { dataSpec, infoSpec, pusulaSpec } from '../ui/cards.ts';
 import { morningCards, nightSpec } from '../ui/dayCards.ts';
 import type { GaugeId } from '../ui/hud.ts';
@@ -21,6 +21,9 @@ import { logbookSpec } from '../ui/logbook.ts';
 import { resultSpec, resultTitle } from '../ui/result.ts';
 import { hazardTable, pickStormSpec } from '../ui/learn.ts';
 import { stormSpec } from '../ui/storm.ts';
+import { createMenuCards } from './menus.ts';
+import { languagePicker } from '../ui/overlays.ts';
+import { showToast } from '../ui/toast.ts';
 import { CREW_ID } from './context.ts';
 import type { Ctx, Mission } from './context.ts';
 import type { Guide } from './guide.ts';
@@ -40,14 +43,20 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     resume();
     showMenu();
   };
-  /** "Exit without saving": today's progress is dropped, the morning autosave stays. */
-  const confirmExit = (): void => {
+  /** Today's work is dropped: the save goes back to this morning (the autosave kept it). */
+  const saveMorning = (): void => {
+    const morning = s.state.mornings.at(-1);
+    if (morning) saveGame({ ...structuredClone(morning), mornings: s.state.mornings });
+  };
+  /** Main menu from the pause menu: asks whether to keep today's work (F5b). */
+  const askSave = (): void => {
     const close = ctx.modal(() => ({
-      title: t('pause.confirm.title'),
-      lines: [t('pause.confirm.body')],
+      title: t('pause.ask.title'),
+      lines: [t('pause.ask.body')],
       buttons: [
-        { label: t('pause.confirm.yes'), onClick: () => { close(); leave(); } },
-        { label: t('pause.confirm.no'), onClick: () => close(), primary: true },
+        { label: `💾 ${t('pause.ask.yes')}`, onClick: () => { close(); ctx.save(); leave(); }, primary: true },
+        { label: t('pause.ask.no'), onClick: () => { close(); saveMorning(); leave(); } },
+        { label: t('pause.confirm.no'), onClick: () => close() },
       ],
     }));
   };
@@ -64,28 +73,31 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     }));
   };
 
+  const soundButton = (redraw: () => void) => ({
+    label: `${soundEnabled() ? '🔊' : '🔇'} ${t(soundEnabled() ? 'pause.soundOn' : 'pause.soundOff')}`,
+    onClick: () => {
+      setSoundEnabled(!soundEnabled());
+      redraw();
+    },
+  });
+
+  /** F5b: one tidy list. Continue on top, Reset progress apart at the bottom. */
   function pause(): void {
     if (s.mode !== 'play') return;
     if (s.closePause) return resume();
     const playing = s.state.phase === 'playing';
     s.closePause = ctx.modal(() => ({
+      kind: 'menu-list pause',
       title: t('pause.title'),
       lines: [[t('code.label'), code()]],
-      languagePicker: true,
       buttons: [
+        { label: `▶️ ${t('pause.resume')}`, onClick: resume, primary: true },
+        ...(playing ? [{ label: `💾 ${t('pause.save')}`, onClick: () => { if (ctx.save()) showToast(ctx.ui, t('save.done')); } }] : []),
         { label: `📖 ${t('logbook.open')}`, onClick: showLogbook },
-        { label: t('pause.exitNoSave'), onClick: () => (playing ? confirmExit() : leave()) },
-        ...(playing ? [{ label: t('pause.saveExit'), onClick: () => { saveGame(s.state); leave(); } }] : []),
-        {
-          label: `${soundEnabled() ? '🔊' : '🔇'} ${t(soundEnabled() ? 'pause.soundOn' : 'pause.soundOff')}`,
-          onClick: () => {
-            setSoundEnabled(!soundEnabled());
-            resume();
-            pause();
-          },
-        },
-        { label: `♻️ ${t('pause.reset')}`, onClick: confirmReset },
-        { label: t('pause.resume'), onClick: resume, primary: true },
+        soundButton(() => { resume(); pause(); }),
+        { node: languagePicker },
+        { label: `🏠 ${t('pause.mainMenu')}`, onClick: () => (playing ? askSave() : leave()) },
+        { label: `♻️ ${t('pause.reset')}`, onClick: confirmReset, danger: true },
       ],
     }));
   }
@@ -174,7 +186,7 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
   }
 
   function showResult(): void {
-    clearSave();
+    clearSave(s.state);
     world.setNight(false);
     const progress = learn.finish(s.state);
     const close = ctx.modal(() =>
@@ -213,8 +225,8 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     ctx.render(true);
   }
 
-  function continueMission(): void {
-    const saved = loadGame();
+  function continueMission(id?: string): void {
+    const saved = loadGame(id);
     if (!saved) return ctx.render();
     ({ seed: s.seed, win: s.win } = missions.ofSave(saved.seed, saved.windowId));
     s.rng = createRng(s.seed);
@@ -223,14 +235,15 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     enterPlay();
   }
 
-  /** Asks first when starting `mission` would replace a saved mission. */
-  function confirmReplace(mission: () => Mission): void {
-    if (!loadGame()) return startMission(mission());
+  /** Asks first when starting `mission` would replace the save of that same mission. */
+  function confirmReplace(pick: () => Mission): void {
+    const mission = pick();
+    if (!loadGame(saveIdOf({ seed: mission.seed, windowId: mission.win.id }))) return startMission(mission);
     const close = ctx.modal(() => ({
       title: t('menu.replace.title'),
       lines: [t('menu.replace.body')],
       buttons: [
-        { label: t('menu.replace.yes'), onClick: () => { close(); startMission(mission()); } },
+        { label: t('menu.replace.yes'), onClick: () => { close(); startMission(mission); } },
         { label: t('pause.confirm.no'), onClick: () => close(), primary: true },
       ],
     }));
@@ -273,6 +286,7 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     showResult,
     continueMission,
     newMission,
+    ...createMenuCards(ctx, { continueMission, confirmReset }),
     codeMission,
   };
 }

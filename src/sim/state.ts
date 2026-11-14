@@ -40,6 +40,8 @@ export interface PlannedTask {
   overdue?: boolean;
   /** Optional extra (offered only when power is spare): never carried over. */
   spare?: boolean;
+  /** An urgent need (missions.json `urgent`): leads the list (F5b). */
+  urgent?: boolean;
 }
 
 /** One line per sol for the Commander's Logbook (codes only; text comes from i18n). */
@@ -58,6 +60,8 @@ export interface SolLog {
   science: number;
   /** Tasks of the morning list left undone (their `why` codes); missing in older saves. */
   missed?: string[];
+  /** Overdue tasks charged tonight (F5b: undone although they still fitted the daylight). */
+  charged?: string[];
 }
 
 export interface Today {
@@ -68,7 +72,7 @@ export interface Today {
   shelterHours: number;
   readCuriosity: boolean;
   scannedRock: boolean;
-  /** PUSULA's list as it stood in the morning (from BALANCE.overdue.fromSol). */
+  /** PUSULA's list as it stood in the morning (after the sol-1 setup on sol 1). */
   plan: PlannedTask[];
 }
 

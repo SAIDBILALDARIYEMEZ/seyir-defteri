@@ -35,6 +35,7 @@ export interface ScreenPoint {
   x: number;
   y: number;
   visible: boolean;
+  depth?: number; // projected depth: smaller = closer to the camera
 }
 
 export interface World {
@@ -53,6 +54,8 @@ export interface World {
   /** Free walk on the ground (click-to-walk); stops outside buildings. */
   walkToPoint(x: number, z: number, onArrive?: () => void): void;
   placeAda(station: StationId): void;
+  /** Hides Ada inside a building (shelter, F5b) or shows her again. */
+  setAdaVisible(visible: boolean): void;
   /** Screen position of a station label, or of Ada's / PUSULA's head. */
   screenOf(target: StationId | 'ada' | 'pusula'): ScreenPoint;
   /** Camera (B4): drag = turn around + tilt, twist / pinch for two fingers, buttons, compass. */
@@ -177,10 +180,12 @@ export function createWorld(canvas: HTMLCanvasElement): World {
     const from: Point = [ada.group.position.x, ada.group.position.z];
     const legs = findPath(from, target, blockers(), WALK_LIMIT);
     const id = ++walkId;
+    ada.stop(); // F5b: a new walk cancels the old one at once; its callback never runs
     const next = (): void => {
+      if (id !== walkId) return;
       const leg = legs.shift();
-      if (!leg || id !== walkId) {
-        if (face && id === walkId) ada.face(...face);
+      if (!leg) {
+        if (face) ada.face(...face);
         return onArrive();
       }
       const d = Math.hypot(leg[0] - ada.group.position.x, leg[1] - ada.group.position.z);
@@ -217,7 +222,9 @@ export function createWorld(canvas: HTMLCanvasElement): World {
     walkToPoint(x, z, onArrive) {
       walk(x, z, onArrive ?? (() => undefined));
     },
+    setAdaVisible: (visible) => void (ada.group.visible = visible),
     placeAda(station) {
+      ada.group.visible = true;
       const shown = views[station].group.visible;
       ada.place(...freeSpot(...(shown ? standOf(station) : landerStand)));
       if (shown) ada.face(posOf(station).x, posOf(station).z);
@@ -231,6 +238,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
         x: (probe.x * 0.5 + 0.5) * window.innerWidth,
         y: (-probe.y * 0.5 + 0.5) * window.innerHeight,
         visible: probe.z < 1 && (target === 'ada' || target === 'pusula' || views[target].group.visible),
+        depth: probe.z,
       };
     },
     view: orbit,

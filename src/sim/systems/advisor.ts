@@ -5,11 +5,11 @@
 import { BALANCE } from '../../config/balance.ts';
 import missions from '../../content/missions.json' with { type: 'json' };
 import type { Action, BuildableId, SimpleActionType } from '../actions.ts';
-import { check, costOf } from '../rules.ts';
+import { check, costOf, locationOf, walkHours } from '../rules.ts';
 import type { GameState, PlannedTask } from '../state.ts';
 import type { WindowData } from '../window.ts';
 import { setupDone, STARTERS, suggestCell } from './build.ts';
-import { taskDone, taskKey } from './overdue.ts';
+import { missedTasks, taskDone, taskKey } from './overdue.ts';
 import { isDustSol } from './schedule.ts';
 import { incomePerHour, isEventNow } from './time.ts';
 import { sepWarnedToday, visibleWarnings } from './warnings.ts';
@@ -24,6 +24,8 @@ interface MissionRule {
   spare?: boolean;
   /** For `build` rules: which station to place (at its suggested grid slot). */
   station?: string;
+  /** Needs that cannot wait: they lead the list and also show up during the day (F5b). */
+  urgent?: boolean;
 }
 const RULES: MissionRule[] = missions;
 
@@ -74,41 +76,139 @@ function actionsOf(rule: MissionRule, state: GameState, crewId: number): Action[
   return [{ type: rule.action as SimpleActionType, crewId }];
 }
 
-/**
- * The daily mission generator: walks the rules of missions.json in priority order and keeps
- * the first `max` that apply and can be done right now, then adds the overdue tasks carried
- * from earlier sols (F5a) that are still undone. The game's wrist watch, the PUSULA robot and
- * the bot's `pusula` strategy all read this same list.
- */
-export function advise(state: GameState, win: WindowData, max: number = BALANCE.advisor.maxTasks): Task[] {
-  if (!setupDone(state)) {
-    // Sol-1 setup: only placing the habitat and the panels is possible.
-    return STARTERS.filter((id) => !state.buildings[id])
-      .map((station): Task => ({ action: { type: 'place', crewId: 0, station, cell: suggestCell(state, station) }, why: 'setup' }))
-      .slice(0, max);
-  }
-  const tasks = ruleTasks(state, win, max);
-  const late = new Set(state.overdue.map((task) => taskKey(task.action)));
-  const listed = new Set(tasks.map((task) => taskKey(task.action)));
-  const marked = tasks.map((task) => (late.has(taskKey(task.action)) ? { ...task, overdue: true } : task));
-  const carried = state.overdue.filter(
-    (task) => !listed.has(taskKey(task.action)) && !taskDone(state, task) && check(state, task.action, win) === null,
-  );
-  return [...marked, ...carried];
+/** The task list split into what fits today's daylight and what moves to tomorrow (F5b). */
+export interface DayPlan {
+  tasks: Task[];
+  /** Tasks that do not fit the daylight left (walking included): no cost, "moves to tomorrow". */
+  deferred: Task[];
 }
 
-function ruleTasks(state: GameState, win: WindowData, max: number): Task[] {
+const EPS = 1e-9;
+
+/**
+ * Keeps the tasks that fit the daylight left when done in list order, walking from Ada's
+ * spot to each station in turn; the rest are deferred. Time only: power is checked per task.
+ */
+export function fitDaylight(state: GameState, tasks: Task[], crewId = 0): DayPlan {
+  let at = locationOf(state, crewId);
+  let left = state.hoursLeft;
+  const plan: DayPlan = { tasks: [], deferred: [] };
+  for (const task of tasks) {
+    const cost = costOf(state, task.action);
+    const need = walkHours(at, cost.station) + cost.hours;
+    if (need > left + EPS) {
+      plan.deferred.push(task);
+      continue;
+    }
+    plan.tasks.push(task);
+    left -= need;
+    at = cost.station;
+  }
+  return plan;
+}
+
+/**
+ * Overdue tasks of this morning's list that tonight charges (F5b): left undone although they
+ * still fit the daylight left. One that no longer fits moves to tomorrow without a cost.
+ */
+export function chargedTasks(state: GameState): Task[] {
+  return missedTasks(state).filter((task) => task.overdue && fitDaylight(state, [task]).tasks.length > 0);
+}
+
+function setupTasks(state: GameState, max: number): Task[] {
+  // Sol-1 setup: only placing the habitat and the panels is possible.
+  return STARTERS.filter((id) => !state.buildings[id])
+    .map((station): Task => ({ action: { type: 'place', crewId: 0, station, cell: suggestCell(state, station) }, why: 'setup' }))
+    .slice(0, max);
+}
+
+/** Same task twice (by action + station): the first one wins. */
+function unique(tasks: Task[]): Task[] {
+  const seen = new Set<string>();
+  return tasks.filter((task) => {
+    const key = taskKey(task.action);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/** Overdue tasks carried from earlier sols that are still undone and possible now. */
+function carriedTasks(state: GameState, win: WindowData): Task[] {
+  return state.overdue.filter((task) => !taskDone(state, task) && check(state, task.action, win) === null);
+}
+
+const markLate = (state: GameState, tasks: Task[]): Task[] => {
+  const late = new Set(state.overdue.map((task) => taskKey(task.action)));
+  return tasks.map((task) => (late.has(taskKey(task.action)) ? { ...task, overdue: true } : task));
+};
+
+/**
+ * The morning list (F5b): the first `max` rules of missions.json that apply and can be done
+ * now, plus the overdue tasks carried from earlier sols. Urgent rules lead, then the overdue
+ * tasks, then the rest; whatever does not fit the daylight (walking included) is deferred
+ * to tomorrow without a cost.
+ */
+export function planDay(state: GameState, win: WindowData, max: number = BALANCE.advisor.maxTasks): DayPlan {
+  if (!setupDone(state)) return { tasks: setupTasks(state, max), deferred: [] };
+  // The morning is the low point of the battery: plan with the power the panels bring by
+  // dusk, and do the tasks that can be paid now first.
+  const dusk = { ...state, power: Math.min(BALANCE.power.max, state.power + incomePerHour(state) * state.hoursLeft) };
+  const paidLast = (tasks: Task[]): Task[] => [
+    ...tasks.filter((x) => state.power >= costOf(state, x.action).power),
+    ...tasks.filter((x) => state.power < costOf(state, x.action).power),
+  ];
+  const rules = markLate(state, paidLast(ruleTasks(state, win, max, false, dusk)));
+  const ordered = unique([...rules.filter((x) => x.urgent), ...carriedTasks(state, win), ...rules.filter((x) => !x.urgent)]);
+  return fitDaylight(state, ordered);
+}
+
+/**
+ * PUSULA's live list for the rest of the day: urgent needs that came up (radiation now, a
+ * breakdown, low air ...), then this morning's tasks still undone, cut to the daylight left.
+ * The game's wrist watch, the PUSULA robot and the bot's `pusula` strategy all read it.
+ * An empty list means nothing meaningful is left: PUSULA suggests ending the day.
+ */
+export function liveDay(state: GameState, win: WindowData): DayPlan {
+  if (!setupDone(state)) return { tasks: setupTasks(state, BALANCE.advisor.maxTasks), deferred: [] };
+  const urgent = ruleTasks(state, win, Number.POSITIVE_INFINITY, true);
+  const open = state.today.plan.filter((task) => !taskDone(state, task));
+  const reason = (task: Task): string | null => check(state, task.action, win);
+  // A task still waiting for the panels' power stays on the list, after the ones doable now.
+  const ready = open.filter((task) => reason(task) === null);
+  const waiting = open.filter((task) => reason(task) === 'noPower');
+  // Out of daylight: fitDaylight moves these to `deferred` ("moves to tomorrow").
+  const late = open.filter((task) => reason(task) === 'noTime');
+  return fitDaylight(state, markLate(state, unique([...urgent, ...ready, ...waiting, ...late])));
+}
+
+/** PUSULA's live list (see liveDay). Some tasks may still wait for power: see `nextTask`. */
+export function advise(state: GameState, win: WindowData): Task[] {
+  return liveDay(state, win).tasks;
+}
+
+/** The first task of the live list that can be done right now, or null (time to end the day). */
+export function nextTask(state: GameState, win: WindowData): Task | null {
+  return advise(state, win).find((task) => check(state, task.action, win) === null) ?? null;
+}
+
+/** `judge`: the state `check` runs on (the morning plan judges with the dusk battery). */
+function ruleTasks(state: GameState, win: WindowData, max: number, urgentOnly = false, judge: GameState = state): Task[] {
   const seen = new Set<string>();
   const tasks: Task[] = [];
   const duskPower = state.power + incomePerHour(state) * state.hoursLeft;
   for (const rule of RULES) {
+    if (urgentOnly && !rule.urgent) continue;
     if (!CONDITIONS[rule.when]?.(state, win)) continue;
     for (const action of actionsOf(rule, state, 0)) {
       const key = JSON.stringify(action);
-      if (seen.has(key) || check(state, action, win) !== null) continue;
+      if (seen.has(key) || check(judge, action, win) !== null) continue;
       if (rule.spare && duskPower - costOf(state, action).power < BALANCE.power.nightHeating) continue;
       seen.add(key);
-      tasks.push(rule.spare ? { action, why: rule.id, spare: true } : { action, why: rule.id });
+      const task: Task = { action, why: rule.id };
+      if (rule.spare) task.spare = true;
+      if (rule.urgent) task.urgent = true;
+      tasks.push(task);
       if (tasks.length >= max) return tasks;
     }
   }

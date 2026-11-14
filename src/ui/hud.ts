@@ -15,7 +15,10 @@ export type GaugeId = 'power' | 'air' | 'food' | 'dose' | 'science';
 
 export interface Hud {
   root: HTMLElement;
-  update(state: GameState, win: WindowData): void;
+  /** Left column (sol, hours, parts); the rank badge goes in under the chips (F5b). */
+  left: HTMLElement;
+  /** `sheltered`: Ada waits in the shelter, the dose gauge shows a shield (F5b). */
+  update(state: GameState, win: WindowData, sheltered?: boolean): void;
 }
 
 interface Gauge {
@@ -44,11 +47,13 @@ function gauge(icon: string, onInfo: () => void): Gauge {
 
 export function mountHud(parent: HTMLElement, onPause: () => void, onInfo: (id: GaugeId) => void): Hud {
   const root = el('header', 'hud');
-  const left = el('div', 'hud-side');
+  const left = el('div', 'hud-side left');
+  const chips = el('div', 'hud-chips');
   const sol = el('span', 'chip');
   const hours = el('span', 'chip');
   const parts = el('span', 'chip parts');
-  left.append(sol, hours, parts);
+  chips.append(sol, hours, parts);
+  left.append(chips);
 
   const groups = el('div', 'hud-groups');
   const power = gauge('⚡', () => onInfo('power'));
@@ -61,7 +66,8 @@ export function mountHud(parent: HTMLElement, onPause: () => void, onInfo: (id: 
   const lifeTitle = el('span', 'group-title');
   lifeGroup.append(lifeTitle, air.row, food.row);
   const doseGroup = el('div', 'hud-group dose');
-  doseGroup.append(dose.row);
+  const shield = el('span', 'dose-shield');
+  doseGroup.append(dose.row, shield);
   groups.append(powerGroup, lifeGroup, doseGroup);
 
   const right = el('div', 'hud-side right');
@@ -79,7 +85,8 @@ export function mountHud(parent: HTMLElement, onPause: () => void, onInfo: (id: 
 
   return {
     root,
-    update(state, win) {
+    left,
+    update(state, win, sheltered = false) {
       const a = BALANCE.advisor;
       // Gradual unlock (PRD §11.5): food from sol 3, storm dose from sol 4; science from the
       // sol Curiosity opens (sol 1 in build mode, D-013).
@@ -95,9 +102,13 @@ export function mountHud(parent: HTMLElement, onPause: () => void, onInfo: (id: 
       power.set(t('hud.power'), state.power / BALANCE.power.max, fmt(state.power), state.power <= a.powerLow);
       lifeTitle.textContent = `❤️ ${t('hud.life')}`;
       air.set(t('hud.air'), state.air / BALANCE.air.max, fmt(state.air), state.air <= a.airLow);
-      food.set(t('hud.food'), state.food / BALANCE.food.max, fmt(state.food), state.food <= a.foodLow);
+      // F5b: the food store shows how full it is (x/y).
+      food.set(t('hud.food'), state.food / BALANCE.food.max, `${fmt(state.food)}/${BALANCE.food.max}`, state.food <= a.foodLow);
       const share = state.dose / BALANCE.dose.budget;
       dose.set(t('hud.dose'), share, `${Math.round(share * 100)}%`, share >= 0.5);
+      doseGroup.classList.toggle('shielded', sheltered);
+      shield.hidden = !sheltered;
+      shield.textContent = `🛡️ ${t('hud.sheltered')}`;
       star.textContent = `⭐ ${fmt(state.science)}`;
       star.title = `${t('hud.science')}. ${tapHint}`;
       gear.setAttribute('aria-label', t('hud.pause'));

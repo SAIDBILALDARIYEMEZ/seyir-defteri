@@ -16,6 +16,8 @@ export interface Astronaut {
   /** Starts a walk to (x, z) lasting `seconds`; `onArrive` runs once at the end. */
   walkTo(x: number, z: number, seconds: number, onArrive: () => void): void;
   place(x: number, z: number): void;
+  /** Stops the current walk where she stands (its callback never runs). */
+  stop(): void;
   /** Turns to look at (x, z), e.g. the building she walked to. */
   face(x: number, z: number): void;
   /** Swaps the primitive body for the loaded model; false if the model is missing. */
@@ -143,6 +145,9 @@ export function createAstronaut(): Astronaut {
       elapsed = 0;
       arrive = onArrive;
       lookAt(x, z, false);
+    },
+    stop() {
+      arrive = null;
     },
     place(x, z) {
       group.position.set(x, 0, z);

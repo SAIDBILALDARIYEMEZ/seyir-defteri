@@ -182,3 +182,14 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
 - With the models in the repo, `npm run deploy` / `git push` can fail with HTTP 400 (push too
   big for git's default HTTP buffer). Run them with a bigger buffer for that command only:
   `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.postBuffer GIT_CONFIG_VALUE_0=524288000 npm run deploy`.
+- F5b daily list: `planDay` (morning, fits the daylight, judges power at dusk) is stored in
+  `today.plan`; `liveDay` / `advise` is the watch list; `nextTask` is the first one doable now
+  (the pusula bot uses it). After any change to them: `npm run bot` and read the pusula rows.
+- Overdue tasks are charged only when they still fitted the daylight at the end of the day
+  (`chargedTasks`); tests that expect a charge need hours left (the `morning()` helper has 10).
+- i18n keys are shared: before adding one, grep both tables (F5b briefly overwrote the night
+  card's `night.cold` label with a new sentence).
+- Clicks while Ada walks now retarget her: in browser-pane scripts, wait until she arrives
+  before clicking a menu item, or the click becomes a new walk.
+- Saves are a list (`seyir-defteri.saves`, one per seed + window); a mid-day reload resumes
+  mid-day. To test from a clean device clear that key and `seyir-defteri.played`.

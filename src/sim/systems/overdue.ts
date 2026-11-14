@@ -28,6 +28,15 @@ export function missedTasks(state: GameState): PlannedTask[] {
   return state.today.plan.filter((task) => !task.spare && !taskDone(state, task));
 }
 
+/**
+ * Overdue tasks that were not on this morning's list (they did not fit the daylight) and are
+ * still undone: carried again at night without a cost (F5b).
+ */
+export function waitingTasks(state: GameState): PlannedTask[] {
+  const planned = new Set(state.today.plan.map((task) => taskKey(task.action)));
+  return state.overdue.filter((task) => !planned.has(taskKey(task.action)) && !taskDone(state, task));
+}
+
 export interface OverdueCost {
   panelEff: number;
   air: number;

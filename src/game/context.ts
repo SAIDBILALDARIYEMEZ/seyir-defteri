@@ -38,6 +38,8 @@ export interface Session {
   frozen: GameState | null;
   mode: 'menu' | 'play';
   walking: boolean;
+  /** Ada waits inside the shelter (F5b): only "Go outside" and the pause menu work. */
+  sheltered: boolean;
   openStation: StationId | null;
   modals: number;
   closePause: (() => void) | null;
@@ -55,6 +57,12 @@ export interface Ctx {
   perform(action: Action, quiet?: boolean): void;
   /** True when the player can act (playing, not walking, no card open). */
   free(): boolean;
+  /** True when Ada may start a new walk: like free(), but a walk in progress can be retargeted (F5b). */
+  canWalk(): boolean;
+  /** Saves now (autosave, pause menu); returns false when storage is blocked. */
+  save(): boolean;
+  /** "Wait in the shelter": Ada walks in and waits there hour by hour (F5b). */
+  enterShelter(): void;
 }
 
 export const CREW_ID = 0;
