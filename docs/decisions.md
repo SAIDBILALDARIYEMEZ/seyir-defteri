@@ -817,3 +817,29 @@ month, as before).
 **Not done / for the human:** greedy target (needs a design decision about what "greedy" may do);
 the 4-hour shelter scenario can't reach the asked numbers with the real curve (PUSULA now advises
 the whole storm instead); no new 3D model files (debris and upgrade props are made in code).
+
+**Human decisions after F6 (2026-11-15):**
+- **Greedy gap accepted.** No balance or bot change. Reason: greedy loses because it never
+  keeps power for the night: it spends the battery in the day, the heaters stop, and cold nights
+  drain the air. That is exactly the lesson the game teaches ("keep power for the night"), and
+  PUSULA explains it: a new **`coldNight`** note on the night card ("The heaters had no power
+  tonight… / The day's work used the power the night heating needed. / Before the evening, keep at
+  least 15 ⚡ for the heaters."), second in priority after the storm note. In every window 146 of
+  greedy's 191 lost games (76%) have a cold night, and all of them show this note; the rest end on
+  food or dose. The note changes no rule or number (bot report identical). PRD §13 now says
+  greedy may stay low, reason D-022.
+- **The ~30% cost of one hour outside at the storm peak stays.** Instead PUSULA's warning before the
+  storm was made clear and visible:
+  - a purple, gently pulsing banner at the **top of the watch** (above PUSULA's sentence and the
+    tasks) from the warning day to the storm day: "Particle storm expected in N sols (sol X). Get
+    the shelter ready and do the outside work before it comes." -> "…expected tomorrow (sol X).
+    Finish the outside work today; tomorrow, start the day in the shelter." -> "Particle storm
+    today! Go to the shelter before any outside work. Outside, one hour at its peak uses a big part
+    of the dose budget." The old line at the bottom of the watch feed is replaced by it (dust
+    warnings stay in the feed). Reduce motion stops the pulse.
+  - the morning warning cards get a plan line (ahead: "do the outside work before it comes; when
+    it starts, go straight to the shelter"; today: "go to the shelter first and wait there while it
+    is on; one hour outside at its peak costs a lot of dose").
+  - The watch scrolls back to the top whenever the banner appears or changes (it stayed scrolled
+    down from the day before in the browser test).
+  - Only what the crew can see is used (warnings + the current reading), never the curve's future.

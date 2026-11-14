@@ -94,7 +94,7 @@
   "night.morning": "Günaydın!",
   "event.ok": "Tamam",
   "event.dust": "Vadiyi toz fırtınası kapladı. Paneller daha az güç üretiyor.",
-  "event.radToday": "Güneş'ten bir parçacık fırtınası bugün gelebilir. Sığınak Ada'yı daha iyi korur.",
+  "event.radToday": "Güneş'ten bir parçacık fırtınası bugün gelebilir.",
   "event.radAhead": "Uyarı: Güneş'ten bir parçacık fırtınası {n} sol içinde gelebilir.",
   "event.broken": "{station}: bir şey bozuldu. Tamir gerekiyor.",
   "event.reply.coords": "Dünya cevap verdi: iniş koordinatları geldi! İniş işaretini {n}. soldan itibaren kur.",
@@ -654,5 +654,13 @@
   "sun.type.GST": "manyetik fırtına",
   "sun.latest": "En yeni rapor: {what}, {date}.",
   "sun.quiet": "Güneş'te sakin bir hafta.",
-  "sun.source": "Kaynak: NASA DONKI (Dünya yakınında ölçülür)"
+  "sun.source": "Kaynak: NASA DONKI (Dünya yakınında ölçülür)",
+  "storm.banner.today": "☢️ Bugün parçacık fırtınası! Dışarıdaki işlerden önce sığınağa git. Dışarıda, zirvede geçen tek bir saat doz bütçesinin büyük bir kısmını harcar.",
+  "storm.banner.tomorrow": "☢️ Yarın (sol {sol}) parçacık fırtınası bekleniyor. Dışarıdaki işleri bugün bitir; yarın güne sığınakta başla.",
+  "storm.banner.ahead": "☢️ {n} sol sonra (sol {sol}) parçacık fırtınası bekleniyor. Sığınağı hazırla, dışarıdaki işleri fırtınadan önce yap.",
+  "event.radPlanToday": "Plan: önce sığınağa git ve fırtına sürerken orada bekle; zirvede dışarıda geçen bir saat çok doz demek.",
+  "event.radPlanAhead": "Plan: dışarıdaki işleri fırtınadan önce yap; başlayınca doğruca sığınağa git.",
+  "lesson.coldNight.what": "Bu gece ısıtıcılara güç kalmadı, üs {n} 💨 fazladan hava kaybetti.",
+  "lesson.coldNight.why": "Gündüzki işler gece ısıtmasının ihtiyacı olan gücü harcadı.",
+  "lesson.coldNight.next": "Akşamdan önce ısıtıcılar için en az {heat} ⚡ ayır."
 }

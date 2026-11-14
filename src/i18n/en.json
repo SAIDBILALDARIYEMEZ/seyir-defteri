@@ -94,7 +94,7 @@
   "night.morning": "Good morning!",
   "event.ok": "OK",
   "event.dust": "A dust storm covers the valley. The panels make less power.",
-  "event.radToday": "A particle storm from the Sun may arrive today. The shelter keeps Ada safer.",
+  "event.radToday": "A particle storm from the Sun may arrive today.",
   "event.radAhead": "Warning: a particle storm from the Sun may arrive in {n} sol(s).",
   "event.broken": "{station}: something stopped working. It needs a repair.",
   "event.reply.coords": "Earth answered: the landing coordinates are here! Set the landing marker from sol {n}.",
@@ -654,5 +654,13 @@
   "sun.type.GST": "magnetic storms",
   "sun.latest": "Newest report: {what}, {date}.",
   "sun.quiet": "A quiet week on the Sun.",
-  "sun.source": "Source: NASA DONKI (measured near Earth)"
+  "sun.source": "Source: NASA DONKI (measured near Earth)",
+  "storm.banner.today": "☢️ Particle storm today! Go to the shelter before any outside work. Outside, one hour at its peak uses a big part of the dose budget.",
+  "storm.banner.tomorrow": "☢️ Particle storm expected tomorrow (sol {sol}). Finish the outside work today; tomorrow, start the day in the shelter.",
+  "storm.banner.ahead": "☢️ Particle storm expected in {n} sols (sol {sol}). Get the shelter ready and do the outside work before it comes.",
+  "event.radPlanToday": "Plan: go to the shelter first and wait there while it is on; one hour outside at its peak costs a lot of dose.",
+  "event.radPlanAhead": "Plan: do the outside work before it comes; when it starts, go straight to the shelter.",
+  "lesson.coldNight.what": "The heaters had no power tonight, so the base lost {n} 💨 more air.",
+  "lesson.coldNight.why": "The day's work used the power the night heating needed.",
+  "lesson.coldNight.next": "Before the evening, keep at least {heat} ⚡ for the heaters."
 }

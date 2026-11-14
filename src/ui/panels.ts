@@ -35,6 +35,8 @@ export interface WatchView {
   endDay: { night: string } | null;
   rescue: RescueProgress | null;
   feed: FeedItem[];
+  /** F6: particle-storm warning banner at the top of the watch, or null. */
+  storm: string | null;
 }
 
 export interface Watch {
@@ -68,6 +70,8 @@ export function mountWatch(parent: HTMLElement, onPusula: () => void, onEndDay: 
   const root = el('aside', 'watch');
   const title = button('watch-title', '', onPusula);
   const text = el('p', 'watch-text');
+  const storm = el('p', 'watch-storm');
+  storm.setAttribute('role', 'alert');
   const list = el('div', 'watch-tasks');
   const later = el('p', 'watch-later');
   const end = el('div', 'watch-end');
@@ -77,11 +81,16 @@ export function mountWatch(parent: HTMLElement, onPusula: () => void, onEndDay: 
   const chain = el('div', 'watch-rescue');
   const feedBox = el('ol', 'watch-feed');
   feedBox.setAttribute('aria-live', 'polite');
-  root.append(title, text, list, later, end, chain, feedBox);
+  root.append(title, storm, text, list, later, end, chain, feedBox);
   parent.append(root);
   return {
     root,
-    update({ text: pusulaText, tasks, deferred, endDay, rescue, feed }) {
+    update({ text: pusulaText, tasks, deferred, endDay, rescue, feed, storm: stormText }) {
+      storm.hidden = !stormText;
+      if (stormText && storm.textContent !== stormText) {
+        setGlossText(storm, stormText);
+        root.scrollTop = 0; // a new or changed storm warning is always in view
+      }
       feedBox.hidden = feed.length === 0;
       feedBox.replaceChildren(
         ...feed.map((item) => {

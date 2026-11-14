@@ -15,7 +15,7 @@ import { clockOf } from './time.ts';
 const EPS = 1e-9;
 
 /** Night note order: the most useful lesson first; at most `BALANCE.lessons.perNight` are shown. */
-const PRIORITY: LessonCode[] = ['stormOutside', 'overdueAgain', 'endEarly', 'airFull', 'harvestFull'];
+const PRIORITY: LessonCode[] = ['stormOutside', 'coldNight', 'overdueAgain', 'endEarly', 'airFull', 'harvestFull'];
 
 /** Hours with a radiation-event rate within [clock, clock + hours) of `sol`. */
 export function eventHoursOver(win: WindowData, sol: number, clock: number, hours: number): number {
@@ -76,6 +76,11 @@ export function noteEndEarly(state: GameState, workLeft: boolean): GameState {
 /** Overdue tasks charged tonight (left undone again although they fitted the daylight). */
 export function noteOverdue(state: GameState, charged: number): GameState {
   return charged > 0 ? note(state, 'overdueAgain', charged) : state;
+}
+
+/** A cold night: the battery could not pay the heating; `n` = extra air lost. */
+export function noteCold(state: GameState, cold: boolean): GameState {
+  return cold ? note(state, 'coldNight', BALANCE.air.coldPenalty) : state;
 }
 
 /** Tonight's notes: the most useful first, at most BALANCE.lessons.perNight. */

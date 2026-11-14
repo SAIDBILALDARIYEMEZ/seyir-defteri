@@ -216,7 +216,7 @@ HUD 3 grup gösterir: **⚡ Güç | ❤️ Yaşam (💨 + 🥫) | ☢️ Radyasy
 | Strateji | Tanım | Hedef |
 |---|---|---|
 | `random` | Rastgele geçerli eylem | Kazanma ≤ %20 |
-| `greedy` | Her zaman en düşük göstergeyi düzelt, plan yok | %30–60 |
+| `greedy` | Her zaman en düşük göstergeyi düzelt, plan yok | Düşük kalabilir (gerekçe D-022): geceye güç ayırmadığı için kaybeder; oyunun öğrettiği ders budur |
 | `balanced` | Basit öncelik + uyarıda sığınak | ≥ %70; Efsane %25–50 |
 | `pusula` | Sadece PUSULA'nın günlük görevlerini yapar | ≥ %80 |
 | `never-shelter` | Hiç sığınağa girmez / yığmaz | Pencere 1'de kazanma ≤ %30 |

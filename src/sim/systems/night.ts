@@ -7,7 +7,7 @@ import { RESCUE_DONE, RESCUE_FINDABLE, emptyTally, freshToday, snapshotOf } from
 import type { GameState, LossReason, ReplyKind, Result, SolLog } from '../state.ts';
 import type { WindowData } from '../window.ts';
 import { chargedTasks, nextTask, planDay, urgentNeeds } from './advisor.ts';
-import { noteEndEarly, noteOverdue, noteStormHours, pickLessons } from './lessons.ts';
+import { noteCold, noteEndEarly, noteOverdue, noteStormHours, pickLessons } from './lessons.ts';
 import { isReady, progressBuilds, setupDone } from './build.ts';
 import { carryOver, missedTasks, payOverdue, waitingTasks } from './overdue.ts';
 import { isDustSol } from './schedule.ts';
@@ -134,6 +134,7 @@ export function endSol(input: GameState, win: WindowData): GameState {
     emptySols = nextFood <= 0 ? emptySols + 1 : 0;
     if (nextFood <= 0) flags.push('foodEmpty');
   }
+  s = noteCold(s, flags.includes('cold'));
   s = {
     ...s,
     dose: s.dose + nightDose,

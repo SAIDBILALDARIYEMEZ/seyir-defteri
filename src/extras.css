@@ -17,3 +17,13 @@
 .sun-source { color: var(--ink-dim); font-size: 11px; }
 /* The menu card scrolls on short screens (phones, the sun card added height). */
 .menu-card { max-height: calc(100dvh - 24px); overflow-y: auto; }
+/* F6 particle-storm banner at the top of the watch: from the warning day to the storm day. */
+.watch-storm {
+  margin: 6px 0 4px; padding: 8px 10px; border-radius: 12px; font-size: 13.5px; font-weight: 700; line-height: 1.35;
+  color: #fff3e0; background: rgba(170, 70, 200, 0.32); border: 2px solid #c9a2ff;
+  animation: storm-pulse 1.6s ease-in-out infinite;
+}
+.watch-storm[hidden] { display: none; }
+@keyframes storm-pulse { 50% { box-shadow: 0 0 0 4px rgba(201, 162, 255, 0.35); } }
+.reduce-motion .watch-storm { animation: none; }
+@media (prefers-reduced-motion: reduce) { .watch-storm { animation: none; } }

@@ -74,7 +74,7 @@ function notes(log: SolLog | undefined): HTMLElement | null {
     const n = fmt(lesson.n);
     for (const part of ['what', 'why', 'next'] as const) {
       const line = el('p', `note-${part}`);
-      line.append(el('b', '', `${t(`night.note.${part}`)}: `), t(`lesson.${lesson.code}.${part}`, { n }));
+      line.append(el('b', '', `${t(`night.note.${part}`)}: `), t(`lesson.${lesson.code}.${part}`, { n, heat: BALANCE.power.nightHeating }));
       item.append(line);
     }
     box.append(item);

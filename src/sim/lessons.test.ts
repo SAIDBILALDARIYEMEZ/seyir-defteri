@@ -53,6 +53,11 @@ describe('F6 lessons (PUSULA notes)', () => {
     expect(lastNotes(without).map((l) => l.code)).not.toContain('stormOutside');
   });
 
+  it('a night without power for the heating is noted', () => {
+    const s = step(base({ power: 0, panelEff: 0, air: 80, today: { ...base().today, actions: ['moxie'] } }), END);
+    expect(lastNotes(s).map((l) => l.code)).toContain('coldNight');
+  });
+
   it('at most two notes a night, the most useful first', () => {
     const picked = pickLessons([
       { code: 'harvestFull', n: 1 },

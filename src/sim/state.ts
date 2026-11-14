@@ -48,7 +48,7 @@ export interface PlannedTask {
 }
 
 /** F6 "Why did it happen?": a lesson code for PUSULA's night note; `n` = hours / amount / tasks. */
-export type LessonCode = 'harvestFull' | 'airFull' | 'endEarly' | 'stormOutside' | 'overdueAgain';
+export type LessonCode = 'harvestFull' | 'airFull' | 'endEarly' | 'stormOutside' | 'coldNight' | 'overdueAgain';
 export interface Lesson {
   code: LessonCode;
   n: number;
