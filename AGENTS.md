@@ -179,3 +179,6 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
 - Models load after the first frame and swap the primitives out (`world.useModels`). Swapped
   primitives are removed, not hidden: the raycaster also hits invisible meshes.
 - Editing a JSON file (i18n too) while playing in the pane reloads the page like a TS edit.
+- With the models in the repo, `npm run deploy` / `git push` can fail with HTTP 400 (push too
+  big for git's default HTTP buffer). Run them with a bigger buffer for that command only:
+  `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.postBuffer GIT_CONFIG_VALUE_0=524288000 npm run deploy`.
