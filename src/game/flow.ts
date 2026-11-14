@@ -3,6 +3,7 @@
 // Screen flow: pause, main menu missions (new / continue / code), night card, morning cards,
 // replay, result, logbook and the info cards.
 
+import { setSoundEnabled, soundEnabled } from '../audio/sound.ts';
 import { BALANCE } from '../config/balance.ts';
 import { t } from '../i18n/i18n.ts';
 import type { Action, StationId } from '../sim/actions.ts';
@@ -75,6 +76,14 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
         { label: `📖 ${t('logbook.open')}`, onClick: showLogbook },
         { label: t('pause.exitNoSave'), onClick: () => (playing ? confirmExit() : leave()) },
         ...(playing ? [{ label: t('pause.saveExit'), onClick: () => { saveGame(s.state); leave(); } }] : []),
+        {
+          label: `${soundEnabled() ? '🔊' : '🔇'} ${t(soundEnabled() ? 'pause.soundOn' : 'pause.soundOff')}`,
+          onClick: () => {
+            setSoundEnabled(!soundEnabled());
+            resume();
+            pause();
+          },
+        },
         { label: `♻️ ${t('pause.reset')}`, onClick: confirmReset },
         { label: t('pause.resume'), onClick: resume, primary: true },
       ],

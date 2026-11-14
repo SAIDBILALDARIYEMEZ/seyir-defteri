@@ -1,0 +1,12 @@
+{
+  "habitat": { "icon": "🏠", "hazard": "hostile" },
+  "panels": { "icon": "☀️", "hazard": "distance" },
+  "moxie": { "icon": "💨", "hazard": "distance" },
+  "greenhouse": { "icon": "🌱", "hazard": "distance" },
+  "shelter": { "icon": "🛡️", "hazard": "radiation" },
+  "antenna": { "icon": "📡", "hazard": "isolation" },
+  "beacon": { "icon": "🛬", "hazard": "distance" },
+  "curiosity": { "icon": "🤖", "hazard": "radiation" },
+  "science": { "icon": "🔬", "hazard": "hostile" },
+  "lander": { "icon": "🚀", "hazard": "distance" }
+}

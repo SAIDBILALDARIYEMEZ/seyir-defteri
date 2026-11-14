@@ -81,16 +81,16 @@ export function attachPointer(canvas: HTMLCanvasElement, world: World, placement
       const now = pair();
       if (now && lastPair) {
         // Twist and side slide turn the view, an up / down slide tilts it, a pinch zooms.
-        world.turnBy(-wrap(now.angle - lastPair.angle));
-        world.drag(now.mid.x - lastPair.mid.x, now.mid.y - lastPair.mid.y);
-        if (now.dist > 1 && lastPair.dist > 1) world.zoomBy(lastPair.dist / now.dist);
+        world.view.turnBy(-wrap(now.angle - lastPair.angle));
+        world.view.drag(now.mid.x - lastPair.mid.x, now.mid.y - lastPair.mid.y);
+        if (now.dist > 1 && lastPair.dist > 1) world.view.zoomBy(lastPair.dist / now.dist);
       }
       lastPair = now;
       return;
     }
     if (multi) return;
     if (Math.hypot(e.clientX - downX, e.clientY - downY) > TAP_SLOP_PX) moved = true;
-    if (moved) world.drag(e.clientX - last.x, orbitButton ? e.clientY - last.y : 0);
+    if (moved) world.view.drag(e.clientX - last.x, orbitButton ? e.clientY - last.y : 0);
     last = { x: e.clientX, y: e.clientY };
   });
   const lift = (e: PointerEvent): boolean => {
@@ -116,6 +116,6 @@ export function attachPointer(canvas: HTMLCanvasElement, world: World, placement
   });
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
-    world.zoom(e.deltaY);
+    world.view.zoom(e.deltaY);
   }, { passive: false });
 }

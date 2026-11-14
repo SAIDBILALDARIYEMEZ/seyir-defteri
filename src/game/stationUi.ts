@@ -124,21 +124,29 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
     });
   }
 
+  /** Numbers float up from Ada and, like the trial build, under each gauge they change (F5a). */
   function floatNumbers(before: GameState, action: Action, sameSol: boolean): void {
     const cost = costOf(before, action);
     const texts: string[] = [];
-    const delta = (value: number, icon: string): void => {
-      if (Math.abs(value) > 0.05) texts.push(`${value > 0 ? '+' : '−'}${fmt(Math.abs(value))}${icon}`);
+    let gaugeIndex = 0;
+    const delta = (value: number, icon: string, res: string): void => {
+      if (Math.abs(value) <= 0.05) return;
+      const text = `${value > 0 ? '+' : '−'}${fmt(Math.abs(value))}${icon}`;
+      texts.push(text);
+      const anchor = document.querySelector(`[data-res="${res}"]`)?.getBoundingClientRect();
+      if (anchor && anchor.width > 0) {
+        spawnFloater(ctx.ui, anchor.left + anchor.width / 2, anchor.bottom + 26, text, gaugeIndex++ * FLOATER_GAP_MS, value > 0 ? 'gauge up' : 'gauge down');
+      }
     };
-    delta(-(cost.walk + cost.hours), '⏱');
-    delta(-cost.power, '⚡');
+    delta(-(cost.walk + cost.hours), '⏱', 'hours');
+    delta(-cost.power, '⚡', 'power');
     if (sameSol) {
-      delta(s.state.air - before.air, '💨');
-      delta(s.state.food - before.food, '🥫');
+      delta(s.state.air - before.air, '💨', 'air');
+      delta(s.state.food - before.food, '🥫', 'food');
     }
-    delta(s.state.parts - before.parts, '🔩');
-    delta(s.state.science - before.science, '⭐');
-    delta(s.state.shelterLevel - before.shelterLevel, '🛡️');
+    delta(s.state.parts - before.parts, '🔩', 'parts');
+    delta(s.state.science - before.science, '⭐', 'science');
+    delta(s.state.shelterLevel - before.shelterLevel, '🛡️', 'none');
     const at = world.screenOf('ada');
     texts.forEach((text, i) => spawnFloater(ctx.ui, at.x, at.y, text, i * FLOATER_GAP_MS));
   }

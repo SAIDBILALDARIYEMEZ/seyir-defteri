@@ -25,8 +25,10 @@ phase without the human's approval.
 
 - Follow existing patterns; copy the nearest working example.
 - **Read only what you need.** Don't explore the whole repo for small tasks.
-- **Placeholders first:** build mechanics with primitive shapes, swap in real models after the
-  mechanic works. Models wait in `~/Projects/hackathon-assets/`; do not copy until told.
+- **Models with a fallback:** the low-poly models are in `public/assets/models/` (F5a, D-018).
+  Build a mechanic with primitive shapes first; every model keeps its primitive fallback
+  (`scene/modelSwap.ts`), so a missing file never breaks the game. More models come from
+  `~/Projects/hackathon-assets/`; log every new file in `docs/asset-sources.md`.
 - **After every feature:** `npm run build` + `npm test` + `npm run bot` (if sim changed). Fix
   before moving on.
 - **Visual check:** screenshot the running game (without `?debug`) after visual changes and
@@ -168,3 +170,12 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
   dispatching `pointerType: 'touch'` events with two pointer ids on `#scene`.
 - Building facing is cosmetic (`Building.rot`, action `rotate`): never let it touch rules,
   costs or the bot.
+- Overdue tasks (D-018): only a task that was already overdue and is left undone again pays,
+  and only clean / moxie / greenhouse / curiosity / rock have a cost. Charging every missed
+  task dropped `balanced` to ~57% and Legend to ~0. After any change: `npm run bot` and
+  `node tools/bot/missed.ts balanced w1`.
+- To test overdue tasks without `?debug`: skip to sol 4 with `?debug` (the skip saves the
+  morning), reload without `?debug`, Continue, end the day with tasks undone.
+- Models load after the first frame and swap the primitives out (`world.useModels`). Swapped
+  primitives are removed, not hidden: the raycaster also hits invisible meshes.
+- Editing a JSON file (i18n too) while playing in the pane reloads the page like a TS edit.

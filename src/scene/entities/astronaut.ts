@@ -1,8 +1,15 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
-// Ada: helmeted astronaut from primitives (white helmet, gold visor, coloured stripe).
+// Ada: the animated astronaut model (Idle / Run clips blended, closed helmet) once it is
+// loaded, else a helmeted astronaut from primitives. Turns smoothly into her walking direction.
 
 import * as THREE from 'three';
+import { addHelmet } from '../models/helmet.ts';
+import type { Helmet } from '../models/helmet.ts';
+import { cloneModel, modelClips } from '../models/loader.ts';
+import { tintSuit } from '../models/tint.ts';
+
+export const ADA_MODEL = 'quaternius/Astronaut_FinnTheFrog';
 
 export interface Astronaut {
   group: THREE.Group;
@@ -11,32 +18,105 @@ export interface Astronaut {
   place(x: number, z: number): void;
   /** Turns to look at (x, z), e.g. the building she walked to. */
   face(x: number, z: number): void;
+  /** Swaps the primitive body for the loaded model; false if the model is missing. */
+  useModel(): boolean;
   update(dt: number): void;
 }
 
 const SCALE = 1.5;
+const MODEL_HEIGHT = 3.1;
+const SUIT = 0xf4f1ec;
+const STRIPE = 0x1fb5a8;
+/** Turn rate (1/s) towards the walking direction. */
+const TURN = 12;
+const BLEND_S = 0.2;
 
-export function createAstronaut(): Astronaut {
-  const flat = (color: number): THREE.MeshLambertMaterial =>
-    new THREE.MeshLambertMaterial({ color, flatShading: true });
-  const group = new THREE.Group();
+interface Body {
+  root: THREE.Object3D;
+  setWalking(on: boolean): void;
+  update(dt: number, phase: number): void;
+}
+
+function primitiveBody(): Body {
+  const flat = (color: number): THREE.MeshLambertMaterial => new THREE.MeshLambertMaterial({ color, flatShading: true });
+  const root = new THREE.Group();
   const body = new THREE.Group();
-  group.add(body);
-  const add = (geo: THREE.BufferGeometry, color: number, x: number, y: number, z: number): THREE.Mesh => {
+  root.add(body);
+  const add = (geo: THREE.BufferGeometry, color: number, x: number, y: number, z: number, parent = body): THREE.Mesh => {
     const m = new THREE.Mesh(geo, flat(color));
     m.position.set(x, y, z);
-    body.add(m);
+    parent.add(m);
     return m;
   };
-  add(new THREE.CapsuleGeometry(0.4, 0.5, 2, 8), 0xf4f1ec, 0, 0.95, 0);
-  add(new THREE.CylinderGeometry(0.42, 0.42, 0.14, 8), 0x1fb5a8, 0, 1, 0);
+  add(new THREE.CapsuleGeometry(0.4, 0.5, 2, 8), SUIT, 0, 0.95, 0);
+  add(new THREE.CylinderGeometry(0.42, 0.42, 0.14, 8), STRIPE, 0, 1, 0);
   add(new THREE.SphereGeometry(0.44, 10, 8), 0xffffff, 0, 1.75, 0);
   const visor = add(new THREE.SphereGeometry(0.34, 10, 8), 0xe0a52c, 0, 1.76, 0.2);
   visor.scale.z = 0.7;
   add(new THREE.BoxGeometry(0.6, 0.7, 0.3), 0xbdb7ae, 0, 1.05, -0.42);
-  const legGeo = new THREE.BoxGeometry(0.26, 0.55, 0.3);
-  const legs = [add(legGeo, 0xe6e1d9, -0.2, 0.28, 0), add(legGeo, 0xe6e1d9, 0.2, 0.28, 0)];
-  group.scale.setScalar(SCALE);
+  const limb = (x: number, y: number, h: number): THREE.Group => {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, y, 0);
+    add(new THREE.BoxGeometry(0.24, h, 0.28), 0xe6e1d9, 0, -h / 2, 0, pivot);
+    body.add(pivot);
+    return pivot;
+  };
+  const legs = [limb(-0.2, 0.55, 0.55), limb(0.2, 0.55, 0.55)];
+  const arms = [limb(-0.52, 1.3, 0.55), limb(0.52, 1.3, 0.55)];
+  root.scale.setScalar(SCALE);
+  let walking = false;
+  return {
+    root,
+    setWalking: (on) => (walking = on),
+    update(_dt, phase) {
+      const swing = walking ? Math.sin(phase) * 0.6 : 0;
+      legs.forEach((leg, i) => (leg.rotation.x = i === 0 ? swing : -swing));
+      arms.forEach((arm, i) => (arm.rotation.x = i === 0 ? -swing * 0.8 : swing * 0.8));
+      // Low gravity: a light bounce with every step.
+      body.position.y = walking ? Math.abs(Math.sin(phase)) * 0.1 : 0;
+    },
+  };
+}
+
+function modelBody(): Body | null {
+  const model = cloneModel(ADA_MODEL, { height: MODEL_HEIGHT, ownMaterials: true });
+  if (!model) return null;
+  model.traverse((o) => {
+    // Kid-safe: the source character carries a pistol; it is never shown.
+    if (/pistol|gun|weapon/i.test(o.name)) o.visible = false;
+    const mesh = o as THREE.Mesh;
+    if (mesh.isMesh && mesh.material instanceof THREE.MeshStandardMaterial) tintSuit(mesh.material, SUIT);
+  });
+  const helmet: Helmet | null = addHelmet(model, STRIPE);
+  const mixer = new THREE.AnimationMixer(model);
+  const clip = (name: string): THREE.AnimationAction | null => {
+    const c = modelClips(ADA_MODEL).find((x) => x.name === name);
+    return c ? mixer.clipAction(c) : null;
+  };
+  const idle = clip('Idle');
+  const run = clip('Run') ?? clip('Walk');
+  idle?.play();
+  let walking = false;
+  return {
+    root: model,
+    setWalking(on) {
+      if (on === walking) return;
+      walking = on;
+      const [from, to] = on ? [idle, run] : [run, idle];
+      to?.reset().play();
+      if (from && to) from.crossFadeTo(to, BLEND_S, false);
+    },
+    update(dt) {
+      mixer.update(dt);
+      helmet?.update();
+    },
+  };
+}
+
+export function createAstronaut(): Astronaut {
+  const group = new THREE.Group();
+  let body = primitiveBody();
+  group.add(body.root);
 
   const from = new THREE.Vector3();
   const to = new THREE.Vector3();
@@ -44,6 +124,15 @@ export function createAstronaut(): Astronaut {
   let elapsed = 0;
   let arrive: (() => void) | null = null;
   let phase = 0;
+  let yawGoal = 0;
+
+  const lookAt = (x: number, z: number, snap: boolean): void => {
+    const dx = x - group.position.x;
+    const dz = z - group.position.z;
+    if (dx * dx + dz * dz <= 0.01) return;
+    yawGoal = Math.atan2(dx, dz);
+    if (snap) group.rotation.y = yawGoal;
+  };
 
   return {
     group,
@@ -53,20 +142,26 @@ export function createAstronaut(): Astronaut {
       duration = seconds;
       elapsed = 0;
       arrive = onArrive;
-      if (from.distanceToSquared(to) > 0.01) group.rotation.y = Math.atan2(to.x - from.x, to.z - from.z);
+      lookAt(x, z, false);
     },
     place(x, z) {
       group.position.set(x, 0, z);
-      group.rotation.y = 0;
+      group.rotation.y = yawGoal = 0;
       arrive = null;
+      body.setWalking(false);
     },
-    face(x, z) {
-      const dx = x - group.position.x;
-      const dz = z - group.position.z;
-      if (dx * dx + dz * dz > 0.01) group.rotation.y = Math.atan2(dx, dz);
+    face: (x, z) => lookAt(x, z, false),
+    useModel() {
+      const next = modelBody();
+      if (!next) return false;
+      group.remove(body.root);
+      body = next;
+      group.add(body.root);
+      return true;
     },
     update(dt) {
       const walking = arrive !== null;
+      body.setWalking(walking);
       if (walking) {
         elapsed += dt;
         const k = duration <= 0 ? 1 : Math.min(1, elapsed / duration);
@@ -75,13 +170,13 @@ export function createAstronaut(): Astronaut {
         if (k >= 1) {
           const done = arrive;
           arrive = null;
-          group.rotation.y = 0;
           done?.();
         }
       }
-      const swing = walking ? Math.sin(phase) * 0.5 : 0;
-      legs.forEach((leg, i) => (leg.rotation.x = i === 0 ? swing : -swing));
-      body.position.y = walking ? Math.abs(Math.sin(phase)) * 0.06 : 0;
+      // Shortest way round to the goal heading, eased.
+      const turn = THREE.MathUtils.euclideanModulo(yawGoal - group.rotation.y + Math.PI, Math.PI * 2) - Math.PI;
+      group.rotation.y += turn * (1 - Math.exp(-TURN * dt));
+      body.update(dt, phase);
     },
   };
 }

@@ -12,7 +12,7 @@ import { check, costOf } from '../sim/rules.ts';
 import type { GameState } from '../sim/state.ts';
 import type { WindowData } from '../sim/window.ts';
 import type { ScreenPoint } from '../scene/world.ts';
-import { button, el } from './dom.ts';
+import { button } from './dom.ts';
 
 export interface TutorialStep {
   action: Action;
@@ -65,38 +65,48 @@ export function tutorialSteps(state: GameState, win: WindowData): TutorialStep[]
 }
 
 export interface GuideMarks {
-  /** `arrowAt`: station under the bouncing arrow or null. `bubble`: text above PUSULA or null. */
-  set(arrowAt: StationId | null, bubble: string | null, danger: boolean, pusulaName: string): void;
+  /**
+   * `bubble`: icon above PUSULA or null. `speech`: PUSULA's sentence; a new one shows in full
+   * for a few seconds (F5a speech bubble), then the bubble shrinks back to the icon.
+   * The guide arrow is a 3D mark in the scene (world.setMarker), not part of the DOM any more.
+   */
+  set(bubble: string | null, danger: boolean, pusulaName: string, speech?: string): void;
   /** Call every frame: follows the camera. */
   place(screenOf: (id: StationId | 'pusula') => ScreenPoint): void;
 }
 
-const ARROW_LIFT_PX = 30;
+/** How long a new PUSULA sentence stays in the bubble. */
+const SPEECH_MS = 6000;
 
 export function mountGuide(parent: HTMLElement, onPusula: () => void): GuideMarks {
-  const arrow = el('div', 'guide-arrow');
-  arrow.append(el('span', '', '▼'));
-  arrow.setAttribute('aria-hidden', 'true');
   const bubble = button('guide-bubble', '', onPusula);
-  arrow.hidden = bubble.hidden = true;
-  parent.append(arrow, bubble);
-  let target: StationId | null = null;
-  const move = (node: HTMLElement, p: ScreenPoint, lift: number): void => {
-    node.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y - lift)}px) translate(-50%, -100%)`;
-    node.style.visibility = p.visible ? 'visible' : 'hidden';
+  bubble.hidden = true;
+  parent.append(bubble);
+  let icon = '';
+  let said = '';
+  let timer = 0;
+  const show = (text: string, long: boolean): void => {
+    bubble.textContent = text;
+    bubble.classList.toggle('speech', long);
   };
   return {
-    set(arrowAt, text, danger, pusulaName) {
-      target = arrowAt;
-      arrow.hidden = arrowAt === null;
+    set(text, danger, pusulaName, speech) {
       bubble.hidden = text === null;
-      bubble.textContent = text ?? '';
+      icon = text ?? '';
       bubble.classList.toggle('danger', danger);
       bubble.setAttribute('aria-label', pusulaName);
+      if (text !== null && speech && speech !== said) {
+        said = speech;
+        show(`${icon} ${speech}`, true);
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => show(icon, false), SPEECH_MS);
+      } else if (!bubble.classList.contains('speech')) show(icon, false);
     },
     place(screenOf) {
-      if (target) move(arrow, screenOf(target), ARROW_LIFT_PX);
-      if (!bubble.hidden) move(bubble, screenOf('pusula'), 0);
+      if (bubble.hidden) return;
+      const p = screenOf('pusula');
+      bubble.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px) translate(-50%, -100%)`;
+      bubble.style.visibility = p.visible ? 'visible' : 'hidden';
     },
   };
 }

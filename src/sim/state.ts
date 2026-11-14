@@ -3,7 +3,7 @@
 // GameState: plain serializable data. No text, no functions, no window data.
 
 import { BALANCE } from '../config/balance.ts';
-import type { Cell, PlacedId, ReasonCode, StationId, Turn } from './actions.ts';
+import type { Action, Cell, PlacedId, ReasonCode, StationId, Turn } from './actions.ts';
 import { createRng } from './rng.ts';
 import { rollSchedule } from './systems/schedule.ts';
 import type { Schedule } from './systems/schedule.ts';
@@ -32,6 +32,16 @@ export type ReplyKind = 'coords' | 'forecast' | 'advice';
 export type RescueStage = 0 | 1 | 2 | 3 | 4;
 export const RESCUE_DONE: RescueStage = 4;
 
+/** A task from PUSULA's list. `overdue`: carried over from an earlier sol (F5a). */
+export interface PlannedTask {
+  action: Action;
+  /** Reason code; text lives in i18n under `task.<why>`. */
+  why: string;
+  overdue?: boolean;
+  /** Optional extra (offered only when power is spare): never carried over. */
+  spare?: boolean;
+}
+
 /** One line per sol for the Commander's Logbook (codes only; text comes from i18n). */
 export interface SolLog {
   sol: number;
@@ -46,6 +56,8 @@ export interface SolLog {
   /** Gauges at the end of daylight, before the night costs (for the night summary). */
   dusk: { power: number; air: number; food: number; dose: number };
   science: number;
+  /** Tasks of the morning list left undone (their `why` codes); missing in older saves. */
+  missed?: string[];
 }
 
 export interface Today {
@@ -56,6 +68,8 @@ export interface Today {
   shelterHours: number;
   readCuriosity: boolean;
   scannedRock: boolean;
+  /** PUSULA's list as it stood in the morning (from BALANCE.overdue.fromSol). */
+  plan: PlannedTask[];
 }
 
 export interface GameState {
@@ -85,6 +99,8 @@ export interface GameState {
   greenhouseIdleSols: number;
   foodEmptySols: number;
   broken: StationId[];
+  /** Undone tasks carried from earlier sols, at most BALANCE.overdue.max (F5a). */
+  overdue: PlannedTask[];
   /** All random events are rolled once from the seed, so a replayed day sees the same events. */
   schedule: Schedule;
   today: Today;
@@ -107,6 +123,7 @@ export function freshToday(dose: number): Today {
     shelterHours: 0,
     readCuriosity: false,
     scannedRock: false,
+    plan: [],
   };
 }
 
@@ -141,6 +158,7 @@ export function createInitialState(seed: number, win: WindowData, crewCount = 1)
     greenhouseIdleSols: 0,
     foodEmptySols: 0,
     broken: [],
+    overdue: [],
     schedule: rollSchedule(createRng(seed)),
     today: freshToday(0),
     log: [],

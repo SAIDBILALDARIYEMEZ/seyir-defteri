@@ -9,7 +9,8 @@ export type StormMode = 'none' | 'dust' | 'rad';
 
 export interface Storm {
   setMode(mode: StormMode): void;
-  update(dt: number): void;
+  /** `center`: the camera's look-at point; the particles travel with the view (F5a). */
+  update(dt: number, center: THREE.Vector3): void;
 }
 
 const COUNT = 420;
@@ -48,8 +49,9 @@ export function createStorm(scene: THREE.Scene): Storm {
       mat.size = look.size;
       mat.opacity = look.opacity;
     },
-    update(dt) {
+    update(dt, center) {
       if (mode === 'none') return;
+      points.position.set(center.x, 0, center.z);
       const speed = LOOK[mode].speed;
       for (let i = 0; i < COUNT; i++) {
         if (mode === 'rad' && Math.random() < dt * 2) scatter(i);

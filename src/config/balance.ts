@@ -129,6 +129,27 @@ export const BALANCE = {
     shelterHoursOnEvent: 4,
     hardChoiceNeeds: 2,
   },
+
+  /**
+   * Overdue tasks (F5a): a task on the morning list that is left undone is carried to the
+   * next sol as "Overdue" and costs a little at night. Game rule, not NASA data.
+   * `fromSol`: after the tutorial sols. `max`: carried tasks never pile up past this.
+   * Night cost per overdue task left undone again (one sol of grace), by action; science =
+   * stars. Other tasks (builds, shelter, messages) cost nothing extra: they stay on the list
+   * and their own effect is the cost; the real storm dose is the cost of not sheltering.
+   */
+  overdue: {
+    fromSol: 4,
+    max: 3,
+    penalty: {
+      clean: { panelEff: 0.05 },
+      moxie: { air: 3 },
+      greenhouse: { food: 1 },
+      readCuriosity: { science: 1 },
+      scanRock: { science: 1 },
+      default: {},
+    },
+  },
 } as const;
 
 export type Balance = typeof BALANCE;

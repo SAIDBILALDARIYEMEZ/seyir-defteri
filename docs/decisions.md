@@ -403,3 +403,70 @@ Human request (B4). Build choices (not yet confirmed by the human):
 - **Clean-up:** the six grey-white "sleep capsules" in a row behind the grid (near the
   Curiosity spot) were F2 scenery from the fixed layout, with no station or action: removed.
 - Ada turns to face the building (or building site) she walked to.
+
+## D-018 — 2026-11-14 — F5a: station info card, overdue tasks, port from the trial build
+Human request (F5a). The human picked each port in an old-vs-new survey (answers below).
+
+**Station info card** (`ui/infoCard.ts`, text `sinfo.*`, icons + hazard in
+`content/stationInfo.json`): opens when Ada arrives at a station, and on a tap on a station
+that cannot be used yet (locked / under construction / not placed) or on the landing rocket
+(now tagged `lander` for picking; it has no actions). What it does, a real mission / technology
+fact, the hazard it teaches (one of the five hazards) and its actions. A side panel, not a
+modal: it never blocks the action menu (its own action list is left out while the menu is
+open), ✕ closes it, a new walk / the night hides it. Big text (17 px) for a classroom board.
+
+**Overdue tasks** (sim rule, `sim/systems/overdue.ts`, numbers in `BALANCE.overdue`):
+- From sol 4 (after the tutorial sols) the morning list is kept in `today.plan`.
+- At night, undone tasks of that list are "missed" (`log.missed`, flag `overdue`); the ones
+  that still make sense the next morning move to `state.overdue` (at most 3, no duplicates)
+  and show first-class on the watch with a "⏰ Overdue" tag.
+- **One sol of grace:** only a task that was already overdue and is left undone again costs
+  at night: clean → +5% dust on the panels, moxie → −3 air, greenhouse → −1 food,
+  curiosity / rock → −1 science ⭐. Builds, shelter, messages cost nothing extra (they stay on
+  the list; their own effect is the cost). Waiting in the shelter is never carried and never
+  charged (the real storm dose is its cost; no invented dose). Optional extras ("spare" rules)
+  are never carried.
+- Why the grace and the narrow list: the first try (every missed task pays, default −1 ⭐)
+  dropped `balanced` from 81/78/87% to 57/59/73% and Legend to ~0. With the grace + narrow
+  costs + no carrying of spare tasks the report is back to baseline (table below).
+- PUSULA warns before the day ends ("N tasks not done, cost tonight …, they move to tomorrow")
+  with "End the day anyway" / "Back to work". The night card shows the charged cost or a
+  "moved to tomorrow" note. The watch feed reminds "N overdue tasks from yesterday".
+- Saves without the new fields load with empty lists (`withOverdue` in `save.ts`, version
+  unchanged).
+
+**Survey (old trial build vs this game) and what was done:**
+| Topic | Human's pick | Done |
+|---|---|---|
+| Character / walking | take old | Animated astronaut model (Idle/Run cross-fade, helmet, suit tint), smooth turning; primitive fallback also got arm swing + low-gravity bounce |
+| Camera | old angle + keep 360° | fov 50, radius 44 (16-84), elevation 0.4; soft follow of Ada (look-at drifts 70% towards her); 360° turn, tilt, buttons unchanged |
+| Guidance | 3D arrow + ring, speech bubble, compass | 3D turning arrow + pulsing ground ring replace the DOM arrow; PUSULA's bubble shows each new sentence for 6 s, then the icon; compass dial above the camera buttons (tap = face north) |
+| Sound | all | Web Audio synth (no files): Mars wind, storm wind loop, click, task chime, build tune, warn, night swoosh, morning alarm, win / evacuation; on/off in the pause menu (`seyir-defteri.sound`) |
+| Day / night | take old | Sun crosses the sky with the hours left; blue dusk mixed in over the last 40% of the day; violet glow during a radiation-event hour |
+| Effects | all four | Floating numbers also under each gauge; storm particles follow the view; watch message feed (alerts, PUSULA reminder, one real fact per sol); task row tap = walk there (already existed) |
+| Models | port now, Ada too, fallback, no perf loss | CC0 KayKit + Quaternius models for every station, the rocket, Ada and PUSULA; Perseverance (NASA) as decor with its logo sheet removed; see asset-sources.md |
+
+Model loading: the game is playable with primitives from the first frame; models load in the
+background (`world.useModels`) and replace the primitives (removed, not hidden, because the
+raycaster also hits invisible meshes). A failed file keeps its primitive. The rover decor loads
+last, merged per material, without shadows. No new npm dependency (GLTFLoader, DRACOLoader,
+SkeletonUtils come with `three`).
+
+**Skipped (and why):**
+- Placement ghost still uses the primitive shapes (green / red tint reads clearly; models
+  would need per-mesh material swaps for every atlas model). Later, if wanted.
+- Valley rocks from the trial (instanced Quaternius rocks): not in the survey; the terrain
+  rocks stay primitive.
+- Crew of 4-7 astronauts, crashed ship, sleep pods, workshop from the trial: different game
+  design (solo crew, build mode) — not ported.
+- The trial's loading screen: not needed, the base is playable before the models arrive.
+
+**CLAUDE.md:** the "placeholders first / models wait" rule is updated: models are now in the
+repo; every model must keep a primitive fallback.
+
+**Bot report after F5a** (200 games per strategy per window): balanced 81.5 / 78.0 / 87.0%
+(Legend 28.5 / 64.5 / 85.0%), pusula 88.5 / 92.0 / 93.0%. Before F5a: balanced 81 / 78 / 87%
+(Legend 29 / 69.5 / 86.5%), pusula 88.5 / 92 / 93%. Wins unchanged; Legend a little lower
+(skipped science tasks now cost a star); always-shelter w3 Legend 13.5% -> 1%. Other rows
+unchanged. `node tools/bot/missed.ts <strategy> <window>` lists which morning tasks a
+strategy leaves undone.

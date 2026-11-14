@@ -57,11 +57,12 @@ export const LABEL_HEIGHT: Record<StationId, number> = {
 };
 
 export const CAMERA = {
-  fov: 40,
-  radius: 62,
-  minRadius: 36,
+  /** F5a: closer, lower and wider like the trial build; 360 degree turn and tilt stay (B4). */
+  fov: 50,
+  radius: 44,
+  minRadius: 16,
   maxRadius: 84,
-  elevation: 0.5,
+  elevation: 0.4,
   /** Tilt limits (radians): never under the ground, up to a near top-down view (B4). */
   minElevation: 0.18,
   maxElevation: 1.45,
@@ -69,6 +70,8 @@ export const CAMERA = {
   stepAngle: Math.PI / 4,
   /** Slightly right of the grid center: the store and the watch cover the right edge. */
   target: [2, 0, 1] as const,
+  /** The look-at point drifts this share of the way towards Ada (soft follow, F5a). */
+  follow: 0.7,
   rotateSpeed: 0.004,
   zoomSpeed: 0.02,
 };

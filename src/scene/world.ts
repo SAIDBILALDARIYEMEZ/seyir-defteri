@@ -8,8 +8,15 @@ import type { Cell, PlacedId, StationId, Turn } from '../sim/actions.ts';
 import type { GameState } from '../sim/state.ts';
 import { isPlaceable } from '../sim/systems/build.ts';
 import { createOrbitCamera } from './camera.ts';
+import type { OrbitCamera } from './camera.ts';
+import { createPicker } from './picking.ts';
 import { buildScaffold, createGhost, FADE_BUILDING, makeFader } from './construction.ts';
-import { createAstronaut } from './entities/astronaut.ts';
+import { ADA_MODEL, createAstronaut } from './entities/astronaut.ts';
+import { ROVER_DECOR_MODEL, SCENE_MODELS } from './entities/stationModels.ts';
+import { addRoverDecor, swapLander, swapStation, syncModelLooks } from './modelSwap.ts';
+import type { SwapView } from './modelSwap.ts';
+import { loadModels } from './models/loader.ts';
+import { createMarker } from './entities/marker.ts';
 import { PUSULA_HEAD_HEIGHT, createPusula } from './entities/pusula.ts';
 import { buildStation } from './entities/stations.ts';
 import type { StationParts } from './entities/stations.ts';
@@ -19,10 +26,10 @@ import type { StormMode } from './fx/storm.ts';
 import { GRID_HALF, cellToWorld, stationCell } from './grid.ts';
 import { FOOTPRINT, LABEL_HEIGHT, PUSULA_SIDE, STAND_OFFSET, STATION_IDS, WALK_SPEED } from './layout.ts';
 import { createLighting } from './lighting.ts';
-import { findPath } from './path.ts';
+import { findPath, pushOut } from './path.ts';
 import type { Blocker, Point } from './path.ts';
 
-export type PickId = StationId | 'pusula';
+export type PickId = StationId | 'pusula' | 'lander';
 
 export interface ScreenPoint {
   x: number;
@@ -33,8 +40,10 @@ export interface ScreenPoint {
 export interface World {
   /** Renders one frame. dt in seconds (0 while paused). */
   update(dt: number): void;
-  /** Usable station (or PUSULA) under a screen point, or null. */
+  /** Visible station, PUSULA or the rocket under a screen point, or null. */
   pick(clientX: number, clientY: number): PickId | null;
+  /** Built and ready (not under construction): Ada can work there. */
+  isUsable(id: StationId): boolean;
   /** Ground point under a screen point, or null (sky). */
   pickGround(clientX: number, clientY: number): { x: number; z: number } | null;
   /** Ada walks to the front of a station. */
@@ -46,30 +55,29 @@ export interface World {
   placeAda(station: StationId): void;
   /** Screen position of a station label, or of Ada's / PUSULA's head. */
   screenOf(target: StationId | 'ada' | 'pusula'): ScreenPoint;
-  /** Camera (B4): drag = turn around + tilt, twist / pinch for two fingers, buttons. */
-  drag(dxPixels: number, dyPixels: number): void;
-  turnBy(radians: number): void;
-  zoom(delta: number): void;
-  zoomBy(factor: number): void;
-  stepView(direction: 1 | -1): void;
-  resetView(): void;
+  /** Camera (B4): drag = turn around + tilt, twist / pinch for two fingers, buttons, compass. */
+  view: OrbitCamera;
   /** Syncs visuals that depend on the game state (positions, build status, gauges). */
   sync(state: GameState, storm: StormMode): void;
   setNight(night: boolean): void;
   /** PUSULA rolls to this station; `danger` turns its light red. */
   setGuide(station: StationId, danger: boolean, snap?: boolean): void;
+  /** 3D arrow + ground ring over a station (F5a); null hides it. */
+  setMarker(station: StationId | null): void;
   /** Placement ghost: null hides it. */
   setGhost(id: PlacedId | null, cell: Cell | null, valid: boolean, rot?: Turn): void;
+  /** Loads the low-poly models and swaps them in (F5a). Never rejects; missing ones stay primitive. */
+  useModels(onSwap: () => void): Promise<void>;
 }
 
 const DUSTY_PANEL = new THREE.Color(0x9a6a4a);
 const CLEAN_PANEL = new THREE.Color(0x2f5fa8);
 const WALK_LIMIT = GRID_HALF + 3;
 const QUARTER = Math.PI / 2;
+/** Rover decor (x, z, yaw): outside the walk area, near the Curiosity corner. */
+const ROVER_SPOT: [number, number, number] = [GRID_HALF + 7, -GRID_HALF + 4, -2.3];
 
-interface StationView extends StationParts {
-  fade: (factor: number) => void;
-  scaffold: THREE.Group;
+interface StationView extends StationParts, SwapView {
   usable: boolean;
 }
 
@@ -93,7 +101,9 @@ export function createWorld(canvas: HTMLCanvasElement): World {
 
   const scene = new THREE.Scene();
   const lighting = createLighting(scene);
-  scene.add(buildTerrain());
+  const terrain = buildTerrain();
+  scene.add(terrain);
+  const lander = terrain.getObjectByName('lander') as THREE.Object3D;
 
   const views = {} as Record<StationId, StationView>;
   for (const id of STATION_IDS) {
@@ -130,20 +140,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
   ];
 
   /** Simple collision: keep the walk target inside the valley and outside every building. */
-  const freeSpot = (x: number, z: number): [number, number] => {
-    let px = THREE.MathUtils.clamp(x, -WALK_LIMIT, WALK_LIMIT);
-    let pz = THREE.MathUtils.clamp(z, -WALK_LIMIT, WALK_LIMIT);
-    for (const b of blockers()) {
-      const dx = px - b.x;
-      const dz = pz - b.z;
-      const d = Math.hypot(dx, dz);
-      if (d >= b.r) continue;
-      const k = d < 1e-3 ? 0 : b.r / d;
-      px = d < 1e-3 ? b.x : b.x + dx * k;
-      pz = d < 1e-3 ? b.z + b.r : b.z + dz * k;
-    }
-    return [px, pz];
-  };
+  const freeSpot = (x: number, z: number): [number, number] => pushOut(x, z, blockers(), WALK_LIMIT);
 
   const ada = createAstronaut();
   shadows(ada.group);
@@ -154,6 +151,8 @@ export function createWorld(canvas: HTMLCanvasElement): World {
   scene.add(pusula.group);
   const ghost = createGhost();
   scene.add(ghost.group);
+  const marker = createMarker();
+  scene.add(marker.group);
 
   const storm = createStorm(scene);
   let stormMode: StormMode = 'none';
@@ -169,14 +168,8 @@ export function createWorld(canvas: HTMLCanvasElement): World {
   window.addEventListener('resize', resize);
   resize();
 
-  const raycaster = new THREE.Raycaster();
-  const ndc = new THREE.Vector2();
+  const picker = createPicker(camera);
   const probe = new THREE.Vector3();
-  const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-  const aim = (clientX: number, clientY: number): void => {
-    ndc.set((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
-    raycaster.setFromCamera(ndc, camera);
-  };
   /** Walks around buildings: one straight leg per waypoint (B3 path-finding). */
   let walkId = 0;
   const walk = (x: number, z: number, onArrive: () => void, face?: Point): void => {
@@ -198,26 +191,22 @@ export function createWorld(canvas: HTMLCanvasElement): World {
 
   return {
     update(dt) {
+      orbit.follow(ada.group.position.x, ada.group.position.z);
       orbit.update(dt);
       ada.update(dt);
       pusula.update(dt);
-      storm.update(dt);
-      lighting.setMode(night ? 'night' : stormMode === 'dust' ? 'dust' : 'day');
+      marker.update(dt);
+      storm.update(dt, orbit.focus());
+      lighting.setMode(night ? 'night' : stormMode === 'none' ? 'day' : stormMode);
       lighting.update(dt);
       renderer.render(scene, camera);
     },
     pick(clientX, clientY) {
-      aim(clientX, clientY);
-      const pickable = [pusula.group, ...STATION_IDS.filter((id) => views[id].usable).map((id) => views[id].group)];
-      let hit: THREE.Object3D | null = raycaster.intersectObjects(pickable, true)[0]?.object ?? null;
-      while (hit && !hit.userData.station) hit = hit.parent;
-      return (hit?.userData.station as PickId | undefined) ?? null;
+      const shown = STATION_IDS.filter((id) => views[id].group.visible).map((id) => views[id].group);
+      return picker.tagged(clientX, clientY, [pusula.group, lander, ...shown]) as PickId | null;
     },
-    pickGround(clientX, clientY) {
-      aim(clientX, clientY);
-      const hit = raycaster.ray.intersectPlane(floor, probe);
-      return hit ? { x: hit.x, z: hit.z } : null;
-    },
+    isUsable: (id) => views[id].usable && views[id].group.visible,
+    pickGround: (clientX, clientY) => picker.ground(clientX, clientY),
     walkTo(station, onArrive) {
       walk(...standOf(station), onArrive, [posOf(station).x, posOf(station).z]);
     },
@@ -244,14 +233,10 @@ export function createWorld(canvas: HTMLCanvasElement): World {
         visible: probe.z < 1 && (target === 'ada' || target === 'pusula' || views[target].group.visible),
       };
     },
-    drag: (dx, dy) => orbit.drag(dx, dy),
-    turnBy: (radians) => orbit.turnBy(radians),
-    zoom: (delta) => orbit.zoom(delta),
-    zoomBy: (factor) => orbit.zoomBy(factor),
-    stepView: (direction) => orbit.step(direction),
-    resetView: () => orbit.reset(),
+    view: orbit,
     sync(state, mode) {
       stormMode = mode;
+      lighting.setDayFraction(1 - state.hoursLeft / BALANCE.daylightHours);
       storm.setMode(mode);
       for (const id of STATION_IDS) {
         const view = views[id];
@@ -272,6 +257,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
       views.panels.panelMat?.color.copy(DUSTY_PANEL).lerp(CLEAN_PANEL, state.panelEff);
       const level = state.shelterLevel / BALANCE.actions.shelterBuild.maxLevel;
       views.shelter.mound?.scale.set(1 + level * 0.25, 0.55 + level * 0.6, 1 + level * 0.25);
+      syncModelLooks(views.panels, views.shelter, state.panelEff, state.shelterLevel);
     },
     setNight(value) {
       night = value;
@@ -283,8 +269,23 @@ export function createWorld(canvas: HTMLCanvasElement): World {
       pusula.goTo(x, z, snap);
       pusula.setDanger(danger);
     },
+    setMarker(station) {
+      const shown = station && views[station].group.visible ? station : null;
+      marker.set(shown && { x: posOf(shown).x, z: posOf(shown).z, height: LABEL_HEIGHT[shown] + 1.6, radius: FOOTPRINT[shown] + 0.8 });
+    },
     setGhost(id, cell, valid, rot = 0) {
       ghost.set(id, cell, valid, rot);
+    },
+    async useModels(onSwap) {
+      await loadModels([...SCENE_MODELS, ADA_MODEL]);
+      for (const id of STATION_IDS) swapStation(id, views[id]);
+      swapLander(lander);
+      if (ada.useModel()) shadows(ada.group);
+      if (pusula.useModel()) shadows(pusula.group);
+      onSwap();
+      // The big rover decor comes last so it never delays the base.
+      await loadModels([ROVER_DECOR_MODEL]);
+      addRoverDecor(scene, ROVER_SPOT[0], ROVER_SPOT[1], ROVER_SPOT[2]);
     },
   };
 }

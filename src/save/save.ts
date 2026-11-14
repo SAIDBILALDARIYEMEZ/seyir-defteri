@@ -35,7 +35,13 @@ function isState(value: unknown): value is GameState {
 /** Older versions are upgraded here, step by step. Unknown versions are ignored. */
 function migrate(file: Partial<SaveFile>): GameState | null {
   if (file.saveVersion !== SAVE_VERSION) return null;
-  return isState(file.state) ? file.state : null;
+  return isState(file.state) ? withOverdue(file.state) : null;
+}
+
+/** F5a added the overdue list and the morning plan: saves without them read as empty. */
+function withOverdue<T extends Omit<GameState, 'mornings'>>(state: T): T {
+  const s = { ...state, overdue: state.overdue ?? [], today: { ...state.today, plan: state.today.plan ?? [] } };
+  return 'mornings' in s && Array.isArray(s.mornings) ? { ...s, mornings: s.mornings.map(withOverdue) } : s;
 }
 
 /** Only a running mission is saved. Returns false when storage is blocked. */

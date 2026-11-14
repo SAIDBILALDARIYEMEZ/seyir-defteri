@@ -19,6 +19,12 @@ export interface OrbitCamera {
   /** Eased eighth of a turn for the on-screen buttons. */
   step(direction: 1 | -1): void;
   reset(): void;
+  /** Soft follow (F5a): the look-at point drifts towards (x, z). */
+  follow(x: number, z: number): void;
+  /** Turn around the village in radians (0 = looking north, for the compass). */
+  azimuth(): number;
+  /** The current look-at point. */
+  focus(): THREE.Vector3;
   update(dt: number): void;
 }
 
@@ -26,17 +32,22 @@ export interface OrbitCamera {
 const MAX_FIT = 1.9;
 /** Ease rate (1/s) of the camera towards its goal. */
 const EASE = 10;
+/** Slower ease for the soft follow, so the view glides behind Ada. */
+const FOLLOW_EASE = 2.2;
 
 export function createOrbitCamera(): OrbitCamera {
   const camera = new THREE.PerspectiveCamera(CAMERA.fov, 1, 0.1, 600);
-  const goal = { az: 0, el: CAMERA.elevation, r: CAMERA.radius as number };
+  const goal = { az: 0, el: CAMERA.elevation, r: CAMERA.radius as number, fx: 0, fz: 0 };
   const now = { ...goal };
+  const look = new THREE.Vector3();
   const clampGoal = (): void => {
     goal.el = THREE.MathUtils.clamp(goal.el, CAMERA.minElevation, CAMERA.maxElevation);
     goal.r = THREE.MathUtils.clamp(goal.r, CAMERA.minRadius, CAMERA.maxRadius);
   };
   const place = (): void => {
-    const [tx, ty, tz] = CAMERA.target;
+    const tx = CAMERA.target[0] + now.fx;
+    const ty = CAMERA.target[1];
+    const tz = CAMERA.target[2] + now.fz;
     // Narrow (portrait-ish) screens need more distance to keep the whole valley in view.
     const fit = THREE.MathUtils.clamp(1.45 / camera.aspect, 1, MAX_FIT);
     const r = now.r * fit;
@@ -46,7 +57,7 @@ export function createOrbitCamera(): OrbitCamera {
   };
   const snap = (): void => {
     clampGoal();
-    Object.assign(now, goal);
+    Object.assign(now, { az: goal.az, el: goal.el, r: goal.r });
     place();
   };
   place();
@@ -88,12 +99,23 @@ export function createOrbitCamera(): OrbitCamera {
       goal.r = CAMERA.radius;
       goal.az = 0;
     },
+    follow(x, z) {
+      goal.fx = (x - CAMERA.target[0]) * CAMERA.follow;
+      goal.fz = (z - CAMERA.target[2]) * CAMERA.follow;
+    },
+    azimuth: () => now.az,
+    focus: () => look.set(CAMERA.target[0] + now.fx, CAMERA.target[1], CAMERA.target[2] + now.fz),
     update(dt) {
       const k = 1 - Math.exp(-EASE * dt);
-      if (Math.abs(goal.az - now.az) + Math.abs(goal.el - now.el) + Math.abs(goal.r - now.r) < 1e-4) return;
+      const kf = 1 - Math.exp(-FOLLOW_EASE * dt);
+      const moved = Math.abs(goal.az - now.az) + Math.abs(goal.el - now.el) + Math.abs(goal.r - now.r);
+      const drift = Math.abs(goal.fx - now.fx) + Math.abs(goal.fz - now.fz);
+      if (moved + drift < 1e-4) return;
       now.az += (goal.az - now.az) * k;
       now.el += (goal.el - now.el) * k;
       now.r += (goal.r - now.r) * k;
+      now.fx += (goal.fx - now.fx) * kf;
+      now.fz += (goal.fz - now.fz) * kf;
       place();
     },
   };

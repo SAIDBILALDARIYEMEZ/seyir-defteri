@@ -66,6 +66,10 @@ export function mountHud(parent: HTMLElement, onPause: () => void, onInfo: (id: 
 
   const right = el('div', 'hud-side right');
   const star = button('chip star', '', () => onInfo('science'));
+  // F5a: anchors for the floating numbers under each gauge.
+  for (const [node, key] of [[power.row, 'power'], [air.row, 'air'], [food.row, 'food'], [dose.row, 'dose'], [hours, 'hours'], [parts, 'parts'], [star, 'science']] as const) {
+    node.dataset.res = key;
+  }
   const gear = button('chip gear', '⚙', onPause);
   right.append(star, gear);
 

@@ -84,3 +84,19 @@ export function findPath(from: Point, to: Point, blockers: Blocker[], limit: num
   }
   return out;
 }
+
+/** Simple collision: keeps (x, z) inside the square `limit` and outside every blocker. */
+export function pushOut(x: number, z: number, blockers: Blocker[], limit: number): Point {
+  let px = Math.min(limit, Math.max(-limit, x));
+  let pz = Math.min(limit, Math.max(-limit, z));
+  for (const b of blockers) {
+    const dx = px - b.x;
+    const dz = pz - b.z;
+    const d = Math.hypot(dx, dz);
+    if (d >= b.r) continue;
+    const k = d < 1e-3 ? 0 : b.r / d;
+    px = d < 1e-3 ? b.x : b.x + dx * k;
+    pz = d < 1e-3 ? b.z + b.r : b.z + dz * k;
+  }
+  return [px, pz];
+}

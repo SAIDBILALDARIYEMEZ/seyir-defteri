@@ -17,6 +17,7 @@ import { dateOfSol, rateAt } from '../sim/window.ts';
 import type { WindowData } from '../sim/window.ts';
 import { sourceTag } from './cards.ts';
 import { fmt, formatDate } from './dom.ts';
+import { nightOverdueLine } from './overdue.ts';
 import type { ModalSpec } from './overlays.ts';
 import { delayParams } from './rescue.ts';
 
@@ -46,6 +47,8 @@ export function nightSpec(before: GameState, state: GameState, win: WindowData, 
   ];
   if (flags.includes('cold')) lines.push([t('night.cold'), `−${air.coldPenalty}💨`]);
   if (before.sol >= food.unlockSol) lines.push([t('night.food'), `−${food.perSol}🥫`]);
+  const late = nightOverdueLine(before, log?.missed ?? []);
+  if (late) lines.push(late);
   lines.push([t('night.panels'), `${Math.round((1 - state.panelEff) * 100)}%`]);
   const doseOpen = before.sol >= BALANCE.unlockSol.shelterBuild;
   if (doseOpen) lines.push([t('night.dose'), `+${share(gained)}% ☢️`]);

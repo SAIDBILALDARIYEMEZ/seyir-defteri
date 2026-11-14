@@ -13,17 +13,22 @@ import { CODE_LENGTH } from '../lib/missionCode.ts';
 import { button, el } from './dom.ts';
 import { languagePicker } from './overlays.ts';
 import type { RescueProgress } from './rescue.ts';
+import type { FeedItem } from './watchFeed.ts';
 
 export interface WatchTask {
   /** Already translated. */
   label: string;
   onPick: () => void;
+  /** Carried over from an earlier sol (F5a). */
+  overdue?: boolean;
 }
 
 export interface Watch {
   root: HTMLElement;
-  update(pusulaText: string, tasks: WatchTask[], rescue: RescueProgress | null): void;
+  update(pusulaText: string, tasks: WatchTask[], rescue: RescueProgress | null, feed?: FeedItem[]): void;
 }
+
+const FEED_ICON: Record<FeedItem['kind'], string> = { alert: '⚠️', pusula: '🧭', fact: '💡' };
 
 export function mountWatch(parent: HTMLElement, onPusula: () => void): Watch {
   const root = el('aside', 'watch');
@@ -32,11 +37,22 @@ export function mountWatch(parent: HTMLElement, onPusula: () => void): Watch {
   const tasksTitle = el('span', 'watch-sub');
   const list = el('div', 'watch-tasks');
   const chain = el('div', 'watch-rescue');
-  root.append(title, text, tasksTitle, list, chain);
+  const feedBox = el('ol', 'watch-feed');
+  feedBox.setAttribute('aria-live', 'polite');
+  root.append(title, text, tasksTitle, list, chain, feedBox);
   parent.append(root);
   return {
     root,
-    update(pusulaText, tasks, rescue) {
+    update(pusulaText, tasks, rescue, feed = []) {
+      feedBox.hidden = feed.length === 0;
+      feedBox.replaceChildren(
+        ...feed.map((item) => {
+          const li = el('li', `feed-item ${item.kind}`);
+          if (item.kind === 'fact') li.append(el('strong', '', `💡 ${t('feed.fact')}: `));
+          li.append(item.kind === 'fact' ? item.text : `${FEED_ICON[item.kind]} ${item.text}`);
+          return li;
+        }),
+      );
       chain.hidden = !rescue;
       if (rescue) {
         const steps = rescue.steps.map((step, i) => {
@@ -50,7 +66,13 @@ export function mountWatch(parent: HTMLElement, onPusula: () => void): Watch {
       text.textContent = pusulaText;
       tasksTitle.textContent = t('watch.tasks');
       if (tasks.length === 0) return list.replaceChildren(el('span', 'watch-none', t('watch.noTasks')));
-      list.replaceChildren(...tasks.map((task, i) => button('watch-task', `${i + 1}. ${task.label}`, task.onPick)));
+      list.replaceChildren(
+        ...tasks.map((task, i) => {
+          const row = button(`watch-task${task.overdue ? ' is-overdue' : ''}`, `${i + 1}. ${task.label}`, task.onPick);
+          if (task.overdue) row.prepend(el('span', 'overdue-tag', `⏰ ${t('overdue.tag')}`));
+          return row;
+        }),
+      );
     },
   };
 }

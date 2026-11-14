@@ -10,6 +10,7 @@ import type { Action, ActionType, PlacedId, StationId } from '../sim/actions.ts'
 import { costOf } from '../sim/rules.ts';
 import type { GameState } from '../sim/state.ts';
 import { advise, urgentNeeds } from '../sim/systems/advisor.ts';
+import { taskKey } from '../sim/systems/overdue.ts';
 import type { WindowData } from '../sim/window.ts';
 import { tutorialSteps } from '../ui/guide.ts';
 import type { WatchTask } from '../ui/panels.ts';
@@ -45,8 +46,9 @@ export function labelOf(state: GameState, action: Action): string {
 
 export function computeGuide(state: GameState, win: WindowData, go: GuideActions): Guide {
   const danger = urgentNeeds(state, win).some((need) => DANGER_NEEDS.includes(need));
-  const toTask = (action: Action): WatchTask => ({
+  const toTask = (action: Action, overdue = false): WatchTask => ({
     label: labelOf(state, action),
+    overdue,
     onPick: () =>
       action.type === 'build' || action.type === 'place'
         ? go.goBuild(action.station)
@@ -57,12 +59,19 @@ export function computeGuide(state: GameState, win: WindowData, go: GuideActions
   const step = steps[0];
   if (step) {
     // Build-chain steps (after the tutorial sols) lead, the daily tasks follow.
-    const extra = state.sol > 3 ? tasks.filter((x) => x.action.type !== 'build').map((x) => x.action) : [];
+    // The overdue list starts after the tutorial sols: show the same tasks the sim will check
+    // at night (build tasks too), without repeating the chain step itself.
+    const stepKeys = new Set(steps.map((x) => taskKey(x.action)));
+    const extra = state.sol > 3 ? tasks.filter((x) => !stepKeys.has(taskKey(x.action))) : [];
+    const late = new Set(state.overdue.map((x) => taskKey(x.action)));
+    const own = steps.map((s) => toTask(s.action, late.has(taskKey(s.action))));
+    const fresh = extra.filter((x) => !x.overdue).map((x) => toTask(x.action));
+    const carried = extra.filter((x) => x.overdue).map((x) => toTask(x.action, true));
     return {
       station: step.station,
       card: step.card,
       text: t(step.text),
-      tasks: [...steps.map((s) => s.action), ...extra].slice(0, BALANCE.advisor.maxTasks).map(toTask),
+      tasks: [...[...own, ...fresh].slice(0, BALANCE.advisor.maxTasks), ...carried],
       stepType: step.action.type,
       danger,
     };
@@ -74,7 +83,7 @@ export function computeGuide(state: GameState, win: WindowData, go: GuideActions
     station: card ? 'habitat' : costOf(state, first.action).station,
     card,
     text: t(`task.${first.why}` as TextKey),
-    tasks: tasks.map((task) => toTask(task.action)),
+    tasks: tasks.map((task) => toTask(task.action, task.overdue)),
     stepType: null,
     danger,
   };

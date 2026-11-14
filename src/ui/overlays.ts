@@ -121,8 +121,8 @@ export function mountActionMenu(parent: HTMLElement): ActionMenu {
 }
 
 /** A number that floats up from a screen point and fades (CSS animation). */
-export function spawnFloater(parent: HTMLElement, x: number, y: number, text: string, delayMs: number): void {
-  const node = el('span', 'floater', text);
+export function spawnFloater(parent: HTMLElement, x: number, y: number, text: string, delayMs: number, kind = ''): void {
+  const node = el('span', kind ? `floater ${kind}` : 'floater', text);
   node.style.left = `${x}px`;
   node.style.top = `${y}px`;
   node.style.animationDelay = `${delayMs}ms`;

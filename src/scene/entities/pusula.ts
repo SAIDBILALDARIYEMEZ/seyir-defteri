@@ -1,15 +1,21 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
-// PUSULA: the small helper robot from primitives. Rolls to the station of the next task and
-// shows a light on its antenna: teal when calm, blinking red when something is urgent.
+// PUSULA: the small helper robot. The flying robot model (hovering, F5a) once loaded, else
+// primitives. Goes to the station of the next task and shows a light on its antenna: teal
+// when calm, blinking red when something is urgent.
 
 import * as THREE from 'three';
+import { cloneModel, modelClips } from '../models/loader.ts';
+import { greenToBlue } from '../models/tint.ts';
+import { PUSULA_MODEL } from './stationModels.ts';
 
 export interface Pusula {
   group: THREE.Group;
   /** Rolls towards (x, z). `snap` places it there at once (new mission, new morning). */
   goTo(x: number, z: number, snap?: boolean): void;
   setDanger(danger: boolean): void;
+  /** Swaps the primitive body for the loaded robot model; false if it is missing. */
+  useModel(): boolean;
   update(dt: number): void;
 }
 
@@ -44,6 +50,8 @@ export function createPusula(): Pusula {
   const step = new THREE.Vector3();
   let danger = false;
   let clock = 0;
+  let mixer: THREE.AnimationMixer | null = null;
+  let hover = 0.05;
 
   return {
     group,
@@ -55,8 +63,26 @@ export function createPusula(): Pusula {
       danger = value;
       lightMat.color.setHex(danger ? DANGER : CALM);
     },
+    useModel() {
+      const model = cloneModel(PUSULA_MODEL, { height: 1.9, ownMaterials: true });
+      if (!model) return false;
+      model.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (mesh.isMesh && mesh.material instanceof THREE.MeshStandardMaterial) greenToBlue(mesh.material);
+      });
+      for (const child of [...body.children]) if (child !== light) body.remove(child);
+      model.position.y = 0.5;
+      body.add(model);
+      light.position.y = HEAD_HEIGHT + 0.1;
+      mixer = new THREE.AnimationMixer(model);
+      const idle = modelClips(PUSULA_MODEL).find((c) => c.name === 'Flying_Idle');
+      if (idle) mixer.clipAction(idle).play();
+      hover = 0.18;
+      return true;
+    },
     update(dt) {
       clock += dt;
+      mixer?.update(dt);
       step.subVectors(target, group.position);
       const dist = step.length();
       if (dist > 0.05) {
@@ -65,7 +91,7 @@ export function createPusula(): Pusula {
       } else {
         group.rotation.y *= 1 - Math.min(1, dt * 4);
       }
-      body.position.y = Math.sin(clock * 3) * 0.05;
+      body.position.y = Math.sin(clock * 3) * hover;
       light.scale.setScalar(danger ? 1 + Math.abs(Math.sin(clock * 6)) * 0.9 : 1);
     },
   };

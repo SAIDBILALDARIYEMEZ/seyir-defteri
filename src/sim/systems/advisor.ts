@@ -6,9 +6,10 @@ import { BALANCE } from '../../config/balance.ts';
 import missions from '../../content/missions.json' with { type: 'json' };
 import type { Action, BuildableId, SimpleActionType } from '../actions.ts';
 import { check, costOf } from '../rules.ts';
-import type { GameState } from '../state.ts';
+import type { GameState, PlannedTask } from '../state.ts';
 import type { WindowData } from '../window.ts';
 import { setupDone, STARTERS, suggestCell } from './build.ts';
+import { taskDone, taskKey } from './overdue.ts';
 import { isDustSol } from './schedule.ts';
 import { incomePerHour, isEventNow } from './time.ts';
 import { sepWarnedToday, visibleWarnings } from './warnings.ts';
@@ -26,11 +27,7 @@ interface MissionRule {
 }
 const RULES: MissionRule[] = missions;
 
-export interface Task {
-  action: Action;
-  /** Reason code; text lives in i18n under `task.<why>`. */
-  why: string;
-}
+export type Task = PlannedTask;
 
 /** Needs that cannot wait. Two or more on one morning make a "hard choice" day. */
 export function urgentNeeds(state: GameState, win: WindowData): string[] {
@@ -79,8 +76,9 @@ function actionsOf(rule: MissionRule, state: GameState, crewId: number): Action[
 
 /**
  * The daily mission generator: walks the rules of missions.json in priority order and keeps
- * the first `max` that apply and can be done right now. The game's wrist watch, the PUSULA
- * robot and the bot's `pusula` strategy all read this same list.
+ * the first `max` that apply and can be done right now, then adds the overdue tasks carried
+ * from earlier sols (F5a) that are still undone. The game's wrist watch, the PUSULA robot and
+ * the bot's `pusula` strategy all read this same list.
  */
 export function advise(state: GameState, win: WindowData, max: number = BALANCE.advisor.maxTasks): Task[] {
   if (!setupDone(state)) {
@@ -89,6 +87,17 @@ export function advise(state: GameState, win: WindowData, max: number = BALANCE.
       .map((station): Task => ({ action: { type: 'place', crewId: 0, station, cell: suggestCell(state, station) }, why: 'setup' }))
       .slice(0, max);
   }
+  const tasks = ruleTasks(state, win, max);
+  const late = new Set(state.overdue.map((task) => taskKey(task.action)));
+  const listed = new Set(tasks.map((task) => taskKey(task.action)));
+  const marked = tasks.map((task) => (late.has(taskKey(task.action)) ? { ...task, overdue: true } : task));
+  const carried = state.overdue.filter(
+    (task) => !listed.has(taskKey(task.action)) && !taskDone(state, task) && check(state, task.action, win) === null,
+  );
+  return [...marked, ...carried];
+}
+
+function ruleTasks(state: GameState, win: WindowData, max: number): Task[] {
   const seen = new Set<string>();
   const tasks: Task[] = [];
   const duskPower = state.power + incomePerHour(state) * state.hoursLeft;
@@ -99,7 +108,7 @@ export function advise(state: GameState, win: WindowData, max: number = BALANCE.
       if (seen.has(key) || check(state, action, win) !== null) continue;
       if (rule.spare && duskPower - costOf(state, action).power < BALANCE.power.nightHeating) continue;
       seen.add(key);
-      tasks.push({ action, why: rule.id });
+      tasks.push(rule.spare ? { action, why: rule.id, spare: true } : { action, why: rule.id });
       if (tasks.length >= max) return tasks;
     }
   }

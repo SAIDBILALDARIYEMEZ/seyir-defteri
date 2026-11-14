@@ -4,6 +4,7 @@
 
 import { BALANCE } from './config/balance.ts';
 import { WINDOW_IDS, getWindow } from './data/windows.ts';
+import { sfx, unlockAudio } from './audio/sound.ts';
 import { createGame } from './game.ts';
 import type { Mission, Missions } from './game.ts';
 import { decodeMission, encodeMission, maxCodeSeed } from './lib/missionCode.ts';
@@ -56,6 +57,15 @@ const missions: Missions = {
   pick: (win) => ({ seed: 1 + Math.floor(Math.random() * MAX_SEED), win }),
 };
 const game = createGame(canvas, ui, world, first, missions);
+// Sound starts on the first gesture (autoplay rule); every button gives a soft click (F5a).
+const wake = (): void => unlockAudio();
+window.addEventListener('pointerdown', wake);
+window.addEventListener('keydown', wake);
+ui.addEventListener('click', (e) => {
+  if ((e.target as HTMLElement | null)?.closest('button')) sfx.click();
+});
+// Low-poly models load in the background; the primitives play until then (F5a).
+void world.useModels(() => game.refresh());
 /** Debug skip: tops up the life gauges first, so a skipped sol never ends the mission. */
 const endSol = (): void => {
   let s = game.getState();

@@ -115,7 +115,7 @@ function hills(): THREE.Group {
   return g;
 }
 
-/** The landing rocket on its grid cell: never clickable. */
+/** The landing rocket on its grid cell: tapping it only opens its info card (F5a). */
 function passive(): THREE.Group {
   const g = new THREE.Group();
   const WHITE = 0xf2ece4;
@@ -137,6 +137,8 @@ function passive(): THREE.Group {
   }
   const [lx, lz] = cellToWorld(BALANCE.grid.lander);
   ship.position.set(lx, 0, lz);
+  ship.name = 'lander';
+  ship.userData.station = 'lander';
   g.add(ship);
   return g;
 }
