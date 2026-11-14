@@ -150,6 +150,17 @@ async function fetchDonki(win) {
 }
 
 const report = [];
+
+// `--latest`: only the "Today on the Sun" fallback snapshot (last 7 days of notifications).
+if (process.argv.includes('--latest')) {
+  const { summarize, sunRange, sunUrl } = await import('../../src/adapters/donkiSummary.ts');
+  const range = sunRange(new Date());
+  const rows = JSON.parse((await get(`${sunUrl('https://api.nasa.gov', range)}&api_key=${KEY}`)) || '[]');
+  const summary = summarize(rows, range, new Date().toISOString());
+  writeFileSync(out('donki-latest.json'), `${JSON.stringify(summary)}\n`);
+  process.stdout.write(`ok    donki-latest.json: ${JSON.stringify(summary.counts)}\n`);
+  process.exit(0);
+}
 const save = (name, data) => {
   writeFileSync(out(name), `${JSON.stringify(data)}\n`);
   report.push(`ok    ${name}`);

@@ -749,3 +749,24 @@ dose bar, with regolith under ~10%, while a player who stays outside goes far ov
   grade asks for more there: `science.legendMinByWindow` w2 75, w3 80 (w1 stays 72). Balanced
   Legend 29 / 69.5 / 86.5% -> **29 / 40.5 / 44%** (target 25-50%). never-shelter Legend in w2 / w3
   stays high (86 / 78%): in a calm month it plays like balanced; its target is w1 only (0%).
+
+**6. Settings and checks.**
+- **Text size** (Settings, `seyir-defteri.textSize`, `lib/textSize.ts`): normal / large. Large zooms
+  the reading panels (cards x1.2, station menu, info card, watch x1.15, cutscene subtitles and cards
+  x1.15; a little less on phones). The HUD gauges, the store and the 3D view keep their size.
+- **"Today on the Sun"** was never built before (D-012 listed live DONKI as not built), so F6 built
+  it as PRD §10.1 asks: `adapters/donki.ts` + `adapters/donkiSummary.ts`, a card at the bottom of
+  the main menu (last 7 days: flares, CMEs, particle storms, magnetic storms; newest report; source
+  "NASA DONKI, measured near Earth"). It shows the snapshot at once and swaps in the live answer;
+  offline (`navigator.onLine`), a 6 s timeout, an HTTP error or bad JSON keep **SAVED + date**; a
+  live answer is cached 6 h and labelled LIVE. Unit tests cover live / offline / HTTP / bad JSON.
+  Checked live in the browser pane (CORS works).
+- **Phone portrait** (`src/phone.css`, 375 x 812): the HUD chips in one row, gauges in two rows
+  (power + life, then the dose bar), the date badge and the XP line hidden, camera buttons 48 px on
+  the left above the store, the watch above the store on the right (30% of the height), the night
+  card fully opaque and scrollable with its buttons always visible; the main menu card scrolls.
+- **Turkish cutscene subtitles:** a layout bug cut every subtitle and closing card to half the
+  screen width (`left: 50%` shrink-to-fit): the longest wake-up line was 8 lines in a 188 px column
+  on a phone. Fixed (`width: max-content` + max-width): 4 lines, 330 px. Wording tightened (storm,
+  crash, wake-up, win, evacuation lines); checked on screen at 375 x 812 in TR.
+- Debug-only handles for test scripts: `window.sdGame` / `window.sdWorld` with `?debug`.

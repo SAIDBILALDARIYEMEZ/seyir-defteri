@@ -6,6 +6,7 @@
 import { t } from '../i18n/i18n.ts';
 import { CODE_LENGTH } from '../lib/missionCode.ts';
 import { button, el } from './dom.ts';
+import { mountSunCard } from './sunCard.ts';
 
 export interface MainMenu {
   root: HTMLElement;
@@ -67,6 +68,7 @@ export function mountMainMenu(parent: HTMLElement, on: MenuHandlers): MainMenu {
   });
   error.hidden = true;
   card.append(kicker, title, tagline, list, toggle, codeRow, error);
+  mountSunCard(card); // F6: live "Today on the Sun" (PRD §10.1)
   root.append(card);
   parent.append(root);
   return {

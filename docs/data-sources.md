@@ -6,7 +6,7 @@
 
 | Dataset | Used for | Source URL | Snapshot date | Live? | Notes |
 |---------|----------|------------|---------------|-------|-------|
-| NASA DONKI notifications | "Today on the Sun" menu card; flare messages (`type=FLR`) for the windows | https://api.nasa.gov/DONKI/notifications | pending | Live + snapshot fallback (6 s timeout, 6 h cache) | CORS OK from the browser. Own free key, never `DEMO_KEY` |
+| NASA DONKI notifications | "Today on the Sun" menu card; flare messages (`type=FLR`) for the windows | https://api.nasa.gov/DONKI/notifications | 2026-11-15 (`src/data/donki-latest.json`, `node tools/data/fetch.mjs --latest`) | Live + snapshot fallback (6 s timeout, 6 h cache; offline / HTTP error / bad JSON -> SAVED + date) | CORS OK from the browser (checked F6). Own free key, never `DEMO_KEY`. Last 7 days, counts of FLR / CME / SEP / GST |
 | NASA DONKI SEP / GST / CME | Real Sun Calendar windows: warnings and story | https://api.nasa.gov/DONKI/SEP, `/GST`, `/CME` | 2026-11-14 | Snapshot | CME is large: keep the count and the 5 fastest. `/DONKI/FLR` returns 404: do not use |
 | NASA OSDR RadLab, MSL-RAD-Surface (Curiosity RAD) | Mars surface dose: event curves and daily quiet dose per window | https://visualization.osdr.nasa.gov/radlab/api/ | 2026-11-14 | Snapshot only (no CORS) | Coverage 2015-01-01 to 2024-06-03, about one reading per 17 min; stored as hourly means |
 | NASA OSDR RadLab, CRaTER-D1D2 (LRO) | "Moon mission, coming soon" preview | https://visualization.osdr.nasa.gov/radlab/api/ | pending | Snapshot only | Lunar orbit |

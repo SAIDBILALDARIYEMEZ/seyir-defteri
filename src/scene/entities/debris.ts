@@ -64,7 +64,7 @@ function piece(i: number): THREE.Group {
   }
   g.rotation.y = i * 1.37;
   // The glint: a small unlit diamond above the piece that pulses (no real light: D-021).
-  const glint = new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 0), glintMat);
+  const glint = new THREE.Mesh(new THREE.OctahedronGeometry(0.1, 0), glintMat);
   glint.position.y = 0.9;
   glint.name = 'glint';
   g.add(glint);
@@ -134,7 +134,7 @@ export function createExtras(): Extras {
       for (const p of pieces) {
         if (!p.g.visible) continue;
         const k = 0.5 + 0.5 * Math.sin(time * GLINT_SPEED + p.phase);
-        p.glint.scale.setScalar(0.4 + k * 0.9);
+        p.glint.scale.setScalar(0.3 + k * 0.7);
         p.glint.rotation.y = time * 1.5;
       }
     },

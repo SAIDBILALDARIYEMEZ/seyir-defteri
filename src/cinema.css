@@ -7,7 +7,7 @@
 .cine-bar.bottom { bottom: 0; }
 .cine.bars .cine-bar { height: 11vh; }
 .cine-sub {
-  left: 50%; bottom: calc(11vh + 18px); margin: 0; max-width: min(88vw, 760px); transform: translateX(-50%);
+  left: 50%; bottom: calc(11vh + 18px); margin: 0; width: max-content; max-width: min(88vw, 760px); transform: translateX(-50%);
   display: grid; gap: 2px; justify-items: center;
   font-size: clamp(20px, 3vw, 30px); font-weight: 700; letter-spacing: 0.01em; text-align: center; color: #fff6ec;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85); opacity: 0; transition: opacity 0.25s ease;
@@ -38,7 +38,7 @@
 }
 .cine-skip:hover, .cine-skip:focus-visible { border-color: var(--accent); }
 .cine-card {
-  left: 50%; top: calc(11vh + 24px); margin: 0; max-width: min(86vw, 640px); padding: 18px 26px; transform: translate(-50%, 0) scale(0.97);
+  left: 50%; top: calc(11vh + 24px); margin: 0; width: max-content; max-width: min(86vw, 640px); box-sizing: border-box; padding: 18px 26px; transform: translate(-50%, 0) scale(0.97);
   font-size: clamp(20px, 2.8vw, 28px); font-weight: 800; line-height: 1.35; text-align: center; color: #fff6ec;
   background: rgba(20, 10, 6, 0.72); border: 2px solid rgba(255, 179, 71, 0.6); border-radius: 18px;
   opacity: 0; transition: opacity 0.5s ease, transform 0.5s ease;

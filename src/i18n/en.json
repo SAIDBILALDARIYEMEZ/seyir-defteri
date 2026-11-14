@@ -641,5 +641,18 @@
   "lesson.overdueAgain.why": "A task may wait one day for free; after that it costs a little.",
   "lesson.overdueAgain.next": "Do the ⏰ overdue tasks first.",
   "result.what.lost.noSignal": "Sol {n} came, but our location never reached Earth, so the rescue ship could not find the base. The crew left in the capsule.",
-  "result.key.noSignal": "Without the antenna no message left Mars. Build the antenna, then send our location."
+  "result.key.noSignal": "Without the antenna no message left Mars. Build the antenna, then send our location.",
+  "settings.textNormal": "Text size: normal",
+  "settings.textLarge": "Text size: large",
+  "sun.title": "Today on the Sun",
+  "sun.live": "LIVE",
+  "sun.saved": "SAVED · {date}",
+  "sun.days": "Last {n} days:",
+  "sun.type.FLR": "flares",
+  "sun.type.CME": "plasma clouds (CME)",
+  "sun.type.SEP": "particle storms",
+  "sun.type.GST": "magnetic storms",
+  "sun.latest": "Newest report: {what}, {date}.",
+  "sun.quiet": "A quiet week on the Sun.",
+  "sun.source": "Source: NASA DONKI (measured near Earth)"
 }

@@ -1,0 +1,19 @@
+/* SI-assistance note: written with the help of Anthropic's Claude (coding assistant). */
+/* F6 extras. Large text (Settings): the reading panels grow; the 3D view, HUD gauges and store keep their size. */
+.text-large .card, .text-large .action-menu, .text-large .info-card { zoom: 1.2; }
+.text-large .watch { zoom: 1.15; }
+.text-large .cine-sub, .text-large .cine-card { zoom: 1.15; }
+/* Phones: the zoomed panels must still fit the width. */
+@media (max-width: 520px) {
+  .text-large .card, .text-large .action-menu, .text-large .info-card { zoom: 1.1; }
+  .text-large .watch { zoom: 1.05; }
+}
+/* F6 "Today on the Sun" card in the main menu. */
+.sun-card { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 200, 120, 0.1); font-size: 13px; }
+.sun-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sun-badge { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; background: rgba(255, 255, 255, 0.15); }
+.sun-badge.live { background: #2f9e5a; color: #fff; }
+.sun-card p { margin: 4px 0 0; line-height: 1.35; }
+.sun-source { color: var(--ink-dim); font-size: 11px; }
+/* The menu card scrolls on short screens (phones, the sun card added height). */
+.menu-card { max-height: calc(100dvh - 24px); overflow-y: auto; }

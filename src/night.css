@@ -1,6 +1,6 @@
 /* SI-assistance note: written with the help of Anthropic's Claude (coding assistant). */
 /* F6 night card: itemized rows with section headings, "Now we have" boxes, PUSULA's note. */
-.card.night { width: min(94vw, 460px); max-height: 92vh; overflow-y: auto; }
+.card.night { width: min(94vw, 460px); max-height: 92vh; overflow-y: auto; background: rgb(24, 28, 58); }
 .card.night p.row { margin: 3px 0; padding: 3px 8px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); }
 .card.night p.row.head { background: none; padding: 6px 0 0; margin-top: 8px; font-weight: 800; color: var(--ink-dim); font-size: 14px; }
 .night-now-title { margin: 14px 0 6px; font-size: 15px; color: var(--ink-dim); }
@@ -25,4 +25,4 @@
   .night-now { grid-template-columns: repeat(2, 1fr); }
 }
 /* The card can scroll on small screens: its buttons stay in reach at the bottom. */
-.card.night .card-actions { position: sticky; bottom: -22px; margin: 16px -24px -22px; padding: 12px 24px 18px; background: rgba(24, 28, 58, 0.98); }
+.card.night .card-actions { position: sticky; bottom: -22px; margin: 16px -24px -22px; padding: 12px 24px 18px; background: rgb(24, 28, 58); }
