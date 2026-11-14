@@ -4,7 +4,7 @@
 
 import { BALANCE } from '../../config/balance.ts';
 import missions from '../../content/missions.json' with { type: 'json' };
-import type { Action, SimpleActionType } from '../actions.ts';
+import type { Action, BuildableId, SimpleActionType } from '../actions.ts';
 import { check, costOf } from '../rules.ts';
 import type { GameState } from '../state.ts';
 import type { WindowData } from '../window.ts';
@@ -20,6 +20,8 @@ interface MissionRule {
   when: string;
   /** Not urgent: only offered when tonight's heating stays paid after its power cost. */
   spare?: boolean;
+  /** For `build` rules: which station to place (at its suggested grid slot). */
+  station?: string;
 }
 const RULES: MissionRule[] = missions;
 
@@ -63,6 +65,10 @@ const CONDITIONS: Record<string, Condition> = {
 };
 
 function actionsOf(rule: MissionRule, state: GameState, crewId: number): Action[] {
+  if (rule.action === 'build') {
+    const station = rule.station as BuildableId;
+    return [{ type: 'build', crewId, station, cell: BALANCE.grid.slots[station] }];
+  }
   if (rule.action === 'repair') return state.broken.map((station) => ({ type: 'repair', crewId, station }));
   if (rule.action === 'shelterWait') {
     return [{ type: 'shelterWait', crewId, hours: BALANCE.actions.shelterWait.stepHours }];

@@ -34,7 +34,6 @@ const ACTIONS: Action[] = [
   { type: 'greenhouse', crewId },
   { type: 'shelterBuild', crewId },
   { type: 'shelterWait', crewId, hours: 1 },
-  { type: 'antennaRepair', crewId },
   { type: 'message', crewId },
   { type: 'beacon', crewId },
   { type: 'readCuriosity', crewId },

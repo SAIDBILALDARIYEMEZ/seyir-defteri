@@ -42,7 +42,6 @@ export const BALANCE = {
     greenhouse: { hours: 2, power: 5, food: 3, idleSolsToHalve: 2, idleFactor: 0.5 },
     shelterBuild: { hours: 3, maxLevel: 3 },
     shelterWait: { stepHours: 1 },
-    antennaRepair: { hours: 3 },
     message: { hours: 1, power: 5 },
     beacon: { hours: 2, power: 10, afterSol: 15 },
     readCuriosity: { hours: 2, science: 2 },
@@ -55,12 +54,52 @@ export const BALANCE = {
     greenhouse: 3,
     shelterBuild: 4,
     shelterWait: 4,
-    antennaRepair: 4,
     message: 4,
     beacon: 4,
     readCuriosity: 4,
     scanRock: 4,
     repair: 1,
+  },
+  /**
+   * Build mode (B1). Only the habitat and the panels are ready at landing. Placing a station
+   * costs `placeHours` of work, its power and its parts; it is then built over `sols` nights
+   * and does not work until ready. Unlock chain: `needs` ready + sol >= `minSol`.
+   */
+  build: {
+    placeHours: 1,
+    stations: {
+      moxie: { sols: 1, parts: 3, power: 1, needs: null, minSol: 1 },
+      greenhouse: { sols: 3, parts: 4, power: 1, needs: 'moxie', minSol: 1 },
+      shelter: { sols: 3, parts: 4, power: 1, needs: null, minSol: 4 },
+      antenna: { sols: 3, parts: 4, power: 1, needs: 'shelter', minSol: 1 },
+      beacon: { sols: 2, parts: 3, power: 1, needs: 'antenna', minSol: 15 },
+    },
+  },
+  /** Parts from the ship. The start stock covers every build (exploring is a bonus, B3). */
+  parts: { start: 18 },
+  /** Build grid (sim rule). Fixed stations and craters block cells; `minGap` is in cells. */
+  grid: {
+    cols: 12,
+    rows: 12,
+    minGap: 2,
+    fixed: {
+      habitat: { x: 6, y: 6 },
+      panels: { x: 3, y: 6 },
+      curiosity: { x: 11, y: 1 },
+      science: { x: 1, y: 11 },
+    },
+    craters: [
+      { x: 9, y: 9, r: 1 },
+      { x: 2, y: 2, r: 1 },
+    ],
+    /** Suggested spots; the bot always uses these. */
+    slots: {
+      moxie: { x: 8, y: 6 },
+      greenhouse: { x: 6, y: 8 },
+      shelter: { x: 6, y: 3 },
+      antenna: { x: 9, y: 4 },
+      beacon: { x: 3, y: 9 },
+    },
   },
   walk: { near: 0.5, far: 1, farStations: ['curiosity', 'science'] },
 

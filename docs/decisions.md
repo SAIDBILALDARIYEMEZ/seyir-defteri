@@ -242,3 +242,45 @@ Build choices (not yet confirmed by the human):
 - The wrist watch is hidden while the result screen is open.
 **Not built in F4a:** sound, real models, live DONKI, opening scene, Sources screen, A2 map,
 A4 accessibility settings. `src/game.ts` is 470 lines (limit 500): split before adding more.
+
+## D-013 — 2026-11-14 — B1 build mode (sim + bot only, no UI)
+Human decision (Said + mentor): the game moves to a base-building mode. Ready at landing: the
+habitat (end the day) and the solar panels. MOXIE, greenhouse, shelter, antenna and landing
+marker are placed and built. Curiosity and the science spot stay in the world, ready.
+Build choices (not yet confirmed by the human):
+- **Status** `locked -> available -> building -> ready` comes from `sim/systems/build.ts`.
+  A station's own actions are refused with `notBuilt` / `underConstruction` until it is ready.
+  Placing costs `build.placeHours` (1 h) of work + walk, the station's power and parts; it is
+  then built over `sols` nights (MOXIE 1, greenhouse 3, shelter 3, antenna 3, marker 2).
+- **Unlock chain** (sim rule, codes for i18n): MOXIE from sol 1; greenhouse needs MOXIE ready
+  (`needMoxie`); shelter sol >= 4 (`tooEarly`); antenna needs the shelter ready
+  (`needShelter`); marker needs the antenna ready (`needAntenna`) and sol >= 15.
+- **"Repair the antenna" is gone**: the finished antenna is rescue step 1 (longer warnings,
+  messages open). Shelter regolith levels stay a 3 h action with no parts.
+- **Grid**: 12 x 12 cells; fixed cells for habitat / panels / Curiosity / science; two craters
+  (radius 1); `minGap` 2 cells (Chebyshev). Codes: `cellOutside`, `cellTaken`, `tooClose`,
+  `nearCrater`. Positions live in `state.buildings`; `grid.slots` are suggested spots and the
+  bot always uses them. All numbers in `balance.ts`.
+- **Parts**: one resource, start 18 = the sum of all build costs (3/4/4/4/3), so exploring is
+  never required. `bonus` action (+parts, +science, no time) is the hook for B3 crates.
+- Malfunctions skip stations that are not built yet.
+- **Replay yesterday after a loss** now goes to the morning *before* the lost sol (a loss on
+  sol 1 restarts sol 1). From the night card it is unchanged. Tests added.
+- `saveVersion` 2: older saves are ignored.
+- PUSULA (`missions.json`) and the bot planners build in the order MOXIE, shelter, greenhouse,
+  antenna, marker. `never-shelter` still **builds** the shelter (the antenna needs it) but never
+  stacks regolith or waits inside. `greedy` builds MOXIE / greenhouse only when that gauge is
+  its lowest.
+- Curiosity / science keep their sol-4 unlock (HUD shows science from sol 4); open question
+  whether "walk there and use it" should mean sol 1.
+Bot tuning (4 of 6 rounds): build power 5 each -> balanced 48-56% (air spirals after the
+two-day shelter wait); 0 -> 81-89%; 2 -> 64-80%; **1 (kept)** -> 78-87%. Parts and sols were
+not the lever; start resources unchanged (MOXIE is ready on sol 2, air 70 lasts 6 sols).
+**Still off target** (same as D-009, need rule changes, not numbers):
+- `no-antenna` wins more than `balanced` (94.5 / 90.5 / 98.5% vs 81 / 78 / 87%): the radio
+  chain costs time and power and its longer warning changes little.
+- `greedy` 0 / 6.5 / 6.5% (target 30-60%).
+- `balanced` Legend 76 / 86.5% in w2 / w3 (target 25-50%); `always-shelter` Legend 21.5% in w3.
+- `never-shelter` wins 86.5% in w2 / w3 (target is only for w1, where it is 0%).
+**Not built in B1:** any UI (placement view, build menu, status labels, parts counter): B2.
+Until B2 the deployed game is unchanged; the `main` branch game cannot build yet.

@@ -7,6 +7,7 @@ import { RESCUE_DONE, freshToday, snapshotOf } from '../state.ts';
 import type { GameState, LossReason, ReplyKind, Result, SolLog } from '../state.ts';
 import type { WindowData } from '../window.ts';
 import { urgentNeeds } from './advisor.ts';
+import { isReady, progressBuilds } from './build.ts';
 import { isDustSol } from './schedule.ts';
 import { doseOver, passDaylight } from './time.ts';
 import { visibleWarnings } from './warnings.ts';
@@ -48,8 +49,9 @@ function resultOf(state: GameState): Result {
 
 function nextMorning(state: GameState, win: WindowData): GameState {
   const sol = state.sol + 1;
+  // A station that is not built (or still building) cannot break down.
   const newlyBroken = state.schedule.malfunctions
-    .filter((m) => m.sol === sol && !state.broken.includes(m.station))
+    .filter((m) => m.sol === sol && !state.broken.includes(m.station) && isReady(state, m.station))
     .map((m) => m.station);
   let next: GameState = {
     ...state,
@@ -116,6 +118,10 @@ export function endSol(input: GameState, win: WindowData): GameState {
     panelEff: Math.max(0, s.panelEff - (dusty ? panel.dustDecayPerSol : panel.decayPerSol)),
     greenhouseIdleSols: s.sol >= food.unlockSol ? s.greenhouseIdleSols + 1 : 0,
   };
+
+  const built = progressBuilds(s);
+  s = built.state;
+  for (const id of built.finished) flags.push(`built.${id}`);
 
   if (s.air <= 0) return lose(s, 'air', flags, dusk);
   if (s.dose >= dose.budget) return lose(s, 'dose', flags, dusk);

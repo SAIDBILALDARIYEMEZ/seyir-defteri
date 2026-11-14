@@ -7,6 +7,7 @@ import { STATION_OF } from './actions.ts';
 import type { Action, ReasonCode, StationId } from './actions.ts';
 import { RESCUE_DONE } from './state.ts';
 import type { GameState, MorningSnapshot } from './state.ts';
+import { buildReason, isBuildable, notReadyReason } from './systems/build.ts';
 import { isEventNow } from './systems/time.ts';
 import { sepWarnedToday } from './systems/warnings.ts';
 import type { WindowData } from './window.ts';
@@ -32,12 +33,20 @@ function walkHours(from: StationId, to: StationId): number {
 
 export function costOf(state: GameState, action: Action): Cost {
   const a = BALANCE.actions;
-  if (action.type === 'endSol' || action.type === 'replayYesterday') {
-    return { station: 'habitat', walk: 0, hours: 0, power: 0 };
+  if (action.type === 'endSol' || action.type === 'replayYesterday' || action.type === 'bonus') {
+    return { station: locationOf(state, action.crewId), walk: 0, hours: 0, power: 0 };
   }
-  const station = action.type === 'repair' ? action.station : STATION_OF[action.type];
+  const station =
+    action.type === 'repair' || action.type === 'build' ? action.station : STATION_OF[action.type];
   const walk = walkHours(locationOf(state, action.crewId), station);
   switch (action.type) {
+    case 'build':
+      return {
+        station,
+        walk,
+        hours: BALANCE.build.placeHours,
+        power: BALANCE.build.stations[action.station].power,
+      };
     case 'shelterWait':
       return { station, walk, hours: Math.max(a.shelterWait.stepHours, action.hours), power: 0 };
     case 'moxie':
@@ -53,20 +62,26 @@ export function costOf(state: GameState, action: Action): Cost {
 /** First sol a station can be used: the earliest unlock of the actions done there. */
 export function stationUnlockSol(station: StationId): number {
   const unlocks = BALANCE.unlockSol;
+  if (isBuildable(station)) return BALANCE.build.stations[station].minSol;
   const sols = (Object.keys(unlocks) as (keyof typeof unlocks)[])
     .filter((type) => type !== 'repair' && STATION_OF[type] === station)
     .map((type) => unlocks[type]);
   return sols.length ? Math.min(...sols) : 1;
 }
 
+/** True when the station cannot be used now (not unlocked yet, or not built / still building). */
 export function isStationLocked(state: GameState, station: StationId): boolean {
-  return state.sol < stationUnlockSol(station);
+  return state.sol < stationUnlockSol(station) || notReadyReason(state, station) !== null;
 }
 
-/** The morning "Replay yesterday" would return to, or null. */
+/**
+ * The morning "Replay yesterday" would return to, or null. Always the morning before the
+ * current sol: after a loss on sol N that is sol N-1 (a loss on sol 1 restarts sol 1).
+ */
 export function replayTarget(state: GameState): MorningSnapshot | null {
-  const wanted = state.phase === 'lost' ? state.sol : state.sol - 1;
-  return state.mornings.find((m) => m.sol === wanted) ?? null;
+  const exact = state.mornings.find((m) => m.sol === state.sol - 1);
+  if (exact) return exact;
+  return state.phase === 'lost' ? (state.mornings[0] ?? null) : null;
 }
 
 function specific(state: GameState, action: Action, win: WindowData): ReasonCode | null {
@@ -82,8 +97,8 @@ function specific(state: GameState, action: Action, win: WindowData): ReasonCode
       return state.shelterLevel >= a.shelterBuild.maxLevel ? 'shelterMax' : null;
     case 'shelterWait':
       return isEventNow(state, win) || sepWarnedToday(state, win) ? null : 'noStormNow';
-    case 'antennaRepair':
-      return state.rescueStage >= 1 ? 'antennaDone' : null;
+    case 'build':
+      return buildReason(state, action.station, action.cell);
     case 'message':
       if (state.rescueStage < 1) return 'needAntenna';
       return state.messagePending ? 'messagePending' : null;
@@ -110,10 +125,16 @@ export function check(state: GameState, action: Action, win: WindowData): Reason
     return replayTarget(state) ? null : 'nothingToReplay';
   }
   if (state.phase !== 'playing') return 'gameOver';
-  if (action.type === 'endSol') return null;
-  if (state.sol < BALANCE.unlockSol[action.type]) return 'locked';
+  if (action.type === 'endSol' || action.type === 'bonus') return null;
+  if (action.type !== 'build' && state.sol < BALANCE.unlockSol[action.type]) return 'locked';
   const cost = costOf(state, action);
-  if (action.type !== 'repair' && state.broken.includes(cost.station)) return 'broken';
+  if (action.type !== 'build') {
+    const notReady = notReadyReason(state, cost.station);
+    if (notReady) return notReady;
+  }
+  if (action.type !== 'repair' && action.type !== 'build' && state.broken.includes(cost.station)) {
+    return 'broken';
+  }
   const reason = specific(state, action, win);
   if (reason) return reason;
   if (state.power < cost.power) return 'noPower';

@@ -3,11 +3,11 @@
 import { describe, expect, it } from 'vitest';
 import { BALANCE } from '../config/balance.ts';
 import { builtinWindow } from '../data/builtinWindow.ts';
-import type { Action } from './actions.ts';
+import type { Action, SimpleActionType } from './actions.ts';
 import { reduce } from './reducer.ts';
 import { check } from './rules.ts';
 import { createRng } from './rng.ts';
-import { createInitialState } from './state.ts';
+import { createInitialState, snapshotOf } from './state.ts';
 import type { GameState } from './state.ts';
 import { advise } from './systems/advisor.ts';
 import { whatIfSolDose } from './systems/time.ts';
@@ -15,14 +15,26 @@ import { visibleWarnings } from './systems/warnings.ts';
 
 const win = builtinWindow();
 const rng = createRng(1);
-const act = (type: Exclude<Action['type'], 'shelterWait' | 'repair'>): Action => ({ type, crewId: 0 });
+const act = (type: SimpleActionType): Action => ({ type, crewId: 0 });
 const END = act('endSol');
 const step = (s: GameState, a: Action): GameState => reduce(s, a, rng, win);
 /** A state with no random events, so tests only see the rules under test. */
+/** Every station already built, so these tests see the F1 rules (build mode: build.test.ts). */
+const builtBase = (): GameState['buildings'] => {
+  const slots = BALANCE.grid.slots;
+  return {
+    moxie: { cell: slots.moxie, solsLeft: 0 },
+    greenhouse: { cell: slots.greenhouse, solsLeft: 0 },
+    shelter: { cell: slots.shelter, solsLeft: 0 },
+    antenna: { cell: slots.antenna, solsLeft: 0 },
+    beacon: { cell: slots.beacon, solsLeft: 0 },
+  };
+};
 const calm = (over: Partial<GameState> = {}): GameState => ({
   ...createInitialState(1, win),
   schedule: { dust: [], malfunctions: [] },
   panelEff: BALANCE.panel.start,
+  buildings: builtBase(),
   ...over,
 });
 const atSol = (sol: number, over: Partial<GameState> = {}): GameState => calm({ sol, ...over });
@@ -87,7 +99,7 @@ describe('disabled reasons', () => {
       [atSol(5, { shelterLevel: 3 }), act('shelterBuild'), 'shelterMax'],
       [atSol(5), act('message'), 'needAntenna'],
       [atSol(5, { rescueStage: 3 }), act('beacon'), 'tooEarly'],
-      [atSol(5, { hoursLeft: 2 }), act('antennaRepair'), 'noTime'],
+      [atSol(5, { hoursLeft: 2 }), act('shelterBuild'), 'noTime'],
       [atSol(5, { broken: ['moxie'] }), act('moxie'), 'broken'],
       [atSol(5), { type: 'repair', crewId: 0, station: 'moxie' }, 'notBroken'],
       [calm({ phase: 'won' }), act('moxie'), 'gameOver'],
@@ -131,9 +143,8 @@ describe('radiation from the real curve', () => {
 });
 
 describe('rescue chain and results', () => {
-  it('antenna -> location -> coordinates next morning -> beacon', () => {
-    let s = step(atSol(16), act('antennaRepair'));
-    s = step(s, act('message'));
+  it('antenna ready -> location -> coordinates next morning -> beacon', () => {
+    let s = step(atSol(16, { rescueStage: 1 }), act('message'));
     expect(s.rescueStage).toBe(2);
     expect(check(s, act('beacon'), win)).toBe('needCoords');
     s = step(s, END);
@@ -155,7 +166,8 @@ describe('rescue chain and results', () => {
 
 describe('replay yesterday and logbook', () => {
   it('returns to the previous morning with the same events and one use less', () => {
-    const start = createInitialState(3, win);
+    const base = calm();
+    const start: GameState = { ...base, mornings: [snapshotOf(base)] };
     const day2 = step(step(start, act('moxie')), END);
     const back = step(day2, act('replayYesterday'));
     expect(back.sol).toBe(1);
@@ -164,6 +176,26 @@ describe('replay yesterday and logbook', () => {
     expect(back.replaysLeft).toBe(BALANCE.replay.uses - 1);
     expect(check(back, act('replayYesterday'), win)).toBe('nothingToReplay');
     expect(check({ ...day2, replaysLeft: 0 }, act('replayYesterday'), win)).toBe('noReplaysLeft');
+  });
+
+  it('after a loss goes back to the morning before the lost sol', () => {
+    let s = calm();
+    s = { ...s, mornings: [snapshotOf(s)] };
+    for (let i = 0; i < 3; i++) s = step(s, END); // now the morning of sol 4
+    expect(s.mornings.map((m) => m.sol)).toEqual([3, 4]);
+    const lost = step({ ...s, air: 5 }, END); // loses on sol 4
+    expect(lost.phase).toBe('lost');
+    expect(lost.sol).toBe(4);
+    const back = step(lost, act('replayYesterday'));
+    expect(back.phase).toBe('playing');
+    expect(back.sol).toBe(3);
+    expect(back.mornings.map((m) => m.sol)).toEqual([3]);
+  });
+
+  it('a loss on sol 1 restarts sol 1', () => {
+    const lost = step(calm({ air: 5 }), END);
+    expect(lost.phase).toBe('lost');
+    expect(step(lost, act('replayYesterday')).sol).toBe(1);
   });
 
   it('writes exactly one log line per sol', () => {

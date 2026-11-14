@@ -85,7 +85,7 @@ function actionsAt(station: StationId, state: GameState): Action[] {
   for (const type of stationContent[station].actions as ActionType[]) {
     if (type === 'repair') continue;
     if (type === 'shelterWait') list.push({ type, crewId, hours: BALANCE.actions.shelterWait.stepHours });
-    else list.push({ type, crewId });
+    else if (type !== 'build' && type !== 'bonus') list.push({ type, crewId });
   }
   return list;
 }

@@ -5,7 +5,8 @@
 
 import type { GameState } from '../sim/state.ts';
 
-export const SAVE_VERSION = 1;
+/** 2 = build mode (B1): parts + buildings. Older saves are not loaded. */
+export const SAVE_VERSION = 2;
 const STORAGE_KEY = 'seyir-defteri.save';
 
 interface SaveFile {
@@ -21,6 +22,8 @@ function isState(value: unknown): value is GameState {
     typeof s.seed === 'number' &&
     typeof s.windowId === 'string' &&
     typeof s.sol === 'number' &&
+    typeof s.parts === 'number' &&
+    typeof s.buildings === 'object' &&
     s.phase === 'playing' &&
     Array.isArray(s.log) &&
     Array.isArray(s.mornings) &&

@@ -3,7 +3,7 @@
 // GameState: plain serializable data. No text, no functions, no window data.
 
 import { BALANCE } from '../config/balance.ts';
-import type { ReasonCode, StationId } from './actions.ts';
+import type { BuildableId, Cell, ReasonCode, StationId } from './actions.ts';
 import { createRng } from './rng.ts';
 import { rollSchedule } from './systems/schedule.ts';
 import type { Schedule } from './systems/schedule.ts';
@@ -13,6 +13,12 @@ export interface CrewMember {
   id: number;
   awake: boolean;
   location: StationId;
+}
+
+/** A placed station. `solsLeft` 0 = ready; more = still being built (does not work). */
+export interface Building {
+  cell: Cell;
+  solsLeft: number;
 }
 
 export type GamePhase = 'playing' | 'won' | 'lost';
@@ -67,6 +73,10 @@ export interface GameState {
   science: number;
   panelEff: number;
   shelterLevel: number;
+  /** Parts from the ship, spent on building stations. */
+  parts: number;
+  /** Placed stations (build mode). Missing = not placed yet. */
+  buildings: Partial<Record<BuildableId, Building>>;
   rescueStage: RescueStage;
   messagePending: boolean;
   lastReply: ReplyKind | null;
@@ -121,6 +131,8 @@ export function createInitialState(seed: number, win: WindowData, crewCount = 1)
     science: 0,
     panelEff: BALANCE.panel.initial,
     shelterLevel: 0,
+    parts: BALANCE.parts.start,
+    buildings: {},
     rescueStage: 0,
     messagePending: false,
     lastReply: null,

@@ -4,7 +4,7 @@
 // sees: gauges, warnings, the current RAD reading. Never the future of the curve.
 
 import { BALANCE } from '../../src/config/balance.ts';
-import type { Action } from '../../src/sim/actions.ts';
+import type { Action, BuildableId, SimpleActionType } from '../../src/sim/actions.ts';
 import type { Rng } from '../../src/sim/rng.ts';
 import { check } from '../../src/sim/rules.ts';
 import type { GameState } from '../../src/sim/state.ts';
@@ -18,7 +18,9 @@ export type Strategy = (state: GameState, win: WindowData, rng: Rng) => Action;
 const crewId = 0;
 const END: Action = { type: 'endSol', crewId };
 const WAIT: Action = { type: 'shelterWait', crewId, hours: BALANCE.actions.shelterWait.stepHours };
-const simple = (type: Exclude<Action['type'], 'shelterWait' | 'repair'>): Action => ({ type, crewId });
+const simple = (type: SimpleActionType): Action => ({ type, crewId });
+/** The bot always places a station on its suggested grid slot. */
+const build = (station: BuildableId): Action => ({ type: 'build', crewId, station, cell: BALANCE.grid.slots[station] });
 
 function candidates(state: GameState): Action[] {
   return [
@@ -27,7 +29,11 @@ function candidates(state: GameState): Action[] {
     simple('greenhouse'),
     simple('shelterBuild'),
     WAIT,
-    simple('antennaRepair'),
+    build('moxie'),
+    build('greenhouse'),
+    build('shelter'),
+    build('antenna'),
+    build('beacon'),
     simple('message'),
     simple('beacon'),
     simple('readCuriosity'),
@@ -41,15 +47,21 @@ const random: Strategy = (state, win, rng) => {
   return valid[rng.int(0, valid.length - 1)] ?? END;
 };
 
-/** Fixes whichever gauge is lowest right now. No plan, no shelter, no antenna. */
+/**
+ * Fixes whichever gauge is lowest right now; builds a station only when that gauge needs it.
+ * No plan, no shelter, no antenna.
+ */
 const greedy: Strategy = (state, win) => {
-  const needs: [number, Action][] = [
-    [state.air / BALANCE.air.max, simple('moxie')],
-    [state.power / BALANCE.power.max, simple('clean')],
-    [state.food / BALANCE.food.max, simple('greenhouse')],
+  const needs: [number, Action, Action | null][] = [
+    [state.air / BALANCE.air.max, simple('moxie'), build('moxie')],
+    [state.power / BALANCE.power.max, simple('clean'), null],
+    [state.food / BALANCE.food.max, simple('greenhouse'), build('greenhouse')],
   ];
   needs.sort((a, b) => a[0] - b[0]);
-  for (const [, action] of needs) if (check(state, action, win) === null) return action;
+  for (const [, action, station] of needs) {
+    if (check(state, action, win) === null) return action;
+    if (station && check(state, station, win) === null) return station;
+  }
   return END;
 };
 
@@ -74,8 +86,10 @@ function planner(opts: PlanOptions): Strategy {
     if (state.air <= a.airLow) list.push(simple('moxie'));
     if (state.panelEff <= a.panelDirty || state.power <= a.powerLow) list.push(simple('clean'));
     if (state.food <= a.foodLow) list.push(simple('greenhouse'));
+    // Build order is part of the plan: air, shelter (as soon as sol allows), food, radio.
+    list.push(build('moxie'), build('shelter'), build('greenhouse'));
     if (opts.shelter === 'smart' && sepAhead) list.push(simple('shelterBuild'));
-    if (opts.antenna) list.push(simple('antennaRepair'), simple('message'), simple('beacon'));
+    if (opts.antenna) list.push(build('antenna'), build('beacon'), simple('message'), simple('beacon'));
     if (state.air <= a.airComfort) list.push(simple('moxie'));
     if (state.panelEff <= a.panelCleanAt) list.push(simple('clean'));
     if (state.food <= a.foodComfort) list.push(simple('greenhouse'));

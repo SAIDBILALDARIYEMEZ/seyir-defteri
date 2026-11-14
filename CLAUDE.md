@@ -142,3 +142,8 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
   exit", reload without `?debug`, Continue, end the day.
 - Modals stack; when scripting clicks in the pane, target the last `.card` (the hidden action
   menu also has a "Close" button).
+- Build mode (D-013): station actions need the station built (`sim/systems/build.ts`). Test
+  helpers that check old rules start from a fully built base (`builtBase()` in reducer.test).
+- Build power costs are very sensitive (5 per build dropped balanced from ~81% to ~52%):
+  re-run the bot after any build number change. `node tools/bot/trace.ts balanced w1 2`
+  prints one game sol by sol.

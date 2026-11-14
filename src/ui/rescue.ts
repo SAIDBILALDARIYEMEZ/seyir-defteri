@@ -32,7 +32,7 @@ export interface RescueProgress {
 
 /** Null until the antenna unlocks. */
 export function rescueProgress(state: GameState): RescueProgress | null {
-  if (state.sol < BALANCE.unlockSol.antennaRepair) return null;
+  if (state.sol < BALANCE.unlockSol.message) return null;
   const stage = state.rescueStage;
   const done = [stage >= 1, stage >= 2, stage >= RESCUE_DONE];
   const first = done.indexOf(false);

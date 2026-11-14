@@ -9,6 +9,7 @@ import type { Action } from './actions.ts';
 import type { Rng } from './rng.ts';
 import { check, costOf, replayTarget } from './rules.ts';
 import type { GameState } from './state.ts';
+import { addBonus, startBuilding } from './systems/build.ts';
 import { endSol, lose } from './systems/night.ts';
 import { passDaylight, shelterShield } from './systems/time.ts';
 import type { WindowData } from './window.ts';
@@ -29,8 +30,8 @@ function applyEffect(state: GameState, action: Action): GameState {
     }
     case 'shelterBuild':
       return { ...state, shelterLevel: state.shelterLevel + 1 };
-    case 'antennaRepair':
-      return { ...state, rescueStage: 1 };
+    case 'build':
+      return startBuilding(state, action.station, action.cell);
     case 'message':
       return { ...state, messagePending: true, rescueStage: state.rescueStage === 1 ? 2 : state.rescueStage };
     case 'beacon':
@@ -68,6 +69,7 @@ export function reduce(state: GameState, action: Action, _rng: Rng, win: WindowD
     };
   }
   if (action.type === 'endSol') return endSol(state, win);
+  if (action.type === 'bonus') return { ...addBonus(state, action.parts, action.science), rejection: null };
 
   const cost = costOf(state, action);
   let s = passDaylight({ ...state, rejection: null }, win, cost.walk, BALANCE.dose.habitatShield);
