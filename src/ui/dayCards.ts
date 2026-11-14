@@ -16,6 +16,7 @@ import type { WindowData } from '../sim/window.ts';
 import { sourceTag } from './cards.ts';
 import { fmt, formatDate } from './dom.ts';
 import type { ModalSpec } from './overlays.ts';
+import { delayParams } from './rescue.ts';
 
 const key = (text: string): TextKey => text as TextKey;
 const share = (points: number): string => fmt((points / BALANCE.dose.budget) * 100);
@@ -79,6 +80,7 @@ interface EventContent {
   lines?: string[];
   fact?: string;
   source?: string;
+  params?: Record<string, string>;
 }
 const EVENTS: Record<string, EventContent> = events;
 
@@ -146,6 +148,12 @@ export function morningCards(
     }
   }
   const reply = state.lastReply;
-  if (reply) card('reply', {}, { lines: [t(`event.reply.${reply}`)] });
+  if (reply) {
+    const lines = [t(`event.reply.${reply}`, { n: BALANCE.actions.beacon.afterSol + 1 })];
+    if (reply === 'coords') lines.push(`📍 ${t('event.coords.place', EVENTS.coords?.params ?? {})}`);
+    lines.push(`⏱ ${t('event.reply.travel', delayParams(win, state.sol))}`);
+    const coords = reply === 'coords' ? { title: `🛬 ${t('event.coords.title')}`, fact: t('event.coords.fact') } : {};
+    card('reply', {}, { lines, date: dateOf(state.sol), ...coords });
+  }
   return cards;
 }

@@ -10,5 +10,6 @@
   "radAhead": { "icon": "☢️", "lines": ["event.radAhead"] },
   "sepMars": { "fact": "event.sep.mars", "source": "source.rad" },
   "sepEarth": { "fact": "event.sep.earth", "source": "source.donki" },
+  "coords": { "params": { "lat": "4.6° S", "lon": "137.4° E" } },
   "reply": { "icon": "📡", "lines": [], "fact": "event.reply.fact", "source": "source.nasaFact" }
 }

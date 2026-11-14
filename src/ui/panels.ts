@@ -10,6 +10,7 @@ import type { GameState } from '../sim/state.ts';
 import type { ScreenPoint } from '../scene/world.ts';
 import { button, el } from './dom.ts';
 import { languagePicker } from './overlays.ts';
+import type { RescueProgress } from './rescue.ts';
 
 export interface WatchTask {
   /** Already translated. */
@@ -19,7 +20,7 @@ export interface WatchTask {
 
 export interface Watch {
   root: HTMLElement;
-  update(pusulaText: string, tasks: WatchTask[]): void;
+  update(pusulaText: string, tasks: WatchTask[], rescue: RescueProgress | null): void;
 }
 
 export function mountWatch(parent: HTMLElement, onPusula: () => void): Watch {
@@ -28,11 +29,21 @@ export function mountWatch(parent: HTMLElement, onPusula: () => void): Watch {
   const text = el('p', 'watch-text');
   const tasksTitle = el('span', 'watch-sub');
   const list = el('div', 'watch-tasks');
-  root.append(title, text, tasksTitle, list);
+  const chain = el('div', 'watch-rescue');
+  root.append(title, text, tasksTitle, list, chain);
   parent.append(root);
   return {
     root,
-    update(pusulaText, tasks) {
+    update(pusulaText, tasks, rescue) {
+      chain.hidden = !rescue;
+      if (rescue) {
+        const steps = rescue.steps.map((step, i) => {
+          const state = step.done ? 'done' : step.current ? 'current' : '';
+          return el('span', `rescue-step ${state}`, `${step.done ? '✅' : `${i + 1}.`} ${step.label}`);
+        });
+        chain.replaceChildren(el('span', 'watch-sub', `🚀 ${rescue.title}`), ...steps);
+        if (rescue.note) chain.append(el('span', 'rescue-note', rescue.note));
+      }
       title.textContent = `🧭 ${t('watch.title')}`;
       text.textContent = pusulaText;
       tasksTitle.textContent = t('watch.tasks');

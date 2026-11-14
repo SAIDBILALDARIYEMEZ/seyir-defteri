@@ -29,6 +29,7 @@ import type { GaugeId } from './ui/hud.ts';
 import { mountActionMenu, openModal, spawnFloater } from './ui/overlays.ts';
 import type { ModalSpec } from './ui/overlays.ts';
 import { mountLabels, mountMainMenu, mountWatch } from './ui/panels.ts';
+import { actionLabel, beaconSetSpec, messageSentSpec, rescueProgress } from './ui/rescue.ts';
 import type { WatchTask } from './ui/panels.ts';
 
 export interface Mission {
@@ -135,7 +136,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     const danger = urgentNeeds(state, win).some((need) => DANGER_NEEDS.includes(need));
     const toTask = (action: Action): WatchTask => {
       const station = costOf(state, action).station;
-      const name = t(`action.${action.type}`);
+      const name = actionLabel(state, action);
       const label = action.type === 'repair' ? `${name}: ${t(`station.${station}`)}` : name;
       return { label, onPick: () => selectStation(station) };
     };
@@ -165,7 +166,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     hud.update(frozen ?? state, win);
     labels.refresh(state);
     const g = guide();
-    if (!frozen) watch.update(g.text, g.tasks);
+    if (!frozen) watch.update(g.text, g.tasks, rescueProgress(state));
     const show = playing && modals === 0 && state.phase === 'playing';
     const arrowAt = show && g.stepType && !(menu.isOpen() && openStation === g.station) ? g.station : null;
     const bubble = show ? `${stationContent[g.station].icon}${g.danger ? ' ❗' : ''}` : null;
@@ -186,7 +187,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
       const hours = cost.walk + cost.hours;
       const parts = [hours > 0 ? `⏱ ${t('menu.hours', { n: fmt(hours) })}` : '', cost.power > 0 ? `−${cost.power}⚡` : ''];
       return {
-        label: t(`action.${action.type}`),
+        label: actionLabel(state, action),
         cost: parts.filter(Boolean).join('  '),
         reason: reason ? t(`reason.${reason}`) : null,
         hint: g.station === station && g.stepType === action.type,
@@ -236,6 +237,12 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     if (!sameSol) {
       menu.close();
       showNight(before);
+    }
+    if (action.type === 'message') {
+      const close = modal(() => messageSentSpec(before, win, () => close()));
+    }
+    if (action.type === 'beacon') {
+      const close = modal(() => beaconSetSpec(() => close()));
     }
     render();
   }
