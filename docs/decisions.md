@@ -326,3 +326,25 @@ Build choices (not yet confirmed by the human):
   (test added). Bot report unchanged.
 **Not built in B2:** path-finding around buildings (Ada walks straight), moving or removing a
 placed building, real models, sound.
+
+## D-015 — 2026-11-14 — B3 part A: village layout (setup, move, path-finding)
+Human answers to D-014: free walk costs no time (kept); build area grows to 18 x 18; Legend
+science limit 72 confirmed.
+- **Grid 18 x 18**, centered as before (`scene/grid.ts`). Fixed: Curiosity (16,2), science
+  (2,16); a third crater; the landing rocket blocks `grid.lander` (13,11). Bot slots moved
+  with the grid (habitat 9,9 / panels 6,9 / MOXIE 11,9 / greenhouse 9,11 / shelter 9,6 /
+  antenna 12,6 / marker 6,12). Camera pulled back (radius 62).
+- **Sol-1 setup:** only the rocket stands at landing. The habitat and the panels wait in the
+  store ("waiting to be set up", free). Sim action `place` (free, instant, no walk) on any
+  valid cell; until both are placed every other action (end the day too) is refused with
+  `needSetup`. The sol-1 morning snapshot is updated, so a replay keeps the placement.
+  Tutorial sol 1 starts with the two placing steps; PUSULA's tasks are the same. The bot
+  places both on their slots first. **Bot report unchanged** (balanced 81 / 78 / 87%,
+  pusula 88.5 / 92 / 93%).
+- **Move:** a ready station's menu has "Move": same ghost and green / red rules (its own cell
+  does not block), sim action `relocate` = walk + `build.relocateHours` (1 h), no parts, no
+  power; refused with `underConstruction` / `notBuilt`. Starters can be moved too.
+- PUSULA suggests the slot if free, else the nearest valid cell (`suggestCell`).
+- **Collision:** Ada walks around buildings and the rocket: A* on a 1-unit grid plus corner
+  cutting (`scene/path.ts`, visual only).
+- `saveVersion` 3.

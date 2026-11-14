@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { BALANCE } from '../config/balance.ts';
 import { builtinWindow } from '../data/builtinWindow.ts';
-import type { Action, BuildableId, Cell } from './actions.ts';
+import type { Action, BuildableId, Cell, PlacedId } from './actions.ts';
 import { reduce } from './reducer.ts';
 import { check, costOf } from './rules.ts';
 import { createRng } from './rng.ts';
@@ -21,13 +21,15 @@ const build = (station: BuildableId, cell: Cell = BALANCE.grid.slots[station]): 
   station,
   cell,
 });
+const ready = (...ids: PlacedId[]): GameState['buildings'] =>
+  Object.fromEntries(['habitat', 'panels', ...ids].map((id) => [id, { cell: BALANCE.grid.slots[id as PlacedId], solsLeft: 0 }]));
+/** A sol-1 state with the starters already placed (setup: setup.test.ts). */
 const fresh = (over: Partial<GameState> = {}): GameState => ({
   ...createInitialState(1, win),
   schedule: { dust: [], malfunctions: [] },
+  buildings: ready(),
   ...over,
 });
-const ready = (...ids: BuildableId[]): GameState['buildings'] =>
-  Object.fromEntries(ids.map((id) => [id, { cell: BALANCE.grid.slots[id], solsLeft: 0 }]));
 
 describe('build mode', () => {
   it('starts with only the habitat and panels ready, and parts for every build', () => {
@@ -82,8 +84,8 @@ describe('build mode', () => {
       [{ x: -1, y: 0 }, 'cellOutside'],
       [{ x: g.cols, y: 0 }, 'cellOutside'],
       [{ x: 0.5, y: 3 }, 'cellOutside'],
-      [g.fixed.habitat, 'cellTaken'],
-      [{ x: g.fixed.habitat.x + 1, y: g.fixed.habitat.y }, 'tooClose'],
+      [g.slots.habitat, 'cellTaken'],
+      [{ x: g.slots.habitat.x + 1, y: g.slots.habitat.y }, 'tooClose'],
       [{ x: crater.x, y: crater.y }, 'nearCrater'],
     ];
     for (const [cell, code] of cases) expect(check(fresh(), build('moxie', cell), win)).toBe(code);

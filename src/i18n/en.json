@@ -108,7 +108,7 @@
   "watch.allDone": "Good work! When you are ready, go to the habitat and end the day.",
   "tutorial.welcome.title": "Welcome, Commander!",
   "tutorial.welcome1": "I am PUSULA, your helper robot. Together we keep the base running for 30 sols. A sol is one day on Mars.",
-  "tutorial.welcome2": "Only the habitat and the solar panels are ready. Build the rest from the store on the right: drag a card onto the ground. Tap the ground to walk, tap a station to use it.",
+  "tutorial.welcome2": "We landed next to our rocket. The habitat and the solar panels wait in the store on the right: drag each onto a good spot (free). Then build the rest the same way. Tap the ground to walk, tap a station to use it.",
   "tutorial.s1.clean": "The landing left dust on the solar panels. Tap the solar panels and clean them: clean panels make more power.",
   "tutorial.s1.end": "Well done! Every job takes daylight hours. Go to the habitat and end the day. The builders work at night.",
   "tutorial.s2.moxie": "The oxygen machine is ready. Tap it and make oxygen: air goes up, power goes down.",
@@ -333,5 +333,17 @@
   "build.cancel": "Cancel",
   "build.goodSpot": "Good spot: let go to build",
   "build.label": "🏗️ {n} sol",
-  "build.tapSpot": "Good spot: tap to build"
+  "build.tapSpot": "Good spot: tap to build",
+  "reason.needSetup": "First set up the habitat and the solar panels from the store.",
+  "reason.alreadyPlaced": "This is already set up.",
+  "action.place": "Set up",
+  "action.relocate": "Move",
+  "task.setup": "Set up the habitat and the solar panels: drag them from the store onto the ground.",
+  "tutorial.s1.habitat": "We landed! Our habitat waits next to the rocket. Drag it from the store onto a good spot.",
+  "tutorial.s1.panels": "Now the solar panels: put them near the habitat. Setting up is free and quick.",
+  "build.waiting": "Waiting to be set up",
+  "build.free": "Free",
+  "build.move": "Move {station}: tap a new spot.",
+  "build.moveSpot": "Good spot: tap to move",
+  "build.moveGood": "Good spot: let go to move"
 }

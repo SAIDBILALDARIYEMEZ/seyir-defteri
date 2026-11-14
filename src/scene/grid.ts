@@ -6,7 +6,7 @@
 import { BALANCE } from '../config/balance.ts';
 import type { Cell, StationId } from '../sim/actions.ts';
 import type { GameState } from '../sim/state.ts';
-import { isBuildable } from '../sim/systems/build.ts';
+import { isPlaceable } from '../sim/systems/build.ts';
 
 export const CELL = 3;
 const midX = (BALANCE.grid.cols - 1) / 2;
@@ -22,8 +22,8 @@ export function worldToCell(x: number, z: number): Cell {
   return { x: Math.round(x / CELL + midX), y: Math.round(z / CELL + midY) };
 }
 
-/** Grid cell of a station, or null when a buildable station is not placed yet. */
+/** Grid cell of a station, or null when a placed station is not on the grid yet. */
 export function stationCell(state: GameState, id: StationId): Cell | null {
-  if (isBuildable(id)) return state.buildings[id]?.cell ?? null;
+  if (isPlaceable(id)) return state.buildings[id]?.cell ?? null;
   return BALANCE.grid.fixed[id];
 }

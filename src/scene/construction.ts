@@ -5,8 +5,8 @@
 
 import * as THREE from 'three';
 import { BALANCE } from '../config/balance.ts';
-import type { BuildableId, Cell } from '../sim/actions.ts';
-import { BUILDABLES } from '../sim/systems/build.ts';
+import type { PlacedId, Cell } from '../sim/actions.ts';
+import { PLACEABLES } from '../sim/systems/build.ts';
 import { buildStation } from './entities/stations.ts';
 import { CELL, cellToWorld } from './grid.ts';
 import { BUILDING_OPACITY, COLORS } from './layout.ts';
@@ -66,7 +66,7 @@ export const FADE_BUILDING = BUILDING_OPACITY;
 export interface Ghost {
   group: THREE.Group;
   /** Shows the ghost of `id` on `cell`; null hides it. */
-  set(id: BuildableId | null, cell: Cell | null, valid: boolean): void;
+  set(id: PlacedId | null, cell: Cell | null, valid: boolean): void;
 }
 
 export function createGhost(): Ghost {
@@ -82,8 +82,8 @@ export function createGhost(): Ghost {
   const tile = new THREE.Mesh(new THREE.PlaneGeometry(CELL, CELL), ok);
   tile.rotation.x = -Math.PI / 2;
   tile.position.y = 0.06;
-  const models = {} as Record<BuildableId, THREE.Group>;
-  for (const id of BUILDABLES) {
+  const models = {} as Record<PlacedId, THREE.Group>;
+  for (const id of PLACEABLES) {
     const model = buildStation(id).group;
     model.userData.station = undefined;
     model.visible = false;
@@ -91,13 +91,13 @@ export function createGhost(): Ghost {
   }
   group.add(lines, tile, ...Object.values(models));
   group.visible = false;
-  let shown: BuildableId | null = null;
+  let shown: PlacedId | null = null;
   let shownValid: boolean | null = null;
   return {
     group,
     set(id, cell, valid) {
       group.visible = id !== null;
-      for (const key of BUILDABLES) models[key].visible = key === id && cell !== null;
+      for (const key of PLACEABLES) models[key].visible = key === id && cell !== null;
       tile.visible = cell !== null;
       if (!id || !cell) return;
       const [x, z] = cellToWorld(cell);

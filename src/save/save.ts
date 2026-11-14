@@ -5,8 +5,8 @@
 
 import type { GameState } from '../sim/state.ts';
 
-/** 2 = build mode (B1): parts + buildings. Older saves are not loaded. */
-export const SAVE_VERSION = 2;
+/** 3 = B3 village layout (placed starters). Older saves are not loaded. */
+export const SAVE_VERSION = 3;
 const STORAGE_KEY = 'seyir-defteri.save';
 
 interface SaveFile {

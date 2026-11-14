@@ -8,6 +8,7 @@ import type { Action, BuildableId, SimpleActionType } from '../actions.ts';
 import { check, costOf } from '../rules.ts';
 import type { GameState } from '../state.ts';
 import type { WindowData } from '../window.ts';
+import { setupDone, STARTERS, suggestCell } from './build.ts';
 import { isDustSol } from './schedule.ts';
 import { incomePerHour, isEventNow } from './time.ts';
 import { sepWarnedToday, visibleWarnings } from './warnings.ts';
@@ -67,7 +68,7 @@ const CONDITIONS: Record<string, Condition> = {
 function actionsOf(rule: MissionRule, state: GameState, crewId: number): Action[] {
   if (rule.action === 'build') {
     const station = rule.station as BuildableId;
-    return [{ type: 'build', crewId, station, cell: BALANCE.grid.slots[station] }];
+    return [{ type: 'build', crewId, station, cell: suggestCell(state, station) }];
   }
   if (rule.action === 'repair') return state.broken.map((station) => ({ type: 'repair', crewId, station }));
   if (rule.action === 'shelterWait') {
@@ -82,6 +83,12 @@ function actionsOf(rule: MissionRule, state: GameState, crewId: number): Action[
  * robot and the bot's `pusula` strategy all read this same list.
  */
 export function advise(state: GameState, win: WindowData, max: number = BALANCE.advisor.maxTasks): Task[] {
+  if (!setupDone(state)) {
+    // Sol-1 setup: only placing the habitat and the panels is possible.
+    return STARTERS.filter((id) => !state.buildings[id])
+      .map((station): Task => ({ action: { type: 'place', crewId: 0, station, cell: suggestCell(state, station) }, why: 'setup' }))
+      .slice(0, max);
+  }
   const seen = new Set<string>();
   const tasks: Task[] = [];
   const duskPower = state.power + incomePerHour(state) * state.hoursLeft;

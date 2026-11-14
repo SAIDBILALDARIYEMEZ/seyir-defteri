@@ -6,8 +6,8 @@
 import tutorial from '../content/tutorial.json';
 import type { TextKey } from '../i18n/i18n.ts';
 import { BALANCE } from '../config/balance.ts';
-import type { Action, BuildableId, SimpleActionType, StationId } from '../sim/actions.ts';
-import { buildStatus } from '../sim/systems/build.ts';
+import type { Action, BuildableId, PlacedId, SimpleActionType, StarterId, StationId } from '../sim/actions.ts';
+import { buildStatus, setupDone, suggestCell } from '../sim/systems/build.ts';
 import { check, costOf } from '../sim/rules.ts';
 import type { GameState } from '../sim/state.ts';
 import type { WindowData } from '../sim/window.ts';
@@ -18,7 +18,7 @@ export interface TutorialStep {
   action: Action;
   station: StationId;
   /** Build steps point at this store card instead of a station. */
-  card: BuildableId | null;
+  card: PlacedId | null;
   text: TextKey;
 }
 
@@ -31,12 +31,18 @@ const STEPS: Record<string, StepData[] | undefined> = tutorial;
 
 function stepOf(step: StepData, state: GameState, win: WindowData): TutorialStep | null {
   const text = step.text as TextKey;
+  if (step.action === 'place') {
+    const id = step.station as StarterId;
+    if (state.buildings[id]) return null;
+    const action: Action = { type: 'place', crewId: 0, station: id, cell: suggestCell(state, id) };
+    return { action, station: 'habitat', card: id, text };
+  }
   if (step.action === 'build') {
     const id = step.station as BuildableId;
     // The spot is the player's choice, so only the chain and the parts decide here.
-    const ready = buildStatus(state, id) === 'available' && state.parts >= BALANCE.build.stations[id].parts;
+    const ready = setupDone(state) && buildStatus(state, id) === 'available' && state.parts >= BALANCE.build.stations[id].parts;
     if (!ready) return null;
-    const action: Action = { type: 'build', crewId: 0, station: id, cell: BALANCE.grid.slots[id] };
+    const action: Action = { type: 'build', crewId: 0, station: id, cell: suggestCell(state, id) };
     return { action, station: 'habitat', card: id, text };
   }
   const action: Action = { type: step.action as SimpleActionType, crewId: 0 };

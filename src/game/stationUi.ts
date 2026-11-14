@@ -7,9 +7,10 @@
 import { BALANCE } from '../config/balance.ts';
 import stationContent from '../content/stations.json';
 import { t } from '../i18n/i18n.ts';
-import type { Action, ActionType, BuildableId, Cell, StationId } from '../sim/actions.ts';
+import type { Action, ActionType, Cell, PlacedId, StationId } from '../sim/actions.ts';
 import { check, costOf, isStationLocked } from '../sim/rules.ts';
 import type { GameState } from '../sim/state.ts';
+import { isPlaceable, isStarter } from '../sim/systems/build.ts';
 import { fmt } from '../ui/dom.ts';
 import { spawnFloater } from '../ui/overlays.ts';
 import { CREW_ID } from './context.ts';
@@ -25,9 +26,16 @@ function actionsAt(station: StationId, state: GameState): Action[] {
   for (const type of stationContent[station].actions as ActionType[]) {
     if (type === 'repair') continue;
     if (type === 'shelterWait') list.push({ type, crewId, hours: BALANCE.actions.shelterWait.stepHours });
-    else if (type !== 'build' && type !== 'bonus') list.push({ type, crewId });
+    else if (type !== 'build' && type !== 'bonus' && type !== 'place' && type !== 'relocate') list.push({ type, crewId });
   }
   return list;
+}
+
+/** The sim action for dropping `id` on `cell`: set up a starter, move a placed one, or build. */
+export function placeAction(state: GameState, id: PlacedId, cell: Cell): Action {
+  if (state.buildings[id]) return { type: 'relocate', crewId: CREW_ID, station: id, cell };
+  if (isStarter(id)) return { type: 'place', crewId: CREW_ID, station: id, cell };
+  return { type: 'build', crewId: CREW_ID, station: id, cell };
 }
 
 export function createStationUi(ctx: Ctx, guide: () => Guide) {
@@ -49,6 +57,22 @@ export function createStationUi(ctx: Ctx, guide: () => Guide) {
         onPick: () => ctx.perform(action),
       };
     });
+    const placed = isPlaceable(station) ? s.state.buildings[station] : undefined;
+    if (isPlaceable(station) && placed && placed.solsLeft === 0) {
+      // Move: pick a new cell with the same ghost rules, then walk there and relocate (1 h).
+      const move = placeAction(s.state, station, placed.cell);
+      const cost = costOf(s.state, move);
+      items.push({
+        label: `↔️ ${t('action.relocate')}`,
+        cost: `⏱ ${t('menu.hours', { n: fmt(cost.walk + cost.hours) })}`,
+        reason: s.state.hoursLeft < cost.walk + cost.hours ? t('reason.noTime') : null,
+        hint: false,
+        onPick: () => {
+          menu.close();
+          ctx.placement.select(station);
+        },
+      });
+    }
     menu.open(`${stationContent[station].icon} ${t(`station.${station}`)}`, items, t('menu.close'));
   }
 
@@ -76,11 +100,17 @@ export function createStationUi(ctx: Ctx, guide: () => Guide) {
     walkThen((done) => world.walkToPoint(x, z, done), () => undefined);
   }
 
-  function placeBuilding(id: BuildableId, cell: Cell): void {
+  function placeBuilding(id: PlacedId, cell: Cell): void {
     if (!ctx.free()) return;
-    const action: Action = { type: 'build', crewId: CREW_ID, station: id, cell };
+    const action = placeAction(s.state, id, cell);
     if (check(s.state, action, s.win)) return;
-    walkThen((done) => world.walkToCell(cell, done), () => ctx.perform(action));
+    // Setting up a starter is instant: the crew unpacks it where it lands, no walk.
+    if (action.type === 'place') return ctx.perform(action);
+    walkThen((done) => world.walkToCell(cell, done), () => {
+      ctx.perform(action);
+      // A moved station lands where Ada stood: step her out in front of it.
+      if (action.type === 'relocate') world.placeAda(id);
+    });
   }
 
   function floatNumbers(before: GameState, action: Action, sameSol: boolean): void {

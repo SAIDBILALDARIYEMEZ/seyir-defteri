@@ -6,7 +6,7 @@ import { BALANCE } from '../config/balance.ts';
 import stationContent from '../content/stations.json';
 import { t } from '../i18n/i18n.ts';
 import type { TextKey } from '../i18n/i18n.ts';
-import type { Action, ActionType, BuildableId, StationId } from '../sim/actions.ts';
+import type { Action, ActionType, PlacedId, StationId } from '../sim/actions.ts';
 import { costOf } from '../sim/rules.ts';
 import type { GameState } from '../sim/state.ts';
 import { advise, urgentNeeds } from '../sim/systems/advisor.ts';
@@ -21,7 +21,7 @@ const DANGER_NEEDS = ['air', 'power', 'food', 'radiation', 'broken'];
 export interface Guide {
   station: StationId;
   /** Store card to highlight (build steps and build tasks). */
-  card: BuildableId | null;
+  card: PlacedId | null;
   /** PUSULA's sentence for the wrist watch. */
   text: string;
   tasks: WatchTask[];
@@ -32,11 +32,13 @@ export interface Guide {
 
 export interface GuideActions {
   goStation(station: StationId): void;
-  goBuild(id: BuildableId): void;
+  goBuild(id: PlacedId): void;
 }
 
 export function labelOf(state: GameState, action: Action): string {
-  if (action.type === 'build') return `${t('action.build')}: ${t(`station.${action.station}`)}`;
+  if (action.type === 'build' || action.type === 'place') {
+    return `${t(`action.${action.type}`)}: ${t(`station.${action.station}`)}`;
+  }
   const name = actionLabel(state, action);
   return action.type === 'repair' ? `${name}: ${t(`station.${action.station}`)}` : name;
 }
@@ -45,7 +47,10 @@ export function computeGuide(state: GameState, win: WindowData, go: GuideActions
   const danger = urgentNeeds(state, win).some((need) => DANGER_NEEDS.includes(need));
   const toTask = (action: Action): WatchTask => ({
     label: labelOf(state, action),
-    onPick: () => (action.type === 'build' ? go.goBuild(action.station) : go.goStation(costOf(state, action).station)),
+    onPick: () =>
+      action.type === 'build' || action.type === 'place'
+        ? go.goBuild(action.station)
+        : go.goStation(costOf(state, action).station),
   });
   const tasks = advise(state, win);
   const steps = tutorialSteps(state, win);
@@ -64,7 +69,7 @@ export function computeGuide(state: GameState, win: WindowData, go: GuideActions
   }
   const first = tasks[0];
   if (!first) return { station: 'habitat', card: null, text: t('watch.allDone'), tasks: [], stepType: null, danger };
-  const card = first.action.type === 'build' ? first.action.station : null;
+  const card = first.action.type === 'build' || first.action.type === 'place' ? first.action.station : null;
   return {
     station: card ? 'habitat' : costOf(state, first.action).station,
     card,

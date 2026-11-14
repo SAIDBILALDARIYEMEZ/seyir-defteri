@@ -7,8 +7,7 @@
 import { createFlow } from './game/flow.ts';
 import { bubbleOf, computeGuide } from './game/guide.ts';
 import type { Guide } from './game/guide.ts';
-import { createStationUi } from './game/stationUi.ts';
-import { CREW_ID } from './game/context.ts';
+import { createStationUi, placeAction } from './game/stationUi.ts';
 import type { Ctx, Mission, Missions, Session } from './game/context.ts';
 import { onLangChange, t } from './i18n/i18n.ts';
 import { createPlacement } from './input/placement.ts';
@@ -71,8 +70,9 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     canvas,
     world,
     canAct: free,
-    reasonFor: (station, cell) => check(s.state, { type: 'build', crewId: CREW_ID, station, cell }, s.win),
+    reasonFor: (station, cell) => check(s.state, placeAction(s.state, station, cell), s.win),
     onPlace: (id, cell) => stations.placeBuilding(id, cell),
+    moving: (id) => s.state.buildings[id] !== undefined,
     onChange: () => {
       if (placement.selected()) menu.close();
       render();

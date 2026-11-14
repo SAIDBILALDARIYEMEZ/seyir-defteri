@@ -23,6 +23,8 @@ const step = (s: GameState, a: Action): GameState => reduce(s, a, rng, win);
 const builtBase = (): GameState['buildings'] => {
   const slots = BALANCE.grid.slots;
   return {
+    habitat: { cell: slots.habitat, solsLeft: 0 },
+    panels: { cell: slots.panels, solsLeft: 0 },
     moxie: { cell: slots.moxie, solsLeft: 0 },
     greenhouse: { cell: slots.greenhouse, solsLeft: 0 },
     shelter: { cell: slots.shelter, solsLeft: 0 },
@@ -82,7 +84,7 @@ describe('time and night', () => {
 
 describe('disabled reasons', () => {
   it('a fresh base has dusty panels, so sol 1 can teach cleaning (D-011)', () => {
-    const fresh = createInitialState(1, win);
+    const fresh = { ...createInitialState(1, win), buildings: builtBase() };
     expect(check(fresh, act('clean'), win)).toBeNull();
     expect(step(fresh, act('clean')).panelEff).toBe(BALANCE.panel.start);
   });

@@ -6,7 +6,7 @@
 // turns that into the sim's `build` action.
 
 import { t } from '../i18n/i18n.ts';
-import type { BuildableId, Cell, ReasonCode } from '../sim/actions.ts';
+import type { PlacedId, Cell, ReasonCode } from '../sim/actions.ts';
 import { worldToCell } from '../scene/grid.ts';
 import type { World } from '../scene/world.ts';
 import { button, el } from '../ui/dom.ts';
@@ -20,18 +20,20 @@ export interface PlacementDeps {
   /** False while the player cannot act (walking, a card is open, menu). */
   canAct(): boolean;
   /** The sim's reason why `id` cannot be built on `cell` right now, or null. */
-  reasonFor(id: BuildableId, cell: Cell): ReasonCode | null;
-  onPlace(id: BuildableId, cell: Cell): void;
+  reasonFor(id: PlacedId, cell: Cell): ReasonCode | null;
+  onPlace(id: PlacedId, cell: Cell): void;
+  /** True when `id` is already on the grid (the drop moves it). */
+  moving(id: PlacedId): boolean;
   /** Selection changed: redraw the store. */
   onChange(): void;
 }
 
 export interface Placement {
-  selected(): BuildableId | null;
+  selected(): PlacedId | null;
   /** Pointer pressed on a store card. */
-  press(id: BuildableId, e: PointerEvent): void;
+  press(id: PlacedId, e: PointerEvent): void;
   /** Tap mode without a pointer (keyboard, wrist-watch task). */
-  select(id: BuildableId): void;
+  select(id: PlacedId): void;
   cancel(): void;
   /** Pointer over the canvas while a card is selected. */
   hover(clientX: number, clientY: number): void;
@@ -40,7 +42,7 @@ export interface Placement {
 }
 
 export function createPlacement(d: PlacementDeps): Placement {
-  let selected: BuildableId | null = null;
+  let selected: PlacedId | null = null;
   const tip = el('div', 'ghost-tip');
   tip.hidden = true;
   const banner = el('div', 'place-banner');
@@ -69,7 +71,8 @@ export function createPlacement(d: PlacementDeps): Placement {
   const refreshBanner = (): void => {
     banner.hidden = selected === null;
     if (!selected) return;
-    bannerText.textContent = t('build.place', { station: t(`station.${selected}`) });
+    const key = d.moving(selected) ? 'build.move' : 'build.place';
+    bannerText.textContent = t(key, { station: t(`station.${selected}`) });
     cancelBtn.textContent = `✖ ${t('build.cancel')}`;
   };
   /** Ghost + tip at a screen point. Returns the cell and the reason (null = valid). */
@@ -83,7 +86,9 @@ export function createPlacement(d: PlacementDeps): Placement {
     }
     const reason = d.reasonFor(selected, cell);
     d.world.setGhost(selected, cell, reason === null);
-    const ok = `✅ ${t(dragging ? 'build.goodSpot' : 'build.tapSpot')}`;
+    const move = d.moving(selected);
+    const okKey = move ? (dragging ? 'build.moveGood' : 'build.moveSpot') : dragging ? 'build.goodSpot' : 'build.tapSpot';
+    const ok = `✅ ${t(okKey)}`;
     showTip(x, y, reason ? t(`reason.${reason}`) : ok, reason !== null);
     return { cell, reason };
   };
@@ -101,7 +106,7 @@ export function createPlacement(d: PlacementDeps): Placement {
     refreshBanner();
     d.onChange();
   }
-  const begin = (id: BuildableId): void => {
+  const begin = (id: PlacedId): void => {
     selected = id;
     d.world.setGhost(id, null, false);
     refreshBanner();

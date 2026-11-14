@@ -58,9 +58,9 @@ export const LABEL_HEIGHT: Record<StationId, number> = {
 
 export const CAMERA = {
   fov: 40,
-  radius: 50,
-  minRadius: 32,
-  maxRadius: 66,
+  radius: 62,
+  minRadius: 36,
+  maxRadius: 84,
   elevation: 0.5,
   maxAzimuth: 0.55,
   /** Slightly right of the grid center: the store and the watch cover the right edge. */

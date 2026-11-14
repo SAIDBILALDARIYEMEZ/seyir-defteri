@@ -3,7 +3,7 @@
 // GameState: plain serializable data. No text, no functions, no window data.
 
 import { BALANCE } from '../config/balance.ts';
-import type { BuildableId, Cell, ReasonCode, StationId } from './actions.ts';
+import type { Cell, PlacedId, ReasonCode, StationId } from './actions.ts';
 import { createRng } from './rng.ts';
 import { rollSchedule } from './systems/schedule.ts';
 import type { Schedule } from './systems/schedule.ts';
@@ -75,8 +75,8 @@ export interface GameState {
   shelterLevel: number;
   /** Parts from the ship, spent on building stations. */
   parts: number;
-  /** Placed stations (build mode). Missing = not placed yet. */
-  buildings: Partial<Record<BuildableId, Building>>;
+  /** Placed stations (build mode, starters included). Missing = not placed yet. */
+  buildings: Partial<Record<PlacedId, Building>>;
   rescueStage: RescueStage;
   messagePending: boolean;
   lastReply: ReplyKind | null;

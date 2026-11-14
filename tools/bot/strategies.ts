@@ -9,6 +9,7 @@ import type { Rng } from '../../src/sim/rng.ts';
 import { check } from '../../src/sim/rules.ts';
 import type { GameState } from '../../src/sim/state.ts';
 import { advise } from '../../src/sim/systems/advisor.ts';
+import { STARTERS } from '../../src/sim/systems/build.ts';
 import { isEventNow } from '../../src/sim/systems/time.ts';
 import { sepWarnedToday, visibleWarnings } from '../../src/sim/systems/warnings.ts';
 import type { WindowData } from '../../src/sim/window.ts';
@@ -109,12 +110,21 @@ const pusula: Strategy = (state, win) => {
   return done >= BALANCE.advisor.maxTasks ? END : task.action;
 };
 
-export const strategies: Record<string, Strategy> = {
-  random,
-  greedy,
-  balanced: planner({ shelter: 'smart', antenna: true }),
-  pusula,
-  'never-shelter': planner({ shelter: 'never', antenna: true }),
-  'always-shelter': planner({ shelter: 'always', antenna: true }),
-  'no-antenna': planner({ shelter: 'smart', antenna: false }),
+/** Sol-1 setup first: every bot puts the habitat and the panels on their fixed slots. */
+const withSetup = (strategy: Strategy): Strategy => (state, win, rng) => {
+  const starter = STARTERS.find((id) => !state.buildings[id]);
+  if (starter) return { type: 'place', crewId, station: starter, cell: BALANCE.grid.slots[starter] };
+  return strategy(state, win, rng);
 };
+
+export const strategies: Record<string, Strategy> = Object.fromEntries(
+  Object.entries({
+    random,
+    greedy,
+    balanced: planner({ shelter: 'smart', antenna: true }),
+    pusula,
+    'never-shelter': planner({ shelter: 'never', antenna: true }),
+    'always-shelter': planner({ shelter: 'always', antenna: true }),
+    'no-antenna': planner({ shelter: 'smart', antenna: false }),
+  }).map(([name, strategy]) => [name, withSetup(strategy)]),
+);

@@ -115,7 +115,7 @@ function hills(): THREE.Group {
   return g;
 }
 
-/** Sleep capsules and the ship: scenery behind the build grid, never clickable. */
+/** Sleep capsules behind the grid and the landing rocket on its grid cell: never clickable. */
 function passive(): THREE.Group {
   const g = new THREE.Group();
   const WHITE = 0xf2ece4;
@@ -144,7 +144,8 @@ function passive(): THREE.Group {
     fin.position.set(Math.cos(a) * 1.9, 1.2, Math.sin(a) * 1.9);
     fin.rotation.y = -a + Math.PI / 2;
   }
-  ship.position.set(-8, 0, back - 3);
+  const [lx, lz] = cellToWorld(BALANCE.grid.lander);
+  ship.position.set(lx, 0, lz);
   g.add(ship);
   return g;
 }

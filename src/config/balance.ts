@@ -67,6 +67,8 @@ export const BALANCE = {
    */
   build: {
     placeHours: 1,
+    /** Moving a ready station (B3): work hours, no parts, no power. */
+    relocateHours: 1,
     stations: {
       moxie: { sols: 1, parts: 3, power: 1, needs: null, minSol: 1 },
       greenhouse: { sols: 3, parts: 4, power: 1, needs: 'moxie', minSol: 1 },
@@ -77,28 +79,34 @@ export const BALANCE = {
   },
   /** Parts from the ship. The start stock covers every build (exploring is a bonus, B3). */
   parts: { start: 18 },
-  /** Build grid (sim rule). Fixed stations and craters block cells; `minGap` is in cells. */
+  /**
+   * Build grid (sim rule). Fixed stations, the lander and craters block cells; `minGap` is in
+   * cells. B3: 18 x 18; the habitat and the panels are placed by the player on sol 1 (free).
+   */
   grid: {
-    cols: 12,
-    rows: 12,
+    cols: 18,
+    rows: 18,
     minGap: 2,
     fixed: {
-      habitat: { x: 6, y: 6 },
-      panels: { x: 3, y: 6 },
-      curiosity: { x: 11, y: 1 },
-      science: { x: 1, y: 11 },
+      curiosity: { x: 16, y: 2 },
+      science: { x: 2, y: 16 },
     },
+    /** The landing rocket: scenery that blocks its cell. */
+    lander: { x: 13, y: 11 },
     craters: [
-      { x: 9, y: 9, r: 1 },
-      { x: 2, y: 2, r: 1 },
+      { x: 13, y: 15, r: 1 },
+      { x: 4, y: 4, r: 1 },
+      { x: 15, y: 6, r: 1 },
     ],
     /** Suggested spots; the bot always uses these. */
     slots: {
-      moxie: { x: 8, y: 6 },
-      greenhouse: { x: 6, y: 8 },
-      shelter: { x: 6, y: 3 },
-      antenna: { x: 9, y: 4 },
-      beacon: { x: 3, y: 9 },
+      habitat: { x: 9, y: 9 },
+      panels: { x: 6, y: 9 },
+      moxie: { x: 11, y: 9 },
+      greenhouse: { x: 9, y: 11 },
+      shelter: { x: 9, y: 6 },
+      antenna: { x: 12, y: 6 },
+      beacon: { x: 6, y: 12 },
     },
   },
   walk: { near: 0.5, far: 1, farStations: ['curiosity', 'science'] },

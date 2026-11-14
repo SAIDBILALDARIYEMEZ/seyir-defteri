@@ -4,9 +4,9 @@
 
 import * as THREE from 'three';
 import { BALANCE } from '../config/balance.ts';
-import type { BuildableId, Cell, StationId } from '../sim/actions.ts';
+import type { Cell, PlacedId, StationId } from '../sim/actions.ts';
 import type { GameState } from '../sim/state.ts';
-import { buildStatus, isBuildable } from '../sim/systems/build.ts';
+import { isPlaceable } from '../sim/systems/build.ts';
 import { buildScaffold, createGhost, FADE_BUILDING, makeFader } from './construction.ts';
 import { createAstronaut } from './entities/astronaut.ts';
 import { PUSULA_HEAD_HEIGHT, createPusula } from './entities/pusula.ts';
@@ -18,6 +18,8 @@ import type { StormMode } from './fx/storm.ts';
 import { GRID_HALF, cellToWorld, stationCell } from './grid.ts';
 import { CAMERA, FOOTPRINT, LABEL_HEIGHT, PUSULA_SIDE, STAND_OFFSET, STATION_IDS, WALK_SPEED } from './layout.ts';
 import { createLighting } from './lighting.ts';
+import { findPath } from './path.ts';
+import type { Blocker, Point } from './path.ts';
 
 export type PickId = StationId | 'pusula';
 
@@ -51,7 +53,7 @@ export interface World {
   /** PUSULA rolls to this station; `danger` turns its light red. */
   setGuide(station: StationId, danger: boolean, snap?: boolean): void;
   /** Placement ghost: null hides it. */
-  setGhost(id: BuildableId | null, cell: Cell | null, valid: boolean): void;
+  setGhost(id: PlacedId | null, cell: Cell | null, valid: boolean): void;
 }
 
 const DUSTY_PANEL = new THREE.Color(0x9a6a4a);
@@ -95,43 +97,48 @@ export function createWorld(canvas: HTMLCanvasElement): World {
     const scaffold = buildScaffold();
     scaffold.visible = false;
     parts.group.add(scaffold);
-    views[id] = { ...parts, fade: makeFader(parts.group), scaffold, usable: !isBuildable(id) };
+    views[id] = { ...parts, fade: makeFader(parts.group), scaffold, usable: !isPlaceable(id) };
     scene.add(parts.group);
   }
   const posOf = (id: StationId): THREE.Vector3 => views[id].group.position;
   const standOf = (id: StationId): [number, number] => [posOf(id).x, posOf(id).z + STAND_OFFSET[id]];
 
-  // Fixed stations never move: place them now so Ada can stand at the habitat at once.
+  // Fixed stations never move; placed ones (starters included) appear once on the grid.
   for (const id of STATION_IDS) {
-    if (isBuildable(id)) views[id].group.visible = false;
+    if (isPlaceable(id)) views[id].group.visible = false;
     else {
       const [x, z] = cellToWorld(BALANCE.grid.fixed[id]);
       posOf(id).set(x, 0, z);
     }
   }
+  const [landerX, landerZ] = cellToWorld(BALANCE.grid.lander);
+  /** Before the habitat is set up, Ada waits in front of the rocket. */
+  const landerStand: [number, number] = [landerX - 2.5, landerZ + 3];
+  const LANDER_R = 2.6;
+  const blockers = (): Blocker[] => [
+    { x: landerX, z: landerZ, r: LANDER_R },
+    ...STATION_IDS.filter((id) => views[id].group.visible).map((id) => ({ x: posOf(id).x, z: posOf(id).z, r: FOOTPRINT[id] })),
+  ];
 
   /** Simple collision: keep the walk target inside the valley and outside every building. */
   const freeSpot = (x: number, z: number): [number, number] => {
     let px = THREE.MathUtils.clamp(x, -WALK_LIMIT, WALK_LIMIT);
     let pz = THREE.MathUtils.clamp(z, -WALK_LIMIT, WALK_LIMIT);
-    for (const id of STATION_IDS) {
-      if (!views[id].group.visible) continue;
-      const p = posOf(id);
-      const dx = px - p.x;
-      const dz = pz - p.z;
+    for (const b of blockers()) {
+      const dx = px - b.x;
+      const dz = pz - b.z;
       const d = Math.hypot(dx, dz);
-      const r = FOOTPRINT[id];
-      if (d >= r) continue;
-      const k = d < 1e-3 ? 0 : r / d;
-      px = d < 1e-3 ? p.x : p.x + dx * k;
-      pz = d < 1e-3 ? p.z + r : p.z + dz * k;
+      if (d >= b.r) continue;
+      const k = d < 1e-3 ? 0 : b.r / d;
+      px = d < 1e-3 ? b.x : b.x + dx * k;
+      pz = d < 1e-3 ? b.z + b.r : b.z + dz * k;
     }
     return [px, pz];
   };
 
   const ada = createAstronaut();
   shadows(ada.group);
-  ada.place(...standOf('habitat'));
+  ada.place(...landerStand);
   scene.add(ada.group);
   const pusula = createPusula();
   shadows(pusula.group);
@@ -173,10 +180,20 @@ export function createWorld(canvas: HTMLCanvasElement): World {
     ndc.set((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
     raycaster.setFromCamera(ndc, camera);
   };
+  /** Walks around buildings: one straight leg per waypoint (B3 path-finding). */
+  let walkId = 0;
   const walk = (x: number, z: number, onArrive: () => void): void => {
-    const [tx, tz] = freeSpot(x, z);
-    const d = Math.hypot(tx - ada.group.position.x, tz - ada.group.position.z);
-    ada.walkTo(tx, tz, d / WALK_SPEED, onArrive);
+    const target = freeSpot(x, z);
+    const from: Point = [ada.group.position.x, ada.group.position.z];
+    const legs = findPath(from, target, blockers(), WALK_LIMIT);
+    const id = ++walkId;
+    const next = (): void => {
+      const leg = legs.shift();
+      if (!leg || id !== walkId) return onArrive();
+      const d = Math.hypot(leg[0] - ada.group.position.x, leg[1] - ada.group.position.z);
+      ada.walkTo(leg[0], leg[1], d / WALK_SPEED, next);
+    };
+    next();
   };
 
   return {
@@ -211,7 +228,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
       walk(x, z, onArrive ?? (() => undefined));
     },
     placeAda(station) {
-      ada.place(...freeSpot(...standOf(station)));
+      ada.place(...freeSpot(...(views[station].group.visible ? standOf(station) : landerStand)));
     },
     screenOf(target) {
       if (target === 'ada') probe.copy(ada.group.position).setY(3.6);
@@ -237,9 +254,10 @@ export function createWorld(canvas: HTMLCanvasElement): World {
       storm.setMode(mode);
       for (const id of STATION_IDS) {
         const view = views[id];
-        if (!isBuildable(id)) continue;
+        if (!isPlaceable(id)) continue;
         const cell = stationCell(state, id);
-        const status = buildStatus(state, id);
+        const b = state.buildings[id];
+        const status = !b ? 'none' : b.solsLeft > 0 ? 'building' : 'ready';
         view.group.visible = cell !== null;
         if (cell) {
           const [x, z] = cellToWorld(cell);
@@ -258,7 +276,8 @@ export function createWorld(canvas: HTMLCanvasElement): World {
     },
     setGuide(station, danger, snap) {
       const at = views[station].group.visible ? station : 'habitat';
-      const [x, z] = freeSpot(standOf(at)[0] + PUSULA_SIDE, standOf(at)[1] + 1);
+      const stand = views[at].group.visible ? standOf(at) : landerStand;
+      const [x, z] = freeSpot(stand[0] + PUSULA_SIDE, stand[1] + 1);
       pusula.goTo(x, z, snap);
       pusula.setDanger(danger);
     },

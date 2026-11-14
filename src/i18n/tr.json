@@ -108,7 +108,7 @@
   "watch.allDone": "İyi iş! Hazır olunca yaşam modülüne gidip günü bitir.",
   "tutorial.welcome.title": "Hoş geldin Komutan!",
   "tutorial.welcome1": "Ben PUSULA, yardımcı robotun. Üssü birlikte 30 sol ayakta tutacağız. Sol, Mars'ta bir gün demek.",
-  "tutorial.welcome2": "Sadece yaşam modülü ve güneş panelleri hazır. Gerisini sağdaki depodan kur: bir kartı zemine sürükle. Yürümek için zemine, kullanmak için bir istasyona dokun.",
+  "tutorial.welcome2": "Roketimizin yanına indik. Yaşam modülü ve güneş panelleri sağdaki depoda bekliyor: her birini güzel bir yere sürükle (ücretsiz). Gerisini de aynı yolla kur. Yürümek için zemine, kullanmak için bir istasyona dokun.",
   "tutorial.s1.clean": "İniş, güneş panellerini tozladı. Güneş panellerine dokun ve temizle: temiz panel daha çok güç üretir.",
   "tutorial.s1.end": "Harika! Her iş gün ışığı saati harcar. Yaşam modülüne git ve günü bitir. Yapılar gece kurulur.",
   "tutorial.s2.moxie": "Oksijen makinesi hazır. Dokun ve oksijen üret: hava artar, güç azalır.",
@@ -333,5 +333,17 @@
   "build.cancel": "Vazgeç",
   "build.goodSpot": "Güzel yer: bırakınca kurulur",
   "build.label": "🏗️ {n} sol",
-  "build.tapSpot": "Güzel yer: kurmak için dokun"
+  "build.tapSpot": "Güzel yer: kurmak için dokun",
+  "reason.needSetup": "Önce depodan yaşam modülünü ve güneş panellerini kur.",
+  "reason.alreadyPlaced": "Bu zaten kuruldu.",
+  "action.place": "Kur",
+  "action.relocate": "Taşı",
+  "task.setup": "Yaşam modülünü ve güneş panellerini kur: depodan sürükleyip yere bırak.",
+  "tutorial.s1.habitat": "İndik! Yaşam modülümüz roketin yanında bekliyor. Depodan sürükleyip güzel bir yere bırak.",
+  "tutorial.s1.panels": "Şimdi güneş panelleri: onları yaşam modülünün yakınına koy. Kurmak ücretsiz ve hızlı.",
+  "build.waiting": "Kurulmayı bekliyor",
+  "build.free": "Ücretsiz",
+  "build.move": "{station} taşınıyor: yeni bir yere dokun.",
+  "build.moveSpot": "Güzel yer: taşımak için dokun",
+  "build.moveGood": "Güzel yer: taşımak için bırak"
 }

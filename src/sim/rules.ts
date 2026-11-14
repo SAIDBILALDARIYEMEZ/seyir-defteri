@@ -7,7 +7,7 @@ import { STATION_OF } from './actions.ts';
 import type { Action, ReasonCode, StationId } from './actions.ts';
 import { RESCUE_DONE } from './state.ts';
 import type { GameState, MorningSnapshot } from './state.ts';
-import { buildReason, isBuildable, notReadyReason } from './systems/build.ts';
+import { buildReason, isBuildable, notReadyReason, placeReason, relocateReason, setupDone } from './systems/build.ts';
 import { isEventNow } from './systems/time.ts';
 import { sepWarnedToday } from './systems/warnings.ts';
 import type { WindowData } from './window.ts';
@@ -36,9 +36,13 @@ export function costOf(state: GameState, action: Action): Cost {
   if (action.type === 'endSol' || action.type === 'replayYesterday') {
     return { station: 'habitat', walk: 0, hours: 0, power: 0 };
   }
-  if (action.type === 'bonus') return { station: locationOf(state, action.crewId), walk: 0, hours: 0, power: 0 };
+  if (action.type === 'bonus' || action.type === 'place') {
+    return { station: locationOf(state, action.crewId), walk: 0, hours: 0, power: 0 };
+  }
   const station =
-    action.type === 'repair' || action.type === 'build' ? action.station : STATION_OF[action.type];
+    action.type === 'repair' || action.type === 'build' || action.type === 'relocate'
+      ? action.station
+      : STATION_OF[action.type];
   const walk = walkHours(locationOf(state, action.crewId), station);
   switch (action.type) {
     case 'build':
@@ -48,6 +52,8 @@ export function costOf(state: GameState, action: Action): Cost {
         hours: BALANCE.build.placeHours,
         power: BALANCE.build.stations[action.station].power,
       };
+    case 'relocate':
+      return { station, walk, hours: BALANCE.build.relocateHours, power: 0 };
     case 'shelterWait':
       return { station, walk, hours: Math.max(a.shelterWait.stepHours, action.hours), power: 0 };
     case 'moxie':
@@ -100,6 +106,10 @@ function specific(state: GameState, action: Action, win: WindowData): ReasonCode
       return isEventNow(state, win) || sepWarnedToday(state, win) ? null : 'noStormNow';
     case 'build':
       return buildReason(state, action.station, action.cell);
+    case 'place':
+      return placeReason(state, action.station, action.cell);
+    case 'relocate':
+      return relocateReason(state, action.station, action.cell);
     case 'message':
       if (state.rescueStage < 1) return 'needAntenna';
       return state.messagePending ? 'messagePending' : null;
@@ -126,14 +136,18 @@ export function check(state: GameState, action: Action, win: WindowData): Reason
     return replayTarget(state) ? null : 'nothingToReplay';
   }
   if (state.phase !== 'playing') return 'gameOver';
-  if (action.type === 'endSol' || action.type === 'bonus') return null;
-  if (action.type !== 'build' && state.sol < BALANCE.unlockSol[action.type]) return 'locked';
+  if (action.type === 'bonus') return null;
+  if (action.type === 'place') return specific(state, action, win);
+  if (!setupDone(state)) return 'needSetup';
+  if (action.type === 'endSol') return null;
+  const placing = action.type === 'build' || action.type === 'relocate';
+  if (!placing && state.sol < BALANCE.unlockSol[action.type]) return 'locked';
   const cost = costOf(state, action);
-  if (action.type !== 'build') {
+  if (!placing) {
     const notReady = notReadyReason(state, cost.station);
     if (notReady) return notReady;
   }
-  if (action.type !== 'repair' && action.type !== 'build' && state.broken.includes(cost.station)) {
+  if (action.type !== 'repair' && !placing && state.broken.includes(cost.station)) {
     return 'broken';
   }
   const reason = specific(state, action, win);
