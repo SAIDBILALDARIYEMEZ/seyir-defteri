@@ -536,3 +536,67 @@ made where the request left room:
 (Legend 29.0 / 69.5 / 86.5%), pusula 86.0 / 90.5 / 89.5%, never-shelter w1 0%, random 0%.
 Before F5b: balanced 81.5 / 78 / 87%, pusula 88.5 / 92 / 93%. All targets met
 (balanced >= 70%, pusula >= 80%, never-shelter w1 <= 30%, random <= 20%).
+
+## D-020 — 2026-11-15 — F5c: opening and closing cutscenes, menu backdrop, store card layout
+Human request (F5c). Everything runs in the game engine with the existing CC0 models, three.js,
+particles, light and Web Audio: no image, video or audio files, no AI-generated media. The sim is
+untouched (bot report identical to F5b).
+
+**Architecture.** `scene/cutscenes/` holds the 3D side: a cutscene owns a camera (and may bring its
+own scene, the space shot), sets the sky / storm / sun while it runs and reports named *beats*; it
+never touches GameState or the DOM. `game/cinema.ts` maps beats to the overlay (`ui/cinema.ts`:
+letterbox bars, subtitle, PUSULA bubble, red alarm glow, white flash, black fade, eyelids, canvas
+blur, Skip) and to sounds. `world.play(cutscene)` hands camera, sky and storm to it; `world.stage()`
+gives it Ada, PUSULA, the lander and the game camera. The World interface moved to
+`scene/worldApi.ts` (world.ts stays under 300 lines). Session mode `'cine'` hides the HUD and
+blocks input; the cutscene CSS lives in `src/cinema.css` (styles.css hit 500 lines).
+
+**Opening (about 21.6 s, every new mission, Skip / Esc / Enter / Space at any time, "🎬 Watch the
+intro" in the main menu replays it over an empty valley):**
+- (a) Space: bars, stars, a low-poly Mars made in code comes closer, a tiny lander flies in.
+  Subtitle "{month year}. The Sun is waking up." — the month and year come from the played
+  window's `startDate` (May 2024 / September 2017 / March 2023), formatted per language.
+- (b) Storm: dust sky + storm particles, the rocket comes down tail-first with its flame on and
+  tilts more and more, rising camera shake, pulsing red edge glow, PUSULA's warning bubble, alarm,
+  storm wind + rumble.
+- (c) Crash: it lands on its side at the lander's spot, dust burst, six panel pieces fly out and
+  bounce, impact boom, white flash, black. Under the black the cutscene rocket is swapped for the
+  real (upright) lander scenery.
+- (d) Wake-up: eyelids blink open while the blur clears; Ada lies a few steps from the rocket
+  (choice: not at the rocket's stand, where the eye-level camera was inside the model), gets up,
+  walks to her start spot; PUSULA flies in: "Are you OK? Rescue is 30 sols away." The camera blends
+  (position, rotation, fov) into the orbit camera, the bars slide away, then the welcome card and
+  Sol 1 setup.
+
+**Closings (played after the last night card, before the result screen):**
+- Success (14.6 s): dawn light, the rescue ship lands outside the village (choice: outside the tour
+  circle, it got in the camera's way), the camera circles the village the player built, Ada waves
+  (the model's `Wave` clip; the primitive Ada raises an arm), "30 sols. Real storms. Your choices.",
+  push-in on Ada and PUSULA, fade.
+- Early evacuation (12 s): night, warm lights over the base go out one by one, the capsule lifts
+  off from the lander's spot, calm melody, "Every commander learns this way.", fade. No people are
+  shown in danger (kid-safe).
+- Debug skips that end a mission also play the closing (handy for testing).
+
+**Reduce motion** (Settings, `seyir-defteri.motion`; default = the system's
+prefers-reduced-motion): no camera shake, the white flash becomes a fade, the alarm glow stays
+steady, the eyelids open without the blink, and the menu backdrop stops turning.
+
+**Main menu backdrop:** the newest saved village (2+ buildings), else a sample village on the
+suggested slots (`game/backdrop.ts`, scene-only), turning slowly. On wide screens (> 900 px) the
+menu card sits on the left and the camera's view is shifted right (`setViewOffset`, the orbit is
+unchanged) so the village is not hidden behind the card.
+
+**Store cards:** four full-width, left-aligned rows: name + icon, costs (🔩 · ⏱ · ⚡ · sol) on one
+line, status text ("It is too early for this.", "Build the shelter first.", "Being built: N sol
+left"), "🎓 Teaches: …". Locked cards: grey icons, lighter background, text kept readable (no 55%
+fade). Checked in EN and TR at 1024 x 768.
+
+**Performance / first frame:** the cutscene builds its props on the spot (one lander clone, ~2,700
+points, a 5-subdivision icosahedron); if the models are not loaded yet the primitive rocket, Ada and
+PUSULA play it. No new dependency.
+
+**Not done / limits:** no real per-frame lip-sync or voice; the crashed rocket is upright again in
+the game (the flash hides the swap; tilting the scenery lander would change picking and the walk
+blockers). Bot report after F5c: unchanged from F5b (balanced 81.0 / 78.0 / 87.0%, pusula 86.0 /
+90.5 / 89.5%).

@@ -80,6 +80,9 @@ export function infoSpec(close: () => void): ModalSpec {
 export interface SettingsCard {
   sound: boolean;
   onSound(): void;
+  /** F5c: no shake, flash or menu spin. */
+  motion: boolean;
+  onMotion(): void;
   onReset(): void;
   close(): void;
 }
@@ -92,6 +95,7 @@ export function settingsSpec(card: SettingsCard): ModalSpec {
     buttons: [
       { node: languagePicker },
       { label: `${card.sound ? '🔊' : '🔇'} ${t(card.sound ? 'pause.soundOn' : 'pause.soundOff')}`, onClick: card.onSound },
+      { label: `${card.motion ? '🐢' : '🎢'} ${t(card.motion ? 'settings.motionReduced' : 'settings.motionFull')}`, onClick: card.onMotion },
       { label: t('menu.back'), onClick: card.close, primary: true },
       { label: `♻️ ${t('pause.reset')}`, onClick: card.onReset, danger: true },
     ],

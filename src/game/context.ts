@@ -10,6 +10,7 @@ import type { GameState } from '../sim/state.ts';
 import type { WindowData } from '../sim/window.ts';
 import type { World } from '../scene/world.ts';
 import type { ActionMenu, ModalSpec } from '../ui/overlays.ts';
+import type { Cinema } from './cinema.ts';
 
 export interface Mission {
   seed: number;
@@ -36,7 +37,8 @@ export interface Session {
   state: GameState;
   /** While the night card is open the HUD keeps the end-of-day values (D-011). */
   frozen: GameState | null;
-  mode: 'menu' | 'play';
+  /** 'cine': a cutscene runs (F5c); the HUD and input are off. */
+  mode: 'menu' | 'play' | 'cine';
   walking: boolean;
   /** Ada waits inside the shelter (F5b): only "Go outside" and the pause menu work. */
   sheltered: boolean;
@@ -52,6 +54,7 @@ export interface Ctx {
   missions: Missions;
   menu: ActionMenu;
   placement: Placement;
+  cinema: Cinema;
   render(snapGuide?: boolean): void;
   modal(build: () => ModalSpec): () => void;
   perform(action: Action, quiet?: boolean): void;

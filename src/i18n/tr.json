@@ -575,5 +575,14 @@
   "hud.sheltered": "Sığınakta: korunuyorsun",
   "menu.store": "depo {n}/{max}",
   "reason.foodFullStore": "Yemek deposu dolu ({n}/{max}). Ekip biraz yedikten sonra yine hasat et.",
-  "night.coldAhead": "Bu gece ısıtıcılara {power}⚡ lazım ama sende yalnızca {have}⚡ olacak; üs soğur ve {cold}💨 daha fazla hava kaybeder."
+  "night.coldAhead": "Bu gece ısıtıcılara {power}⚡ lazım ama sende yalnızca {have}⚡ olacak; üs soğur ve {cold}💨 daha fazla hava kaybeder.",
+  "settings.motionReduced": "Hareketi azalt: açık",
+  "settings.motionFull": "Hareketi azalt: kapalı",
+  "cine.skip": "Atla ⏭",
+  "cine.date": "{date}. Güneş uyanıyor.",
+  "cine.warn": "Önümüzde toz fırtınası! Sıkı tutun!",
+  "cine.wake": "İyi misin? Kurtarma 30 sol uzakta.",
+  "cine.win": "30 sol. Gerçek fırtınalar. Senin kararların.",
+  "cine.lose": "Her komutan böyle öğrenir.",
+  "menu.intro": "Açılışı izle"
 }

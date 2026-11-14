@@ -193,3 +193,11 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
   before clicking a menu item, or the click becomes a new walk.
 - Saves are a list (`seyir-defteri.saves`, one per seed + window); a mid-day reload resumes
   mid-day. To test from a clean device clear that key and `seyir-defteri.played`.
+- Cutscenes (F5c) live in `scene/cutscenes/` and report beats; `game/cinema.ts` turns beats into
+  overlay + sound. To test closings fast: `?debug`, place the habitat and panels, "Skip 5 sols";
+  w1 usually ends in evacuation (dose), `&w=w2` usually wins. The pane throttles rAF, so
+  screenshot timings drift: sample every ~1 s instead of aiming at one moment.
+- Five dev servers per folder is the pane's limit; when `preview_start` refuses, an already
+  running Vite server of this folder (check `lsof` cwd) serves the live files.
+- `styles.css` is at the 500-line limit: new UI styles go into their own CSS file, `@import`ed at
+  the top of styles.css (like `cinema.css`).

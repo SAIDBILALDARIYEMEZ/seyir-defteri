@@ -22,6 +22,8 @@ export interface Astronaut {
   face(x: number, z: number): void;
   /** Swaps the primitive body for the loaded model; false if the model is missing. */
   useModel(): boolean;
+  /** Waves while standing (F5c success cutscene). */
+  wave(on: boolean): void;
   update(dt: number): void;
 }
 
@@ -36,6 +38,7 @@ const BLEND_S = 0.2;
 interface Body {
   root: THREE.Object3D;
   setWalking(on: boolean): void;
+  setWaving(on: boolean): void;
   update(dt: number, phase: number): void;
 }
 
@@ -67,13 +70,19 @@ function primitiveBody(): Body {
   const arms = [limb(-0.52, 1.3, 0.55), limb(0.52, 1.3, 0.55)];
   root.scale.setScalar(SCALE);
   let walking = false;
+  let waving = false;
+  let clock = 0;
   return {
     root,
     setWalking: (on) => (walking = on),
-    update(_dt, phase) {
+    setWaving: (on) => (waving = on),
+    update(dt, phase) {
+      clock += dt;
       const swing = walking ? Math.sin(phase) * 0.6 : 0;
       legs.forEach((leg, i) => (leg.rotation.x = i === 0 ? swing : -swing));
       arms.forEach((arm, i) => (arm.rotation.x = i === 0 ? -swing * 0.8 : swing * 0.8));
+      const right = arms[1];
+      if (right) right.rotation.z = waving && !walking ? 2.6 + Math.sin(clock * 8) * 0.35 : 0;
       // Low gravity: a light bounce with every step.
       body.position.y = walking ? Math.abs(Math.sin(phase)) * 0.1 : 0;
     },
@@ -97,16 +106,29 @@ function modelBody(): Body | null {
   };
   const idle = clip('Idle');
   const run = clip('Run') ?? clip('Walk');
+  const wave = clip('Wave');
   idle?.play();
+  let current = idle;
   let walking = false;
+  let waving = false;
+  const blendTo = (next: THREE.AnimationAction | null): void => {
+    if (!next || next === current) return;
+    next.reset().play();
+    if (current) current.crossFadeTo(next, BLEND_S, false);
+    current = next;
+  };
+  const pick = (): void => blendTo(walking ? run : waving ? (wave ?? idle) : idle);
   return {
     root: model,
     setWalking(on) {
       if (on === walking) return;
       walking = on;
-      const [from, to] = on ? [idle, run] : [run, idle];
-      to?.reset().play();
-      if (from && to) from.crossFadeTo(to, BLEND_S, false);
+      pick();
+    },
+    setWaving(on) {
+      if (on === waving) return;
+      waving = on;
+      pick();
     },
     update(dt) {
       mixer.update(dt);
@@ -164,6 +186,7 @@ export function createAstronaut(): Astronaut {
       group.add(body.root);
       return true;
     },
+    wave: (on) => body.setWaving(on),
     update(dt) {
       const walking = arrive !== null;
       body.setWalking(walking);

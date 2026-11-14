@@ -4,6 +4,7 @@
 
 import { setSoundEnabled, soundEnabled } from '../audio/sound.ts';
 import { t } from '../i18n/i18n.ts';
+import { reduceMotion, setReduceMotion } from '../lib/motion.ts';
 import { deleteSave, listSaves } from '../save/save.ts';
 import { infoSpec, savesSpec, settingsSpec } from '../ui/menuCards.ts';
 import type { Ctx } from './context.ts';
@@ -48,6 +49,8 @@ export function createMenuCards(ctx: Ctx, { continueMission, confirmReset }: Men
       settingsSpec({
         sound: soundEnabled(),
         onSound: () => { setSoundEnabled(!soundEnabled()); close(); showSettings(); },
+        motion: reduceMotion(),
+        onMotion: () => { setReduceMotion(!reduceMotion()); close(); showSettings(); },
         onReset: confirmReset,
         close: () => close(),
       }),

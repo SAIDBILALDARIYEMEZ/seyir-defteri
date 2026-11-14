@@ -575,5 +575,14 @@
   "hud.sheltered": "In the shelter: shielded",
   "menu.store": "store {n}/{max}",
   "reason.foodFullStore": "The food store is full ({n}/{max}). Harvest again after the crew has eaten some.",
-  "night.coldAhead": "Tonight the heaters need {power}⚡ but you will have only {have}⚡, so the base gets cold and loses {cold}💨 more."
+  "night.coldAhead": "Tonight the heaters need {power}⚡ but you will have only {have}⚡, so the base gets cold and loses {cold}💨 more.",
+  "settings.motionReduced": "Reduce motion: on",
+  "settings.motionFull": "Reduce motion: off",
+  "cine.skip": "Skip ⏭",
+  "cine.date": "{date}. The Sun is waking up.",
+  "cine.warn": "Dust storm ahead! Hold on tight!",
+  "cine.wake": "Are you OK? Rescue is 30 sols away.",
+  "cine.win": "30 sols. Real storms. Your choices.",
+  "cine.lose": "Every commander learns this way.",
+  "menu.intro": "Watch the intro"
 }

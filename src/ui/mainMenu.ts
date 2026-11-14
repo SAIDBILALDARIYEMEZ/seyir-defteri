@@ -24,6 +24,8 @@ export interface MenuHandlers {
   saveCount(): number;
   /** Starts the mission of a code; false when the code is not valid. */
   onCode(code: string): boolean;
+  /** Plays the opening cutscene again (F5c). */
+  onIntro(): void;
 }
 
 export function mountMainMenu(parent: HTMLElement, on: MenuHandlers): MainMenu {
@@ -38,7 +40,8 @@ export function mountMainMenu(parent: HTMLElement, on: MenuHandlers): MainMenu {
   const saves = button('btn', '', on.onSaves);
   const info = button('btn', '', on.onInfo);
   const settings = button('btn', '', on.onSettings);
-  list.append(resume, start, saves, info, settings);
+  const intro = button('btn', '', on.onIntro);
+  list.append(resume, start, saves, intro, info, settings);
   const codeRow = el('form', 'code-row');
   const input = el('input', 'code-input');
   input.maxLength = CODE_LENGTH;
@@ -82,6 +85,7 @@ export function mountMainMenu(parent: HTMLElement, on: MenuHandlers): MainMenu {
       saves.disabled = count === 0;
       info.textContent = `📚 ${t('menu.info')}`;
       settings.textContent = `⚙️ ${t('menu.settings')}`;
+      intro.textContent = `🎬 ${t('menu.intro')}`;
       toggle.textContent = `🔑 ${t('menu.enterCode')}`;
       input.placeholder = t('code.placeholder');
       input.setAttribute('aria-label', t('menu.enterCode'));

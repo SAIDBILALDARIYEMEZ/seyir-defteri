@@ -170,7 +170,7 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
 
   function morning(before: GameState): void {
     world.setNight(false);
-    if (s.state.phase !== 'playing') return showResult();
+    if (s.state.phase !== 'playing') return finish();
     saveGame(s.state);
     world.placeAda('habitat');
     ctx.render(true);
@@ -183,6 +183,23 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
       const close = ctx.modal(() => build(() => { close(); next(); }));
     };
     next();
+  }
+
+  /** F5c: the closing cutscene (success or early evacuation), then the result screen. */
+  function finish(): void {
+    s.mode = 'cine';
+    ctx.cinema.play(s.state.phase === 'won' ? 'win' : 'lose', s.state, s.win, () => {
+      s.mode = 'play';
+      showResult();
+    });
+    ctx.render();
+  }
+
+  /** Main menu "Watch the intro": plays it over an empty valley, then back to the menu. */
+  function watchIntro(): void {
+    s.mode = 'cine';
+    ctx.cinema.play('intro', createInitialState(s.seed, s.win), s.win, showMenu);
+    ctx.render();
   }
 
   function showResult(): void {
@@ -222,6 +239,7 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     world.setNight(false);
     world.sync(s.state, 'none');
     world.placeAda(s.state.crew[CREW_ID]?.location ?? 'habitat');
+    world.view.reset();
     ctx.render(true);
   }
 
@@ -262,13 +280,18 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     s.state = createInitialState(s.seed, s.win);
     saveGame(s.state);
     learn.start(s.seed);
-    enterPlay();
-    const close = ctx.modal(() => ({
-      kind: 'event',
-      title: `🧭 ${t('tutorial.welcome.title')}`,
-      lines: [t('tutorial.welcome1'), t('tutorial.welcome2')],
-      buttons: [{ label: t('event.ok'), onClick: () => close(), primary: true }],
-    }));
+    // F5c: every new mission opens with the crash-landing cutscene (Skip at any time).
+    s.mode = 'cine';
+    ctx.cinema.play('intro', s.state, s.win, () => {
+      enterPlay();
+      const close = ctx.modal(() => ({
+        kind: 'event',
+        title: `🧭 ${t('tutorial.welcome.title')}`,
+        lines: [t('tutorial.welcome1'), t('tutorial.welcome2')],
+        buttons: [{ label: t('event.ok'), onClick: () => close(), primary: true }],
+      }));
+    });
+    ctx.render();
   }
 
   function showMenu(): void {
@@ -284,6 +307,8 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     showPusula,
     showNight,
     showResult,
+    finish,
+    watchIntro,
     continueMission,
     newMission,
     ...createMenuCards(ctx, { continueMission, confirmReset }),

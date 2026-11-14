@@ -4,11 +4,9 @@
 
 import * as THREE from 'three';
 import { BALANCE } from '../config/balance.ts';
-import type { Cell, PlacedId, StationId, Turn } from '../sim/actions.ts';
-import type { GameState } from '../sim/state.ts';
+import type { StationId } from '../sim/actions.ts';
 import { isPlaceable } from '../sim/systems/build.ts';
 import { createOrbitCamera } from './camera.ts';
-import type { OrbitCamera } from './camera.ts';
 import { createPicker } from './picking.ts';
 import { buildScaffold, createGhost, FADE_BUILDING, makeFader } from './construction.ts';
 import { ADA_MODEL, createAstronaut } from './entities/astronaut.ts';
@@ -29,49 +27,9 @@ import { createLighting } from './lighting.ts';
 import { findPath, pushOut } from './path.ts';
 import type { Blocker, Point } from './path.ts';
 
-export type PickId = StationId | 'pusula' | 'lander';
-
-export interface ScreenPoint {
-  x: number;
-  y: number;
-  visible: boolean;
-  depth?: number; // projected depth: smaller = closer to the camera
-}
-
-export interface World {
-  /** Renders one frame. dt in seconds (0 while paused). */
-  update(dt: number): void;
-  /** Visible station, PUSULA or the rocket under a screen point, or null. */
-  pick(clientX: number, clientY: number): PickId | null;
-  /** Built and ready (not under construction): Ada can work there. */
-  isUsable(id: StationId): boolean;
-  /** Ground point under a screen point, or null (sky). */
-  pickGround(clientX: number, clientY: number): { x: number; z: number } | null;
-  /** Ada walks to the front of a station. */
-  walkTo(station: StationId, onArrive: () => void): void;
-  /** Ada walks to the front of a grid cell (building site). */
-  walkToCell(cell: Cell, onArrive: () => void): void;
-  /** Free walk on the ground (click-to-walk); stops outside buildings. */
-  walkToPoint(x: number, z: number, onArrive?: () => void): void;
-  placeAda(station: StationId): void;
-  /** Hides Ada inside a building (shelter, F5b) or shows her again. */
-  setAdaVisible(visible: boolean): void;
-  /** Screen position of a station label, or of Ada's / PUSULA's head. */
-  screenOf(target: StationId | 'ada' | 'pusula'): ScreenPoint;
-  /** Camera (B4): drag = turn around + tilt, twist / pinch for two fingers, buttons, compass. */
-  view: OrbitCamera;
-  /** Syncs visuals that depend on the game state (positions, build status, gauges). */
-  sync(state: GameState, storm: StormMode): void;
-  setNight(night: boolean): void;
-  /** PUSULA rolls to this station; `danger` turns its light red. */
-  setGuide(station: StationId, danger: boolean, snap?: boolean): void;
-  /** 3D arrow + ground ring over a station (F5a); null hides it. */
-  setMarker(station: StationId | null): void;
-  /** Placement ghost: null hides it. */
-  setGhost(id: PlacedId | null, cell: Cell | null, valid: boolean, rot?: Turn): void;
-  /** Loads the low-poly models and swaps them in (F5a). Never rejects; missing ones stay primitive. */
-  useModels(onSwap: () => void): Promise<void>;
-}
+export type { PickId, ScreenPoint, World } from './worldApi.ts';
+import type { PickId, World } from './worldApi.ts';
+import type { Cutscene, Stage } from './cutscenes/cutscene.ts';
 
 const DUSTY_PANEL = new THREE.Color(0x9a6a4a);
 const CLEAN_PANEL = new THREE.Color(0x2f5fa8);
@@ -160,6 +118,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
   const storm = createStorm(scene);
   let stormMode: StormMode = 'none';
   let night = false;
+  let cut: Cutscene | null = null;
 
   const orbit = createOrbitCamera();
   const camera = orbit.camera;
@@ -202,9 +161,17 @@ export function createWorld(canvas: HTMLCanvasElement): World {
       pusula.update(dt);
       marker.update(dt);
       storm.update(dt, orbit.focus());
-      lighting.setMode(night ? 'night' : stormMode === 'none' ? 'day' : stormMode);
+      cut?.update(dt);
+      lighting.setMode(cut?.sky ?? (night ? 'night' : stormMode === 'none' ? 'day' : stormMode));
+      if (cut) storm.setMode(cut.storm);
+      if (cut && cut.day !== null) lighting.setDayFraction(cut.day);
       lighting.update(dt);
-      renderer.render(scene, camera);
+      const cam = cut?.camera ?? camera;
+      if (cam.aspect !== camera.aspect) {
+        cam.aspect = camera.aspect;
+        cam.updateProjectionMatrix();
+      }
+      renderer.render(cut?.scene ?? scene, cam);
     },
     pick(clientX, clientY) {
       const shown = STATION_IDS.filter((id) => views[id].group.visible).map((id) => views[id].group);
@@ -245,7 +212,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
     sync(state, mode) {
       stormMode = mode;
       lighting.setDayFraction(1 - state.hoursLeft / BALANCE.daylightHours);
-      storm.setMode(mode);
+      if (!cut) storm.setMode(mode);
       for (const id of STATION_IDS) {
         const view = views[id];
         if (!isPlaceable(id)) continue;
@@ -294,6 +261,20 @@ export function createWorld(canvas: HTMLCanvasElement): World {
       // The big rover decor comes last so it never delays the base.
       await loadModels([ROVER_DECOR_MODEL]);
       addRoverDecor(scene, ROVER_SPOT[0], ROVER_SPOT[1], ROVER_SPOT[2]);
+    },
+    stage: (): Stage => ({
+      scene,
+      ada,
+      pusula,
+      lander,
+      landerStand,
+      gameCamera: camera,
+      spots: () => STATION_IDS.filter((id) => views[id].group.visible).map((id) => ({ id, x: posOf(id).x, z: posOf(id).z })),
+      habitatStand: () => (views.habitat.group.visible ? standOf('habitat') : null),
+    }),
+    play(next) {
+      cut = next;
+      if (!next) storm.setMode(stormMode);
     },
   };
 }

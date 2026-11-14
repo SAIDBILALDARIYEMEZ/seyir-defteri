@@ -6,6 +6,9 @@
 
 import { setStormSound, sfx } from './audio/sound.ts';
 import { createFlow } from './game/flow.ts';
+import { backdropOf } from './game/backdrop.ts';
+import { createCinema } from './game/cinema.ts';
+import { reduceMotion } from './lib/motion.ts';
 import { bubbleOf, computeGuide, labelOf } from './game/guide.ts';
 import type { Guide } from './game/guide.ts';
 import { createLearn } from './game/learn.ts';
@@ -64,6 +67,10 @@ const DEPOT_GAP_PX = 10;
 const ALARM_DELAY_MS = 1600;
 /** Autosave waits a moment after an action, so quick taps write once. */
 const AUTOSAVE_MS = 600;
+/** Main-menu backdrop: the village turns slowly (radians per second, F5c). */
+const MENU_SPIN = 0.05;
+/** ...and sits right of the menu card on wide screens (share of the width). */
+const MENU_SHIFT = 0.22;
 
 /** `first` is the mission shown behind the main menu. */
 export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: World, first: Mission, missions: Missions): Game {
@@ -98,7 +105,8 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
       render();
     },
   });
-  const ctx: Ctx = { s, ui, world, missions, menu, placement, render, modal, perform, free, canWalk, save, enterShelter: () => shelter.enter() };
+  const cinema = createCinema(ui, canvas, world);
+  const ctx: Ctx = { s, ui, world, missions, menu, placement, cinema, render, modal, perform, free, canWalk, save, enterShelter: () => shelter.enter() };
   const shelter = createShelter(ctx);
   const guide = (): Guide =>
     computeGuide(s.state, s.win, { goStation: (id) => stations.selectStation(id), goBuild: (id) => placement.select(id) });
@@ -131,6 +139,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     savedSol: () => loadGame()?.sol ?? null,
     saveCount: () => listSaves().length,
     onCode: flow.codeMission,
+    onIntro: flow.watchIntro,
   });
 
   function modal(build: () => ModalSpec): () => void {
@@ -153,7 +162,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     cam.refresh();
     learn.render(playing);
     watch.root.hidden = depot.root.hidden = !playing || s.state.phase !== 'playing';
-    mainMenu.root.hidden = playing;
+    mainMenu.root.hidden = s.mode !== 'menu';
     mainMenu.refresh();
     document.title = t('app.title');
     hud.update(view, s.win, s.sheltered);
@@ -172,6 +181,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
       });
     }
     fitDepot();
+    if (s.mode === 'cine') return marks.set(null, false, t('watch.title'));
     const show = playing && s.modals === 0 && s.state.phase === 'playing';
     const menuHere = menu.isOpen() && s.openStation === g.station;
     const arrowAt = show && g.stepType && !g.card && !menuHere ? g.station : null;
@@ -179,7 +189,10 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     marks.set(show ? bubbleOf(g) : null, g.danger, t('watch.title'), g.text);
     world.setGuide(g.station, g.danger, snapGuide);
     const storm = isDustSol(view.schedule, view.sol) ? 'dust' : isEventNow(view, s.win) ? 'rad' : 'none';
-    world.sync(s.state, playing ? storm : 'none');
+    // F5c: behind the main menu, the newest saved village (or a sample one) turns slowly.
+    world.sync(s.mode === 'menu' ? backdropOf(s.seed, s.win) : s.state, playing ? storm : 'none');
+    if (s.mode === 'menu') world.placeAda('habitat');
+    world.view.setShift(s.mode === 'menu' && window.innerWidth > NARROW_PX ? MENU_SHIFT : 0);
     setStormSound(playing && storm === 'dust');
     if (s.openStation && menu.isOpen()) stations.showStationMenu(s.openStation);
   }
@@ -231,7 +244,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     if (s.state.sol === before.sol && s.state.phase === 'playing') autosave();
     if (quiet) {
       // Debug jumps skip the night card, but a finished mission still shows its result.
-      if (before.phase === 'playing' && s.state.phase !== 'playing') flow.showResult();
+      if (before.phase === 'playing' && s.state.phase !== 'playing') flow.finish();
       else if (s.state.sol !== before.sol) saveGame(s.state);
       return render();
     }
@@ -267,17 +280,20 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
 
   attachPointer(canvas, world, placement, {
     onPick: (id) => {
+      if (s.mode !== 'play') return;
       if (id === 'pusula') return flow.showPusula();
       // A station under construction, a locked one or the rocket: only the info card (F5a).
       if (id === 'lander' || !world.isUsable(id) || isStationLocked(s.state, id)) return info.show(id, s.state);
       stations.selectStation(id);
     },
     onGround: (x, z) => {
+      if (s.mode !== 'play') return;
       if (ctx.free()) info.hide();
       stations.walkGround(x, z);
     },
   });
   window.addEventListener('keydown', (e) => {
+    if (s.mode !== 'play') return;
     if ((e.key === 'r' || e.key === 'R') && !e.metaKey && !e.ctrlKey) return placement.turn();
     if (e.key !== 'Escape') return;
     if (placement.selected()) placement.cancel();
@@ -303,6 +319,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     refresh: () => render(),
     frame(dt) {
       world.update(s.closePause ? 0 : dt);
+      if (s.mode === 'menu' && !reduceMotion()) world.view.turnBy(dt * MENU_SPIN);
       if (s.mode !== 'play') return;
       labels.place((id) => world.screenOf(id));
       cam.frame();

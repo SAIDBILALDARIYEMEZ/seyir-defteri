@@ -25,6 +25,8 @@ export interface OrbitCamera {
   azimuth(): number;
   /** The current look-at point. */
   focus(): THREE.Vector3;
+  /** Moves the picture sideways by a share of the screen width (main-menu backdrop, F5c). */
+  setShift(fraction: number): void;
   update(dt: number): void;
 }
 
@@ -55,6 +57,14 @@ export function createOrbitCamera(): OrbitCamera {
     camera.position.set(tx + Math.sin(now.az) * flatR, ty + r * Math.sin(now.el), tz + Math.cos(now.az) * flatR);
     camera.lookAt(tx, ty, tz);
   };
+  let shift = 0;
+  /** Off-center projection: the scene moves right by `shift` of the width; the orbit is unchanged. */
+  const applyShift = (): void => {
+    if (shift === 0) return camera.clearViewOffset();
+    const h = 1000;
+    const w = h * camera.aspect;
+    camera.setViewOffset(w, h, -shift * w, 0, w, h);
+  };
   const snap = (): void => {
     clampGoal();
     Object.assign(now, { az: goal.az, el: goal.el, r: goal.r });
@@ -66,6 +76,7 @@ export function createOrbitCamera(): OrbitCamera {
     camera,
     setAspect(aspect) {
       camera.aspect = aspect;
+      applyShift();
       camera.updateProjectionMatrix();
       place();
     },
@@ -102,6 +113,12 @@ export function createOrbitCamera(): OrbitCamera {
     follow(x, z) {
       goal.fx = (x - CAMERA.target[0]) * CAMERA.follow;
       goal.fz = (z - CAMERA.target[2]) * CAMERA.follow;
+    },
+    setShift(fraction) {
+      if (fraction === shift) return;
+      shift = fraction;
+      applyShift();
+      camera.updateProjectionMatrix();
     },
     azimuth: () => now.az,
     focus: () => look.set(CAMERA.target[0] + now.fx, CAMERA.target[1], CAMERA.target[2] + now.fz),

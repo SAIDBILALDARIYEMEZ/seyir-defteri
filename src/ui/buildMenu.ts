@@ -38,10 +38,9 @@ export function mountBuildMenu(parent: HTMLElement, on: BuildMenuHandlers): Buil
     const name = el('span', 'depot-name');
     const cost = el('span', 'depot-cost');
     const status = el('span', 'depot-status');
-    const meta = el('span', 'depot-meta');
     const hazard = el('span', 'depot-hazard');
-    meta.append(cost, status);
-    card.append(name, meta, hazard);
+    // F5c: four rows (name, costs, status, teaches), each full width and left-aligned.
+    card.append(name, cost, status, hazard);
     card.addEventListener('pointerdown', (e) => {
       if (card.classList.contains('usable')) on.onPress(id, e);
     });
@@ -59,7 +58,7 @@ export function mountBuildMenu(parent: HTMLElement, on: BuildMenuHandlers): Buil
       title.textContent = `📦 ${t('build.title')} · 🔩 ${state.parts}`;
       const ready = setupDone(state);
       for (const { id, card, name, cost, status, hazard } of cards) {
-        hazard.textContent = `⚠️ ${hazardOf(id) ?? ''}`;
+        hazard.textContent = `🎓 ${hazardOf(id) ?? ''}`;
         hazard.hidden = hazardOf(id) === null;
         if (isStarter(id)) {
           const waiting = !state.buildings[id];

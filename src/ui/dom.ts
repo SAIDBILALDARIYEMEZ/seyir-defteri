@@ -34,3 +34,12 @@ export function formatDate(isoDate: string): string {
 
 /** One decimal at most: 8, 8.5. */
 export const fmt = (n: number): string => (Math.round(n * 10) / 10).toString();
+
+/** "May 2024" / "Mayıs 2024" from an ISO date (UTC): the intro's date line (F5c). */
+export function formatMonth(isoDate: string): string {
+  return new Intl.DateTimeFormat(getLang() === 'tr' ? 'tr-TR' : 'en-GB', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${isoDate.slice(0, 10)}T00:00:00Z`));
+}

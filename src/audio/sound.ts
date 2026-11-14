@@ -17,6 +17,12 @@ const SND = {
   build: { notes: [392, 523, 659, 784], step: 0.08, len: 0.14, gain: 0.14 },
   win: { notes: [523, 659, 784, 1047, 1319], step: 0.13, len: 0.4, gain: 0.2 },
   lose: { notes: [392, 330, 392, 523], step: 0.22, len: 0.45, gain: 0.16 },
+  // F5c cinematics: noise bursts (rumble, whoosh, impact) and soft tones.
+  rumble: { len: 4.5, gain: 0.3, cutoff: 160 },
+  whoosh: { len: 1.2, gain: 0.25, from: 300, to: 2400 },
+  impact: { len: 2.2, gain: 0.55, cutoff: 220 },
+  wake: { notes: [440, 554, 659], step: 0.35, len: 1.1, gain: 0.08 },
+  calm: { notes: [330, 392, 494, 392], step: 0.5, len: 1.2, gain: 0.08 },
 } as const;
 
 const STORAGE_KEY = 'seyir-defteri.sound';
@@ -124,6 +130,28 @@ function tone(freq: number, start: number, len: number, gain: number, type: Osci
   osc.stop(t0 + len + 0.05);
 }
 
+/** Filtered noise burst; `toCutoff` sweeps the filter (a whoosh). */
+function noise(len: number, gain: number, cutoff: number, toCutoff?: number, type: BiquadFilterType = 'lowpass'): void {
+  if (!ctx || !master || !enabled) return;
+  const t0 = ctx.currentTime;
+  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * len), ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const filter = ctx.createBiquadFilter();
+  filter.type = type;
+  filter.frequency.setValueAtTime(cutoff, t0);
+  if (toCutoff) filter.frequency.exponentialRampToValueAtTime(toCutoff, t0 + len * 0.8);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(gain, t0 + Math.min(0.4, len * 0.25));
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + len);
+  src.connect(filter).connect(g).connect(master);
+  src.start(t0);
+  src.stop(t0 + len + 0.05);
+}
+
 const melody = (m: { notes: readonly number[]; step: number; len: number; gain: number }, type: OscillatorType = 'sine'): void =>
   m.notes.forEach((f, i) => tone(f, i * m.step, m.len, m.gain, type));
 
@@ -143,4 +171,12 @@ export const sfx = {
   },
   win: (): void => melody(SND.win, 'triangle'),
   lose: (): void => melody(SND.lose),
+  rumble: (): void => noise(SND.rumble.len, SND.rumble.gain, SND.rumble.cutoff),
+  whoosh: (): void => noise(SND.whoosh.len, SND.whoosh.gain, SND.whoosh.from, SND.whoosh.to, 'bandpass'),
+  impact: (): void => {
+    noise(SND.impact.len, SND.impact.gain, SND.impact.cutoff);
+    tone(90, 0, 1.2, 0.3, 'sine', 40);
+  },
+  wake: (): void => melody(SND.wake),
+  calm: (): void => melody(SND.calm),
 };
