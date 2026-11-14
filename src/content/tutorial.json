@@ -1,0 +1,17 @@
+{
+  "1": [
+    { "action": "clean", "text": "tutorial.s1.clean" },
+    { "action": "moxie", "text": "tutorial.s1.moxie" },
+    { "action": "endSol", "text": "tutorial.s1.end" }
+  ],
+  "2": [
+    { "action": "moxie", "text": "tutorial.s2.moxie" },
+    { "action": "clean", "text": "tutorial.s2.clean" },
+    { "action": "endSol", "text": "tutorial.s2.end" }
+  ],
+  "3": [
+    { "action": "greenhouse", "text": "tutorial.s3.greenhouse" },
+    { "action": "clean", "text": "tutorial.s3.clean" },
+    { "action": "endSol", "text": "tutorial.s3.end" }
+  ]
+}

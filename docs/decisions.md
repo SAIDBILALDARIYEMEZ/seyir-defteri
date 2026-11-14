@@ -183,3 +183,34 @@ Build choices:
 **Known gaps (not built in F2):** opening scene, sound, real models, save / Continue, "end the
 day?" confirmation, Replay yesterday button, Info & Sources screen. While the night card is
 open the HUD already shows the next morning's numbers.
+
+## D-011 — 2026-11-14 — F3a choices (tutorial, missions, PUSULA, unlocks, event cards)
+Human decisions:
+- **Night card:** while the night summary is open the HUD keeps the end-of-day values (sol N,
+  0 h left, gauges before the night costs); it moves to the morning when the card closes. The
+  sim stores those values in the log line (`SolLog.dusk`).
+- **New Mission:** the first game on a device is always window 1 with the fixed seed; later
+  games use a random seed. `?seed=` / `?w=` still pin both.
+Build choices (please confirm or change):
+- **Later games also change the window**: window = seed mod 3. The request only fixed the
+  first game; one line in `src/main.ts` if later games should stay on window 1.
+- **Panels start dusty** (`BALANCE.panel.initial` = 0.7). The PRD tutorial starts with
+  "clean the panel", but with panels at 100% the sim refused it until sol 3. This is the only
+  balance value touched in F3a; bot effect is within 2 points for every strategy but pusula.
+- **Mission generator** = `src/content/missions.json` (rule order = priority) + named
+  conditions in `sim/systems/advisor.ts`; thresholds stay in `balance.ts`. Rules marked
+  `spare` (top up air, greenhouse care, message, beacon) are only offered when tonight's
+  heating stays paid, and the greenhouse is no longer suggested when the store is almost
+  full. The wrist watch, the PUSULA robot and the bot's `pusula` strategy read the same list.
+  Result: pusula wins 88.5 / 89.0 / 98.5% (was 53.5 / 60.5 / 66.0%), target >= 80% met.
+- **Gradual unlock:** locked stations are faded, not pickable, label shows a lock. Food gauge
+  appears on sol 3; storm dose and science on sol 4. One PUSULA sentence per unlock.
+- **Tutorial** (sols 1-3) is data in `src/content/tutorial.json`; a step that cannot be done
+  right now is skipped, so the arrow never points at a refused action.
+- **"Where does this number come from?"** opens on the night card of a storm sol, on the
+  next morning's storm report card and from the storm dose info card (curve so far). It is
+  not on the warning card itself, because the curve of that sol is not measured yet.
+- **Solar flares** (DONKI) are a line on the PUSULA card, not a modal: May 2024 has alerts on
+  most days and a card every morning would be noise.
+- Debug sol-skip now tops up power, air and food, so a jump reaches the storm sol.
+**Not built in F3a:** Replay yesterday button, result screen, save, sound, Sources screen.

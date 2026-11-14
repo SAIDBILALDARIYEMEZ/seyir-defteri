@@ -143,3 +143,56 @@ button:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .debug-panel pre { margin: 0; font: inherit; white-space: pre-wrap; }
 .debug-panel button, .debug-panel select, .debug-panel input { margin: 6px 4px 0 0; font: inherit; }
 .debug-panel input { width: 64px; }
+
+/* F3a: guidance, learning cards, gradual unlock */
+button.gauge { width: 100%; padding: 2px 0; background: none; border: 0; border-radius: 8px; text-align: left; cursor: pointer; }
+button.gauge:hover { background: rgba(255, 255, 255, 0.1); }
+button.chip.star { cursor: pointer; }
+.label.locked { opacity: 0.45; background: rgba(38, 17, 10, 0.4); cursor: default; }
+.label.locked:hover { background: rgba(38, 17, 10, 0.4); color: inherit; }
+
+.watch-title { padding: 0; background: none; border: 0; font-weight: 800; cursor: pointer; text-align: left; }
+.watch-tasks { display: flex; flex-direction: column; gap: 6px; padding: 0; }
+.watch-task {
+  padding: 8px 10px; min-height: 40px; text-align: left; font-size: 14px; font-weight: 700;
+  background: rgba(255, 255, 255, 0.14); border: 2px solid transparent; border-radius: 10px; cursor: pointer;
+}
+.watch-task:hover { border-color: var(--accent); }
+.watch-none { font-size: 14px; color: var(--ink-dim); }
+
+.guide-arrow, .guide-bubble { position: absolute; left: 0; top: 0; }
+.guide-arrow { pointer-events: none !important; font-size: 34px; color: var(--accent); text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); }
+.guide-arrow span { display: block; animation: arrow-bounce 0.7s ease-in-out infinite alternate; }
+@keyframes arrow-bounce { from { transform: translateY(-14px); } to { transform: translateY(0); } }
+.guide-bubble {
+  padding: 5px 10px; min-width: 40px; min-height: 36px; font-size: 18px; font-weight: 800; color: #2a140c;
+  background: #fff7ea; border: 2px solid #35b8ac; border-radius: 14px 14px 14px 2px; cursor: pointer;
+}
+.guide-bubble.danger { border-color: #ff3b2f; background: #ffe1dc; }
+.action.hint { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255, 179, 71, 0.35); }
+
+.card { max-height: 92vh; overflow-y: auto; }
+.card-date { display: inline-block; margin-bottom: 4px; padding: 3px 10px; font-size: 13px; font-weight: 700; background: rgba(255, 255, 255, 0.16); border-radius: 999px; }
+.card-fact { padding: 10px 12px; font-size: 14px; background: rgba(255, 179, 71, 0.16); border-left: 4px solid var(--accent); border-radius: 8px; }
+.card-source { font-size: 12px; color: var(--ink-dim); }
+.card.info .row { display: block; }
+.card.info .row span { display: block; font-size: 12px; font-weight: 700; color: var(--accent); }
+.card.info .row b { font-weight: 500; }
+.card.data .row { display: flex; }
+.card.data .row span { display: inline; font-size: 14px; color: var(--ink); font-weight: 400; }
+.card.data .row b { font-weight: 700; }
+
+.data-box { margin: 10px 0; display: flex; flex-direction: column; gap: 6px; }
+.chart-caption { font-size: 12px; color: var(--ink-dim); }
+.rad-chart { width: 100%; height: auto; background: rgba(0, 0, 0, 0.25); border-radius: 8px; }
+.rad-work { fill: rgba(255, 255, 255, 0.08); }
+.rad-bar { fill: #9fb4c8; }
+.rad-bar.storm { fill: #ffd166; }
+.rad-quiet { stroke: #7fe3d6; stroke-width: 1; stroke-dasharray: 4 3; }
+.rad-axis { fill: #f3cdb4; font-size: 10px; }
+.dose-bar { display: flex; flex-direction: column; gap: 2px; font-size: 13px; font-weight: 700; }
+.dose-track { height: 10px; background: rgba(255, 255, 255, 0.16); border-radius: 6px; overflow: hidden; }
+.dose-fill { display: block; height: 100%; border-radius: 6px; background: #c9a2ff; }
+.dose-bar.open .dose-fill { background: #ff8f6b; }
+@media (prefers-reduced-motion: reduce) { .guide-arrow span { animation: none; } }
+.card.info { background: #2f160d; }

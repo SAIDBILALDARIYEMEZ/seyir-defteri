@@ -12,6 +12,14 @@ export interface ModalSpec {
   /** Plain text lines, or [label, value] rows. */
   lines: (string | [string, string])[];
   buttons: { label: string; onClick: () => void; primary?: boolean }[];
+  /** Real-world date badge under the title. */
+  date?: string;
+  /** One-sentence real fact, shown in a highlighted box. */
+  fact?: string;
+  /** Source tag (where the fact or number comes from). */
+  source?: string;
+  /** Extra content such as a chart, placed after the lines. */
+  extra?: () => HTMLElement;
   /** Adds the language picker (pause / settings). */
   languagePicker?: boolean;
   kind?: string;
@@ -46,6 +54,7 @@ export function openModal(parent: HTMLElement, build: () => ModalSpec): () => vo
     const spec = build();
     card.className = `card ${spec.kind ?? ''}`;
     card.replaceChildren(el('h2', '', spec.title));
+    if (spec.date) card.append(el('span', 'card-date', spec.date));
     for (const line of spec.lines) {
       if (typeof line === 'string') card.append(el('p', '', line));
       else {
@@ -54,6 +63,9 @@ export function openModal(parent: HTMLElement, build: () => ModalSpec): () => vo
         card.append(row);
       }
     }
+    if (spec.extra) card.append(spec.extra());
+    if (spec.fact) card.append(el('p', 'card-fact', spec.fact));
+    if (spec.source) card.append(el('p', 'card-source', spec.source));
     if (spec.languagePicker) card.append(languagePicker());
     const actions = el('div', 'card-actions');
     for (const b of spec.buttons) actions.append(button(b.primary ? 'btn primary' : 'btn', b.label, b.onClick));
@@ -70,6 +82,8 @@ export interface MenuItem {
   cost: string;
   /** Translated reason when the action is disabled, else null. */
   reason: string | null;
+  /** Tutorial: this is the action PUSULA asks for. */
+  hint?: boolean;
   onPick: () => void;
 }
 
@@ -90,7 +104,7 @@ export function mountActionMenu(parent: HTMLElement): ActionMenu {
     open(title, items, closeLabel) {
       root.replaceChildren(el('h2', '', title));
       for (const item of items) {
-        const b = button('action', '', item.onPick);
+        const b = button(item.hint ? 'action hint' : 'action', '', item.onPick);
         b.disabled = item.reason !== null;
         const top = el('span', 'action-top');
         top.append(el('span', 'action-label', item.label), el('span', 'action-cost', item.cost));

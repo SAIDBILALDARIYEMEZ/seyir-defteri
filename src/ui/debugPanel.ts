@@ -45,7 +45,7 @@ const ACTIONS: Action[] = [
 
 const fmt = (n: number): string => (Math.round(n * 10) / 10).toString();
 
-export function mountDebugPanel(root: HTMLElement, win: WindowData, on: DebugHandlers): DebugPanel {
+export function mountDebugPanel(root: HTMLElement, getWin: () => WindowData, on: DebugHandlers): DebugPanel {
   const panel = document.createElement('aside');
   panel.className = 'debug-panel';
   const title = document.createElement('strong');
@@ -108,7 +108,7 @@ export function mountDebugPanel(root: HTMLElement, win: WindowData, on: DebugHan
       }
       const reason = s.rejection ? t(`reason.${s.rejection}` as TextKey) : '-';
       lines.textContent = [
-        `${t('debug.fps')} ${fps} · ${win.id} ${dateOfSol(win, s.sol)} · ${s.phase} ${s.result ?? ''}`,
+        `${t('debug.fps')} ${fps} · ${getWin().id} ${dateOfSol(getWin(), s.sol)} · ${s.phase} ${s.result ?? ''}`,
         `${t('debug.sol')} ${s.sol} · ${t('debug.hoursLeft')} ${fmt(s.hoursLeft)}`,
         `power ${fmt(s.power)} · air ${fmt(s.air)} · food ${fmt(s.food)} · dose ${fmt(s.dose)}`,
         `science ${s.science} · panels ${fmt(s.panelEff * 100)}% · shelter ${s.shelterLevel}`,

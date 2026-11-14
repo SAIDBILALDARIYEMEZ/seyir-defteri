@@ -57,6 +57,12 @@ export const CAMERA = {
   zoomSpeed: 0.02,
 };
 
+/** Opacity factor of a station that is not unlocked yet. */
+export const LOCKED_OPACITY = 0.22;
+
+/** PUSULA waits this far to the side of where Ada stands. */
+export const PUSULA_SIDE = 3;
+
 /** Seconds of walking animation per simulated walking hour. */
 export const WALK_SECONDS_PER_HOUR = 2.4;
 

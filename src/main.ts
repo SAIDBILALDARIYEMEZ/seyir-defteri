@@ -2,8 +2,10 @@
 // Concept, story, design and decisions: team Seyir Defteri.
 // Boot: create sim -> mount scene + UI. Flow: input -> action -> reducer -> state -> render.
 
-import { getWindow } from './data/windows.ts';
+import { BALANCE } from './config/balance.ts';
+import { WINDOW_IDS, getWindow } from './data/windows.ts';
 import { createGame } from './game.ts';
+import type { Mission } from './game.ts';
 import { isDebug } from './lib/debug.ts';
 import { createWorld } from './scene/world.ts';
 import { setGauge, triggerDust, triggerMalfunction } from './sim/debugTools.ts';
@@ -14,21 +16,47 @@ const ui = document.querySelector<HTMLElement>('#ui');
 if (!canvas || !ui) throw new Error('Missing #scene or #ui element');
 
 const params = new URLSearchParams(location.search);
-const seed = Number(params.get('seed')) || 20240520;
-const win = getWindow(params.get('w'));
+const FIRST_SEED = 20240520;
+const MAX_SEED = 999_999;
+const PLAYED_KEY = 'seyir-defteri.played';
+
+/** First game: always window 1 with the fixed seed. Later games: random seed, window from the
+ * seed. `?seed=` / `?w=` pin both (debug and class codes). Math.random stays outside the sim. */
+function nextMission(): Mission {
+  if (params.has('seed') || params.has('w')) {
+    return { seed: Number(params.get('seed')) || FIRST_SEED, win: getWindow(params.get('w')) };
+  }
+  let played = false;
+  try {
+    played = localStorage.getItem(PLAYED_KEY) === '1';
+    localStorage.setItem(PLAYED_KEY, '1');
+  } catch {
+    // Storage blocked: every game is treated as the first one.
+  }
+  if (!played) return { seed: FIRST_SEED, win: getWindow('w1') };
+  const seed = 1 + Math.floor(Math.random() * MAX_SEED);
+  return { seed, win: getWindow(WINDOW_IDS[seed % WINDOW_IDS.length] ?? 'w1') };
+}
 
 const world = createWorld(canvas);
-const game = createGame(canvas, ui, world, win, seed);
-const endSol = (): void => game.dispatch({ type: 'endSol', crewId: 0 }, true);
+const first: Mission = { seed: Number(params.get('seed')) || FIRST_SEED, win: getWindow(params.get('w')) };
+const game = createGame(canvas, ui, world, first, nextMission);
+/** Debug skip: tops up the life gauges first, so a skipped sol never ends the mission. */
+const endSol = (): void => {
+  let s = game.getState();
+  for (const gauge of ['power', 'air', 'food'] as const) s = setGauge(s, gauge, BALANCE[gauge].max);
+  game.setState(s);
+  game.dispatch({ type: 'endSol', crewId: 0 }, true);
+};
 
 const debugPanel = isDebug
-  ? mountDebugPanel(ui, win, {
+  ? mountDebugPanel(ui, () => game.getWindow(), {
       dispatch: (action) => game.dispatch(action, true),
       skipSols: (count) => {
         for (let i = 0; i < count; i++) endSol();
       },
       jumpToEvent: () => {
-        const target = win.radEventSols.find((sol) => sol > game.getState().sol);
+        const target = game.getWindow().radEventSols.find((sol) => sol > game.getState().sol);
         while (target && game.getState().phase === 'playing' && game.getState().sol < target) endSol();
       },
       setGauge: (gauge, value) => game.setState(setGauge(game.getState(), gauge, value)),

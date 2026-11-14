@@ -125,3 +125,13 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
   not CSS pixels: take a full screenshot first and click what you see there.
 - Station picking raycasts real meshes only. Do not add invisible hit volumes: they overlapped
   and sent Ada to the wrong station (D-010).
+- The base starts with dusty panels (`panel.initial` 0.7): with clean panels the sim refuses
+  "clean" until sol 3 and the sol-1 tutorial step is impossible (D-011).
+- The daily tasks come from `src/content/missions.json` in priority order; the watch, the
+  PUSULA robot and the bot's `pusula` strategy share them. After any edit: `npm run bot`
+  and read the pusula rows (target >= 80% wins).
+- Sim files import JSON with `with { type: 'json' }` so the bot runs under plain Node.
+- The browser pane pauses `requestAnimationFrame` while a script awaits: drive walks with
+  real waits between calls, not with one long script.
+- After the first "New Mission" the pane's localStorage marks the device as played and later
+  games get a random seed and window: test with `?seed=20240520` for a repeatable game.

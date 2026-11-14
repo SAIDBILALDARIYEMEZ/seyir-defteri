@@ -50,6 +50,19 @@ export function costOf(state: GameState, action: Action): Cost {
   }
 }
 
+/** First sol a station can be used: the earliest unlock of the actions done there. */
+export function stationUnlockSol(station: StationId): number {
+  const unlocks = BALANCE.unlockSol;
+  const sols = (Object.keys(unlocks) as (keyof typeof unlocks)[])
+    .filter((type) => type !== 'repair' && STATION_OF[type] === station)
+    .map((type) => unlocks[type]);
+  return sols.length ? Math.min(...sols) : 1;
+}
+
+export function isStationLocked(state: GameState, station: StationId): boolean {
+  return state.sol < stationUnlockSol(station);
+}
+
 /** The morning "Replay yesterday" would return to, or null. */
 export function replayTarget(state: GameState): MorningSnapshot | null {
   const wanted = state.phase === 'lost' ? state.sol : state.sol - 1;

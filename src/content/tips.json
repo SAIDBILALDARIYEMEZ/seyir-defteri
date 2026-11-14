@@ -1,0 +1,10 @@
+[
+  { "text": "tip.sol", "source": "source.nasaFact" },
+  { "text": "tip.moxie", "source": "source.nasaFact" },
+  { "text": "tip.dust", "source": "source.nasaFact" },
+  { "text": "tip.delay", "source": "source.nasaFact" },
+  { "text": "tip.field", "source": "source.nasaFact" },
+  { "text": "tip.rad", "source": "source.rad" },
+  { "text": "tip.quietSun", "source": "source.rad" },
+  { "text": "tip.lettuce", "source": "source.osdr268" }
+]

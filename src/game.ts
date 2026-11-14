@@ -5,29 +5,40 @@
 import { BALANCE } from './config/balance.ts';
 import stationContent from './content/stations.json';
 import { onLangChange, t } from './i18n/i18n.ts';
+import type { TextKey } from './i18n/i18n.ts';
 import { attachPointer } from './input/pointer.ts';
 import { debug } from './lib/debug.ts';
 import { WALK_SECONDS_PER_HOUR } from './scene/layout.ts';
-import type { World } from './scene/world.ts';
+import type { PickId, World } from './scene/world.ts';
 import type { Action, ActionType, StationId } from './sim/actions.ts';
 import { reduce } from './sim/reducer.ts';
 import { createRng } from './sim/rng.ts';
-import { check, costOf } from './sim/rules.ts';
+import { check, costOf, isStationLocked } from './sim/rules.ts';
 import { createInitialState } from './sim/state.ts';
 import type { GameState } from './sim/state.ts';
-import { advise } from './sim/systems/advisor.ts';
+import { advise, urgentNeeds } from './sim/systems/advisor.ts';
 import { isDustSol } from './sim/systems/schedule.ts';
-import { isEventNow } from './sim/systems/time.ts';
-import { sepWarnedToday, visibleWarnings } from './sim/systems/warnings.ts';
+import { clockOf, isEventNow } from './sim/systems/time.ts';
 import type { WindowData } from './sim/window.ts';
+import { dataSpec, infoSpec, pusulaSpec } from './ui/cards.ts';
+import { morningCards, nightSpec } from './ui/dayCards.ts';
 import { fmt } from './ui/dom.ts';
+import { mountGuide, tutorialSteps } from './ui/guide.ts';
 import { mountHud } from './ui/hud.ts';
+import type { GaugeId } from './ui/hud.ts';
 import { mountActionMenu, openModal, spawnFloater } from './ui/overlays.ts';
 import type { ModalSpec } from './ui/overlays.ts';
 import { mountLabels, mountMainMenu, mountWatch } from './ui/panels.ts';
+import type { WatchTask } from './ui/panels.ts';
+
+export interface Mission {
+  seed: number;
+  win: WindowData;
+}
 
 export interface Game {
   getState(): GameState;
+  getWindow(): WindowData;
   /** Replaces the state (debug tools) and redraws. */
   setState(next: GameState): void;
   /** `quiet` skips floating numbers and the night summary (debug tools). */
@@ -37,6 +48,18 @@ export interface Game {
 
 const crewId = 0;
 const FLOATER_GAP_MS = 220;
+/** Urgent needs that turn PUSULA's light red. */
+const DANGER_NEEDS = ['air', 'power', 'food', 'radiation', 'broken'];
+
+interface Guide {
+  station: StationId;
+  /** PUSULA's sentence for the wrist watch. */
+  text: string;
+  tasks: WatchTask[];
+  /** Tutorial step action, when the tutorial is leading. */
+  stepType: ActionType | null;
+  danger: boolean;
+}
 
 function walkSeconds(from: StationId, to: StationId): number {
   if (from === to) return 0;
@@ -54,9 +77,16 @@ function actionsAt(station: StationId, state: GameState): Action[] {
   return list;
 }
 
-export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: World, win: WindowData, seed: number): Game {
-  const rng = createRng(seed);
+/**
+ * `first` is the mission shown behind the main menu; `nextMission` picks seed + window for
+ * every "New Mission" (first game: window 1, later games: random seed, D-011).
+ */
+export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: World, first: Mission, nextMission: () => Mission): Game {
+  let { seed, win } = first;
+  let rng = createRng(seed);
   let state = createInitialState(seed, win);
+  /** While the night card is open the HUD keeps the end-of-day values (D-011). */
+  let frozen: GameState | null = null;
   let mode: 'menu' | 'play' = 'menu';
   let walking = false;
   let openStation: StationId | null = null;
@@ -80,38 +110,76 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     closePause?.();
     closePause = null;
   };
+  const free = (): boolean => mode === 'play' && !walking && modals === 0 && state.phase === 'playing';
 
-  const hud = mountHud(ui, win, pause);
+  const hud = mountHud(ui, pause, (id) => showInfo(id));
   const labels = mountLabels(ui, (id) => selectStation(id));
-  const watch = mountWatch(ui);
+  const watch = mountWatch(ui, () => showPusula());
+  const marks = mountGuide(ui, () => showPusula());
   const menu = mountActionMenu(ui);
   const mainMenu = mountMainMenu(ui, () => startMission());
 
   function modal(build: () => ModalSpec): () => void {
     modals++;
     const close = openModal(ui, build);
+    render();
     return () => {
       modals--;
       close();
+      render();
     };
   }
 
-  function render(): void {
+  /** What PUSULA points at now: the tutorial step on sols 1-3, else the first daily task. */
+  function guide(): Guide {
+    const danger = urgentNeeds(state, win).some((need) => DANGER_NEEDS.includes(need));
+    const toTask = (action: Action): WatchTask => {
+      const station = costOf(state, action).station;
+      const name = t(`action.${action.type}`);
+      const label = action.type === 'repair' ? `${name}: ${t(`station.${station}`)}` : name;
+      return { label, onPick: () => selectStation(station) };
+    };
+    const steps = tutorialSteps(state, win);
+    const step = steps[0];
+    if (step) {
+      return { station: step.station, text: t(step.text), tasks: steps.map((s) => toTask(s.action)), stepType: step.action.type, danger };
+    }
+    const tasks = advise(state, win);
+    const firstTask = tasks[0];
+    if (!firstTask) return { station: 'habitat', text: t('watch.allDone'), tasks: [], stepType: null, danger };
+    return {
+      station: costOf(state, firstTask.action).station,
+      text: t(`task.${firstTask.why}` as TextKey),
+      tasks: tasks.map((task) => toTask(task.action)),
+      stepType: null,
+      danger,
+    };
+  }
+
+  function render(snapGuide = false): void {
     const playing = mode === 'play';
     hud.root.hidden = labels.root.hidden = watch.root.hidden = !playing;
     mainMenu.root.hidden = playing;
     mainMenu.refresh();
     document.title = t('app.title');
-    hud.update(state);
+    hud.update(frozen ?? state, win);
     labels.refresh(state);
-    watch.update(t('watch.hint'), advise(state, win).map((task) => t(`action.${task.action.type}`)));
-    const storm = isDustSol(state.schedule, state.sol) ? 'dust' : isEventNow(state, win) ? 'rad' : 'none';
+    const g = guide();
+    if (!frozen) watch.update(g.text, g.tasks);
+    const show = playing && modals === 0 && state.phase === 'playing';
+    const arrowAt = show && g.stepType && !(menu.isOpen() && openStation === g.station) ? g.station : null;
+    const bubble = show ? `${stationContent[g.station].icon}${g.danger ? ' ❗' : ''}` : null;
+    marks.set(arrowAt, bubble, g.danger, t('watch.title'));
+    world.setGuide(g.station, g.danger, snapGuide);
+    const view = frozen ?? state;
+    const storm = isDustSol(view.schedule, view.sol) ? 'dust' : isEventNow(view, win) ? 'rad' : 'none';
     world.sync(state, playing ? storm : 'none');
     if (openStation && menu.isOpen()) showStationMenu(openStation);
   }
 
   function showStationMenu(station: StationId): void {
     openStation = station;
+    const g = guide();
     const items = actionsAt(station, state).map((action) => {
       const cost = costOf(state, action);
       const reason = check(state, action, win);
@@ -121,6 +189,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
         label: t(`action.${action.type}`),
         cost: parts.filter(Boolean).join('  '),
         reason: reason ? t(`reason.${reason}`) : null,
+        hint: g.station === station && g.stepType === action.type,
         onPick: () => perform(action),
       };
     });
@@ -128,12 +197,14 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
   }
 
   function selectStation(station: StationId): void {
-    if (mode !== 'play' || walking || modals > 0 || state.phase !== 'playing') return;
+    if (!free() || isStationLocked(state, station)) return;
     menu.close();
     walking = true;
+    render();
     world.walkTo(station, walkSeconds(world.adaStation(), station), () => {
       walking = false;
       showStationMenu(station);
+      render();
     });
   }
 
@@ -169,57 +240,56 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     render();
   }
 
+  function showData(sol: number, upto: number, gained: number | null): void {
+    const close = modal(() => dataSpec(win, { sol, upto, gained, close: () => close() }));
+  }
+
+  function showInfo(id: GaugeId): void {
+    if (mode !== 'play') return;
+    const close = modal(() => {
+      const spec = infoSpec(id, win, () => close());
+      const measured = Math.floor(clockOf(state) - BALANCE.dayStartHour);
+      if (id === 'dose') spec.buttons.unshift({ label: t('data.button'), onClick: () => showData(state.sol, measured, null) });
+      return spec;
+    });
+  }
+
+  function showPusula(): void {
+    if (!free()) return;
+    const close = modal(() => {
+      const g = guide();
+      const task = g.stepType || !g.tasks[0] ? g.text : `${t('pusula.next')} ${g.tasks[0].label}. ${g.text}`;
+      return pusulaSpec(state, win, { task, onGo: () => selectStation(g.station), close: () => close() });
+    });
+  }
+
   function showNight(before: GameState): void {
     const log = state.log[state.log.length - 1];
-    const flags = log?.flags ?? [];
-    const { power, air, food, dose } = BALANCE;
+    if (log) frozen = { ...before, ...log.dusk, hoursLeft: 0, science: log.science };
     world.setNight(true);
-    const pct = (points: number): string => `${fmt((points / dose.budget) * 100)}%`;
-    const close = modal(() => {
-      const lines: [string, string][] = [
-        [t('night.heating'), `−${power.nightHeating}⚡`],
-        [t('night.air'), `−${air.perSol}💨`],
-      ];
-      if (flags.includes('cold')) lines.push([t('night.cold'), `−${air.coldPenalty}💨`]);
-      if (before.sol >= food.unlockSol) lines.push([t('night.food'), `−${food.perSol}🥫`]);
-      lines.push([t('night.panels'), `${Math.round((1 - state.panelEff) * 100)}%`]);
-      lines.push([t('night.dose'), `+${pct(log?.doseGained ?? 0)} ☢️`]);
-      return {
-        kind: 'night',
-        title: `🌙 ${t('night.title', { n: before.sol })}`,
-        lines,
-        buttons: [{ label: t('night.morning'), onClick: () => { close(); morning(before); }, primary: true }],
-      };
-    });
+    const allSol = BALANCE.hoursPerSol;
+    const close = modal(() =>
+      nightSpec(before, state, win, {
+        onMorning: () => {
+          frozen = null;
+          close();
+          morning(before);
+        },
+        onData: (sol, gained) => showData(sol, allSol, gained),
+      }),
+    );
   }
 
   function morning(before: GameState): void {
     world.setNight(false);
     if (state.phase !== 'playing') return showResult();
     world.placeAda('habitat');
-    const cards: (() => string)[] = [];
-    if (state.sol === BALANCE.unlockSol.greenhouse) cards.push(() => `🌱 ${t('event.unlockGreenhouse')}`);
-    if (state.sol === BALANCE.unlockSol.shelterBuild) cards.push(() => `🗺️ ${t('event.unlockAll')}`);
-    for (const station of state.broken.filter((s) => !before.broken.includes(s))) {
-      cards.push(() => `🔧 ${t('event.broken', { station: t(`station.${station}`) })}`);
-    }
-    if (isDustSol(state.schedule, state.sol) && !isDustSol(state.schedule, before.sol)) {
-      cards.push(() => `🌪️ ${t('event.dust')}`);
-    }
-    const ahead = visibleWarnings(state, win).find((w) => w.kind === 'sep' && w.sol > state.sol);
-    if (sepWarnedToday(state, win)) cards.push(() => `☢️ ${t('event.radToday')}`);
-    else if (ahead) cards.push(() => `☢️ ${t('event.radAhead', { n: ahead.sol - state.sol })}`);
-    const reply = state.lastReply;
-    if (reply) cards.push(() => `📡 ${t(`event.reply.${reply}`)}`);
+    render(true);
+    const cards = morningCards(before, state, win, (sol, gained) => showData(sol, BALANCE.hoursPerSol, gained));
     const next = (): void => {
-      const text = cards.shift();
-      if (!text) return;
-      const close = modal(() => ({
-        kind: 'event',
-        title: `🧭 ${t('watch.title')}`,
-        lines: [text()],
-        buttons: [{ label: t('event.ok'), onClick: () => { close(); next(); }, primary: true }],
-      }));
+      const build = cards.shift();
+      if (!build) return;
+      const close = modal(() => build(() => { close(); next(); }));
     };
     next();
   }
@@ -235,14 +305,23 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
   }
 
   function startMission(): void {
+    ({ seed, win } = nextMission());
+    rng = createRng(seed);
     state = createInitialState(seed, win);
+    frozen = null;
     mode = 'play';
     walking = false;
     openStation = null;
     menu.close();
     world.setNight(false);
     world.placeAda('habitat');
-    render();
+    render(true);
+    const close = modal(() => ({
+      kind: 'event',
+      title: `🧭 ${t('tutorial.welcome.title')}`,
+      lines: [t('tutorial.welcome1'), t('tutorial.welcome2')],
+      buttons: [{ label: t('event.ok'), onClick: () => close(), primary: true }],
+    }));
   }
 
   function showMenu(): void {
@@ -251,7 +330,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     render();
   }
 
-  attachPointer(canvas, world, selectStation);
+  attachPointer(canvas, world, (id: PickId) => (id === 'pusula' ? showPusula() : selectStation(id)));
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') pause();
   });
@@ -259,14 +338,18 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
 
   return {
     getState: () => state,
+    getWindow: () => win,
     setState(next) {
       state = next;
+      frozen = null;
       render();
     },
     dispatch: perform,
     frame(dt) {
       world.update(closePause ? 0 : dt);
-      if (mode === 'play') labels.place((id) => world.screenOf(id));
+      if (mode !== 'play') return;
+      labels.place((id) => world.screenOf(id));
+      marks.place((id) => world.screenOf(id));
     },
   };
 }

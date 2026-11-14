@@ -1,0 +1,7 @@
+{
+  "power": { "icon": "⚡", "source": "source.nasaFact" },
+  "air": { "icon": "💨", "source": "source.nasaFact" },
+  "food": { "icon": "🥫", "source": "source.osdr268" },
+  "dose": { "icon": "☢️", "source": "source.rad" },
+  "science": { "icon": "⭐", "source": "source.nasaFact" }
+}

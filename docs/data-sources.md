@@ -35,3 +35,17 @@
 | 3. Hit Earth, not Mars | 2023-03-01 to 2023-03-31 | 5.67 / 8.8 | Nine particle storms at Earth, quiet Mars |
 | Backup: The unseen storm | 2022-02 | 8.6 / 41 (Feb 16) | Only if its source is confirmed |
 | Backup: quiet month | 2015-06 | 6.1 / 9 | Quiet month |
+
+## Fact sentences on cards (F3a)
+One-sentence facts on info cards, event cards and PUSULA tips. General knowledge from NASA
+mission pages, no numbers computed by us. **URLs still to be re-checked before submission.**
+
+| Fact | Used in | Source | URL | License |
+|---|---|---|---|---|
+| InSight lost power to dust on its panels (2022) | power card, tip | NASA InSight mission | https://science.nasa.gov/mission/insight/ | NASA open content |
+| MOXIE made oxygen from Mars air (first in 2021) | air card, tip | NASA Mars 2020 Perseverance, MOXIE | https://science.nasa.gov/mission/mars-2020-perseverance/ | NASA open content |
+| Curiosity in Gale Crater since 2012, RAD instrument | science card, tips | NASA Mars Science Laboratory | https://science.nasa.gov/mission/msl-curiosity/ | NASA open content |
+| Global dust storm of 2018 | dust event card | NASA Mars Exploration | https://science.nasa.gov/mars/ | NASA open content |
+| A sol is about 24 h 39 min; radio delay about 4 to 24 minutes | tips, reply card | NASA Mars facts | https://science.nasa.gov/mars/facts/ | NASA open content |
+| OSD-268: lettuce grown on the ISS (topic only, D-002 R8) | food card, tip | NASA OSDR | https://osdr.nasa.gov/bio/repo/data/studies/OSD-268 | NASA open data |
+| Quiet-Sun cosmic rays: about 9 uGy/h in 2019, about 5 in May 2024 | tip | RadLab medians (D-002 R5, `rad-w1.json`) | see RadLab entry above | NASA open data |

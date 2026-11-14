@@ -3,12 +3,11 @@
 // Pointer input on the canvas: tap = pick a station, drag = turn the camera (limited),
 // wheel = zoom (limited). Mouse and touch both arrive as pointer events.
 
-import type { StationId } from '../sim/actions.ts';
-import type { World } from '../scene/world.ts';
+import type { PickId, World } from '../scene/world.ts';
 
 const TAP_SLOP_PX = 8;
 
-export function attachPointer(canvas: HTMLCanvasElement, world: World, onStation: (id: StationId) => void): void {
+export function attachPointer(canvas: HTMLCanvasElement, world: World, onPick: (id: PickId) => void): void {
   let downX = 0;
   let lastX = 0;
   let dragging = false;
@@ -34,7 +33,7 @@ export function attachPointer(canvas: HTMLCanvasElement, world: World, onStation
     dragging = false;
     if (moved) return;
     const id = world.pick(e.clientX, e.clientY);
-    if (id) onStation(id);
+    if (id) onPick(id);
   });
   canvas.addEventListener('pointercancel', () => (dragging = false));
   canvas.addEventListener('wheel', (e) => {

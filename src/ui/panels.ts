@@ -1,27 +1,33 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
-// Wrist watch (PUSULA text + task list skeleton), station name labels and the main menu.
+// Wrist watch (PUSULA text + tappable task list), station name labels and the main menu.
 
 import stations from '../content/stations.json';
 import { t } from '../i18n/i18n.ts';
 import type { StationId } from '../sim/actions.ts';
+import { isStationLocked, stationUnlockSol } from '../sim/rules.ts';
 import type { GameState } from '../sim/state.ts';
 import type { ScreenPoint } from '../scene/world.ts';
 import { button, el } from './dom.ts';
 import { languagePicker } from './overlays.ts';
 
-export interface Watch {
-  root: HTMLElement;
-  /** `tasks` are already translated lines. */
-  update(pusulaText: string, tasks: string[]): void;
+export interface WatchTask {
+  /** Already translated. */
+  label: string;
+  onPick: () => void;
 }
 
-export function mountWatch(parent: HTMLElement): Watch {
+export interface Watch {
+  root: HTMLElement;
+  update(pusulaText: string, tasks: WatchTask[]): void;
+}
+
+export function mountWatch(parent: HTMLElement, onPusula: () => void): Watch {
   const root = el('aside', 'watch');
-  const title = el('strong', 'watch-title');
+  const title = button('watch-title', '', onPusula);
   const text = el('p', 'watch-text');
   const tasksTitle = el('span', 'watch-sub');
-  const list = el('ul', 'watch-tasks');
+  const list = el('div', 'watch-tasks');
   root.append(title, text, tasksTitle, list);
   parent.append(root);
   return {
@@ -30,7 +36,8 @@ export function mountWatch(parent: HTMLElement): Watch {
       title.textContent = `🧭 ${t('watch.title')}`;
       text.textContent = pusulaText;
       tasksTitle.textContent = t('watch.tasks');
-      list.replaceChildren(...(tasks.length ? tasks : [t('watch.noTasks')]).map((line) => el('li', '', line)));
+      if (tasks.length === 0) return list.replaceChildren(el('span', 'watch-none', t('watch.noTasks')));
+      list.replaceChildren(...tasks.map((task, i) => button('watch-task', `${i + 1}. ${task.label}`, task.onPick)));
     },
   };
 }
@@ -57,8 +64,13 @@ export function mountLabels(parent: HTMLElement, onPick: (id: StationId) => void
       nodes.forEach((node, i) => {
         const id = ids[i] ?? 'habitat';
         const broken = state.broken.includes(id);
-        node.textContent = `${stations[id].icon} ${t(`station.${id}`)}${broken ? ` 🔧 ${t('station.needsRepair')}` : ''}`;
-        node.classList.toggle('broken', broken);
+        const locked = isStationLocked(state, id);
+        const name = `${locked ? '🔒' : stations[id].icon} ${t(`station.${id}`)}`;
+        node.textContent = `${name}${broken && !locked ? ` 🔧 ${t('station.needsRepair')}` : ''}`;
+        node.classList.toggle('broken', broken && !locked);
+        node.classList.toggle('locked', locked);
+        node.disabled = locked;
+        node.title = locked ? t('station.opensOn', { n: stationUnlockSol(id) }) : '';
       });
     },
     place(screenOf) {

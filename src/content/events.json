@@ -1,0 +1,14 @@
+{
+  "unlockGreenhouse": { "icon": "🌱", "lines": ["unlock.greenhouse", "unlock.food"] },
+  "unlockAll": {
+    "icon": "🗺️",
+    "lines": ["unlock.shelter", "unlock.antenna", "unlock.beacon", "unlock.curiosity", "unlock.science", "unlock.dose"]
+  },
+  "broken": { "icon": "🔧", "lines": ["event.broken"], "source": "source.game" },
+  "dust": { "icon": "🌪️", "lines": ["event.dust"], "fact": "event.dust.fact", "source": "source.game" },
+  "radToday": { "icon": "☢️", "lines": ["event.radToday"] },
+  "radAhead": { "icon": "☢️", "lines": ["event.radAhead"] },
+  "sepMars": { "fact": "event.sep.mars", "source": "source.rad" },
+  "sepEarth": { "fact": "event.sep.earth", "source": "source.donki" },
+  "reply": { "icon": "📡", "lines": [], "fact": "event.reply.fact", "source": "source.nasaFact" }
+}

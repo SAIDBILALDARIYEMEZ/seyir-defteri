@@ -1,18 +1,21 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
 // HUD: three gauge groups on top (Power | Life: air + food | Storm dose as a share of the
-// budget), science star, hours left, real-date badge and the pause gear.
+// budget), science star, hours left, real-date badge and the pause gear. Tapping a gauge opens
+// its info card. Gauges appear with the gradual unlock.
 
 import { BALANCE } from '../config/balance.ts';
-import { getLang, t } from '../i18n/i18n.ts';
+import { t } from '../i18n/i18n.ts';
 import type { GameState } from '../sim/state.ts';
 import { dateOfSol } from '../sim/window.ts';
 import type { WindowData } from '../sim/window.ts';
-import { button, el, fmt } from './dom.ts';
+import { button, el, fmt, formatDate } from './dom.ts';
+
+export type GaugeId = 'power' | 'air' | 'food' | 'dose' | 'science';
 
 export interface Hud {
   root: HTMLElement;
-  update(state: GameState): void;
+  update(state: GameState, win: WindowData): void;
 }
 
 interface Gauge {
@@ -20,8 +23,8 @@ interface Gauge {
   set(label: string, share: number, value: string, low: boolean): void;
 }
 
-function gauge(icon: string): Gauge {
-  const row = el('div', 'gauge');
+function gauge(icon: string, onInfo: () => void): Gauge {
+  const row = button('gauge', '', onInfo);
   const name = el('span', 'gauge-name');
   const bar = el('span', 'gauge-bar');
   const fill = el('span', 'gauge-fill');
@@ -39,7 +42,7 @@ function gauge(icon: string): Gauge {
   };
 }
 
-export function mountHud(parent: HTMLElement, win: WindowData, onPause: () => void): Hud {
+export function mountHud(parent: HTMLElement, onPause: () => void, onInfo: (id: GaugeId) => void): Hud {
   const root = el('header', 'hud');
   const left = el('div', 'hud-side');
   const sol = el('span', 'chip');
@@ -47,10 +50,10 @@ export function mountHud(parent: HTMLElement, win: WindowData, onPause: () => vo
   left.append(sol, hours);
 
   const groups = el('div', 'hud-groups');
-  const power = gauge('⚡');
-  const air = gauge('💨');
-  const food = gauge('🥫');
-  const dose = gauge('☢️');
+  const power = gauge('⚡', () => onInfo('power'));
+  const air = gauge('💨', () => onInfo('air'));
+  const food = gauge('🥫', () => onInfo('food'));
+  const dose = gauge('☢️', () => onInfo('dose'));
   const powerGroup = el('div', 'hud-group');
   powerGroup.append(power.row);
   const lifeGroup = el('div', 'hud-group');
@@ -61,7 +64,7 @@ export function mountHud(parent: HTMLElement, win: WindowData, onPause: () => vo
   groups.append(powerGroup, lifeGroup, doseGroup);
 
   const right = el('div', 'hud-side right');
-  const star = el('span', 'chip star');
+  const star = button('chip star', '', () => onInfo('science'));
   const gear = button('chip gear', '⚙', onPause);
   right.append(star, gear);
 
@@ -71,8 +74,13 @@ export function mountHud(parent: HTMLElement, win: WindowData, onPause: () => vo
 
   return {
     root,
-    update(state) {
+    update(state, win) {
       const a = BALANCE.advisor;
+      // Gradual unlock (PRD §11.5): food from sol 3, storm dose and science from sol 4.
+      food.row.hidden = state.sol < BALANCE.food.unlockSol;
+      doseGroup.hidden = star.hidden = state.sol < BALANCE.unlockSol.shelterBuild;
+      const tapHint = t('hud.tapInfo');
+      for (const g of [power, air, food, dose]) g.row.title = tapHint;
       sol.textContent = t('hud.sol', { n: state.sol, total: BALANCE.totalSols });
       hours.textContent = `⏱ ${t('hud.hoursLeft', { n: fmt(state.hoursLeft) })}`;
       power.set(t('hud.power'), state.power / BALANCE.power.max, fmt(state.power), state.power <= a.powerLow);
@@ -81,17 +89,10 @@ export function mountHud(parent: HTMLElement, win: WindowData, onPause: () => vo
       food.set(t('hud.food'), state.food / BALANCE.food.max, fmt(state.food), state.food <= a.foodLow);
       const share = state.dose / BALANCE.dose.budget;
       dose.set(t('hud.dose'), share, `${Math.round(share * 100)}%`, share >= 0.5);
-      doseGroup.title = t('hud.doseNote');
       star.textContent = `⭐ ${fmt(state.science)}`;
-      star.title = t('hud.science');
+      star.title = `${t('hud.science')}. ${tapHint}`;
       gear.setAttribute('aria-label', t('hud.pause'));
-      const day = new Date(`${dateOfSol(win, state.sol)}T00:00:00Z`);
-      const text = new Intl.DateTimeFormat(getLang() === 'tr' ? 'tr-TR' : 'en-GB', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-        timeZone: 'UTC',
-      }).format(day);
+      const text = formatDate(dateOfSol(win, state.sol));
       date.textContent = `🌍 ${t('hud.date', { date: text })}`;
     },
   };

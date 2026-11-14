@@ -6,12 +6,16 @@ import * as THREE from 'three';
 import { BALANCE } from '../config/balance.ts';
 import type { StationId } from '../sim/actions.ts';
 import type { GameState } from '../sim/state.ts';
+import { isStationLocked } from '../sim/rules.ts';
 import { createAstronaut } from './entities/astronaut.ts';
+import { PUSULA_HEAD_HEIGHT, createPusula } from './entities/pusula.ts';
 import { buildPassive, buildStation, buildTerrain } from './entities/stations.ts';
 import type { StationParts } from './entities/stations.ts';
 import { createStorm } from './fx/storm.ts';
 import type { StormMode } from './fx/storm.ts';
-import { CAMERA, COLORS, LABEL_HEIGHT, STAND_OFFSET, STATION_IDS, STATION_POS } from './layout.ts';
+import { CAMERA, COLORS, LABEL_HEIGHT, LOCKED_OPACITY, PUSULA_SIDE, STAND_OFFSET, STATION_IDS, STATION_POS } from './layout.ts';
+
+export type PickId = StationId | 'pusula';
 
 export interface ScreenPoint {
   x: number;
@@ -23,17 +27,19 @@ export interface World {
   /** Renders one frame. dt in seconds (0 while paused). */
   update(dt: number): void;
   /** Station under a screen point, or null. */
-  pick(clientX: number, clientY: number): StationId | null;
+  pick(clientX: number, clientY: number): PickId | null;
   walkTo(station: StationId, seconds: number, onArrive: () => void): void;
   placeAda(station: StationId): void;
   adaStation(): StationId;
   /** Screen position of a station label, or of Ada's head. */
-  screenOf(target: StationId | 'ada'): ScreenPoint;
+  screenOf(target: StationId | 'ada' | 'pusula'): ScreenPoint;
   rotate(dxPixels: number): void;
   zoom(delta: number): void;
   /** Syncs visuals that depend on the game state. */
   sync(state: GameState, storm: StormMode): void;
   setNight(night: boolean): void;
+  /** PUSULA rolls to this station; `danger` turns its light red. */
+  setGuide(station: StationId, danger: boolean, snap?: boolean): void;
 }
 
 const DUSTY_PANEL = new THREE.Color(0x9a6a4a);
@@ -58,13 +64,18 @@ export function createWorld(canvas: HTMLCanvasElement): World {
   scene.add(hemi, sun, buildTerrain(), buildPassive());
 
   const stations = {} as Record<StationId, StationParts>;
-  const pickable: THREE.Object3D[] = [];
+  const locked = new Set<StationId>();
+  const mats = {} as Record<StationId, { mat: THREE.Material; opacity: number }[]>;
   for (const id of STATION_IDS) {
     const parts = buildStation(id);
     const [x, z] = STATION_POS[id];
     parts.group.position.set(x, 0, z);
     stations[id] = parts;
-    pickable.push(parts.group);
+    mats[id] = [];
+    parts.group.traverse((o) => {
+      const mat = (o as THREE.Mesh).material as THREE.Material | undefined;
+      if (mat && !mats[id].some((m) => m.mat === mat)) mats[id].push({ mat, opacity: mat.opacity });
+    });
     scene.add(parts.group);
   }
 
@@ -76,6 +87,20 @@ export function createWorld(canvas: HTMLCanvasElement): World {
   let adaAt: StationId = 'habitat';
   ada.place(...standOf(adaAt));
   scene.add(ada.group);
+  const pusula = createPusula();
+  scene.add(pusula.group);
+  /** Locked stations are faded and cannot be picked (gradual unlock, PRD §11.5). */
+  const setLocked = (id: StationId, value: boolean): void => {
+    if (locked.has(id) === value) return;
+    if (value) locked.add(id);
+    else locked.delete(id);
+    for (const { mat, opacity } of mats[id]) {
+      mat.transparent = value || opacity < 1;
+      mat.opacity = value ? opacity * LOCKED_OPACITY : opacity;
+      mat.depthWrite = !value;
+      mat.needsUpdate = true;
+    }
+  };
 
   const storm = createStorm(scene);
   let stormMode: StormMode = 'none';
@@ -109,6 +134,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
   return {
     update(dt) {
       ada.update(dt);
+      pusula.update(dt);
       storm.update(dt);
       skyTarget.setHex(night ? COLORS.skyNight : stormMode === 'dust' ? COLORS.skyDust : COLORS.skyDay);
       sky.lerp(skyTarget, Math.min(1, dt * SKY_LERP));
@@ -121,9 +147,10 @@ export function createWorld(canvas: HTMLCanvasElement): World {
     pick(clientX, clientY) {
       ndc.set((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
       raycaster.setFromCamera(ndc, camera);
+      const pickable = [pusula.group, ...STATION_IDS.filter((id) => !locked.has(id)).map((id) => stations[id].group)];
       let hit: THREE.Object3D | null = raycaster.intersectObjects(pickable, true)[0]?.object ?? null;
       while (hit && !hit.userData.station) hit = hit.parent;
-      return (hit?.userData.station as StationId | undefined) ?? null;
+      return (hit?.userData.station as PickId | undefined) ?? null;
     },
     walkTo(station, seconds, onArrive) {
       adaAt = station;
@@ -136,6 +163,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
     adaStation: () => adaAt,
     screenOf(target) {
       if (target === 'ada') probe.copy(ada.group.position).setY(3.6);
+      else if (target === 'pusula') probe.copy(pusula.group.position).setY(PUSULA_HEAD_HEIGHT + 0.9);
       else probe.set(STATION_POS[target][0], LABEL_HEIGHT[target], STATION_POS[target][1]);
       probe.project(camera);
       return {
@@ -155,12 +183,18 @@ export function createWorld(canvas: HTMLCanvasElement): World {
     sync(state, mode) {
       stormMode = mode;
       storm.setMode(mode);
+      for (const id of STATION_IDS) setLocked(id, isStationLocked(state, id));
       stations.panels.panelMat?.color.copy(DUSTY_PANEL).lerp(CLEAN_PANEL, state.panelEff);
       const level = state.shelterLevel / BALANCE.actions.shelterBuild.maxLevel;
       stations.shelter.mound?.scale.set(1 + level * 0.25, 0.55 + level * 0.6, 1 + level * 0.25);
     },
     setNight(value) {
       night = value;
+    },
+    setGuide(station, danger, snap) {
+      const [x, z] = standOf(station);
+      pusula.goTo(x + PUSULA_SIDE, z + 1, snap);
+      pusula.setDanger(danger);
     },
   };
 }

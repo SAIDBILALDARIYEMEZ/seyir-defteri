@@ -21,6 +21,17 @@ const built: Record<WindowId, WindowData> = {
   w3: buildWindow('w3', radW3, donkiW3),
 };
 
+const savedAt: Record<WindowId, { rad: string; donki: string }> = {
+  w1: { rad: radW1.fetchedAt, donki: donkiW1.fetchedAt },
+  w2: { rad: radW2.fetchedAt, donki: donkiW2.fetchedAt },
+  w3: { rad: radW3.fetchedAt, donki: donkiW3.fetchedAt },
+};
+
+/** ISO date the snapshot was saved on: shown next to every SAVED source tag (Hard Rule 7). */
+export function savedDate(windowId: string, kind: 'rad' | 'donki'): string {
+  return savedAt[WINDOW_IDS.find((w) => w === windowId) ?? 'w1'][kind].slice(0, 10);
+}
+
 export function getWindow(id: string | null): WindowData {
   return built[WINDOW_IDS.find((w) => w === id) ?? 'w1'];
 }
