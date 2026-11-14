@@ -3,10 +3,11 @@
 // Night accounting, win/lose checks, the logbook line, and the next morning.
 
 import { BALANCE } from '../../config/balance.ts';
-import { RESCUE_DONE, freshToday, snapshotOf } from '../state.ts';
+import { RESCUE_DONE, emptyTally, freshToday, snapshotOf } from '../state.ts';
 import type { GameState, LossReason, ReplyKind, Result, SolLog } from '../state.ts';
 import type { WindowData } from '../window.ts';
-import { chargedTasks, planDay, urgentNeeds } from './advisor.ts';
+import { chargedTasks, nextTask, planDay, urgentNeeds } from './advisor.ts';
+import { noteEndEarly, noteOverdue, noteStormHours, pickLessons } from './lessons.ts';
 import { isReady, progressBuilds, setupDone } from './build.ts';
 import { carryOver, missedTasks, payOverdue, waitingTasks } from './overdue.ts';
 import { isDustSol } from './schedule.ts';
@@ -32,6 +33,8 @@ function logLine(state: GameState, flags: string[], dusk: Dusk = duskOf(state), 
     doseGained: state.dose - state.today.doseStart,
     science: state.science,
     dusk,
+    lessons: pickLessons(state.today.lessons),
+    tally: state.today.tally ?? emptyTally(),
   };
 }
 
@@ -91,7 +94,10 @@ export function endSol(input: GameState, win: WindowData): GameState {
   const { power, air, food, panel, dose, daylightHours, hoursPerSol, dayStartHour } = BALANCE;
   // Judged before the leftover daylight passes: did the undone overdue tasks still fit?
   const charged = chargedTasks(input);
-  let s = passDaylight(input, win, input.hoursLeft, dose.habitatShield);
+  // F6 notes: work left undone with daylight to spare, storm hours outside, overdue charged.
+  let s = noteEndEarly(input, nextTask(input, win) !== null);
+  s = noteOverdue(noteStormHours(s, win, s.hoursLeft, false), charged.length);
+  s = passDaylight(s, win, s.hoursLeft, dose.habitatShield);
   s = { ...s, hoursLeft: 0, rejection: null };
   const dusk = duskOf(s);
   const flags: string[] = [];

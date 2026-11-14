@@ -13,7 +13,7 @@ export type ModalButton = { label: string; onClick: () => void; primary?: boolea
 
 export interface ModalSpec {
   title: string;
-  /** Plain text lines, or [label, value] rows. */
+  /** Plain text lines, or [label, value] rows ([label, ''] = a section heading). */
   lines: (string | [string, string])[];
   buttons: ModalButton[];
   /** Show every sentence (no "More ▾" fold): logbooks, results, quiz cards. */
@@ -72,7 +72,8 @@ function body(spec: ModalSpec): HTMLElement[] {
   let budget = full ? Number.POSITIVE_INFINITY : LEAD_SENTENCES;
   for (const line of spec.lines) {
     if (typeof line !== 'string') {
-      const row = el('p', 'row');
+      // A row with an empty value is a section heading (F6 night card).
+      const row = el('p', line[1] === '' ? 'row head' : 'row');
       row.append(el('span', '', line[0]), el('b', '', line[1]));
       out.push(row);
       continue;

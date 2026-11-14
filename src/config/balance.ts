@@ -162,6 +162,13 @@ export const BALANCE = {
   },
 
   /**
+   * F6 "Why did it happen?" notes on the night card (game feedback, no rule effect).
+   * `minWaste`: oxygen / food points lost to a full tank / store before it counts.
+   * `endEarlyHours`: ending the day with useful work left and at least this many hours.
+   */
+  lessons: { perNight: 2, minWaste: 1, endEarlyHours: 2 },
+
+  /**
    * Overdue tasks (F5a): a task on the morning list that is left undone is carried to the
    * next sol as "Overdue" and costs a little at night. Game rule, not NASA data.
    * F5b: from sol 1 (after the setup), so sol-1 tasks reach sol 2 and they pile up day by

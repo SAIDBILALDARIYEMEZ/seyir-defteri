@@ -1,0 +1,28 @@
+/* SI-assistance note: written with the help of Anthropic's Claude (coding assistant). */
+/* F6 night card: itemized rows with section headings, "Now we have" boxes, PUSULA's note. */
+.card.night { width: min(94vw, 460px); max-height: 92vh; overflow-y: auto; }
+.card.night p.row { margin: 3px 0; padding: 3px 8px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); }
+.card.night p.row.head { background: none; padding: 6px 0 0; margin-top: 8px; font-weight: 800; color: var(--ink-dim); font-size: 14px; }
+.night-now-title { margin: 14px 0 6px; font-size: 15px; color: var(--ink-dim); }
+.night-now { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.now-cell {
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 6px; align-items: center;
+  padding: 6px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.07);
+}
+.now-icon { grid-row: 1 / 3; font-size: 20px; }
+.now-val { font-size: 17px; }
+.now-delta { font-size: 13px; color: var(--ink-dim); }
+.now-cell.up { background: rgba(110, 220, 140, 0.16); }
+.now-cell.up .now-delta { color: #9be8b0; }
+.now-cell.down { background: rgba(255, 107, 91, 0.18); }
+.now-cell.down .now-delta { color: #ffb0a4; }
+.night-note { margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: rgba(124, 200, 255, 0.12); border: 1px solid rgba(124, 200, 255, 0.3); }
+.night-note h3 { margin: 0 0 6px; font-size: 16px; }
+.note-item + .note-item { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.night-note p { margin: 2px 0; line-height: 1.4; }
+.night-note .note-next b { color: #9be8b0; }
+@media (max-width: 420px) {
+  .night-now { grid-template-columns: repeat(2, 1fr); }
+}
+/* The card can scroll on small screens: its buttons stay in reach at the bottom. */
+.card.night .card-actions { position: sticky; bottom: -22px; margin: 16px -24px -22px; padding: 12px 24px 18px; background: rgba(24, 28, 58, 0.98); }

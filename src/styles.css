@@ -1,5 +1,5 @@
 /* SI-assistance note: written with the help of Anthropic's Claude (coding assistant). */
-@import './cinema.css';
+@import './cinema.css'; @import './night.css';
 :root {
   --ink: #fff4ea;
   --ink-dim: #f3cdb4;

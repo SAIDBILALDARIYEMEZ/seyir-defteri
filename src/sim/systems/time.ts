@@ -3,6 +3,7 @@
 // Passing time: radiation dose from the real hourly curve + solar panel income.
 
 import { BALANCE } from '../../config/balance.ts';
+import { emptyTally } from '../state.ts';
 import type { GameState } from '../state.ts';
 import { isEventRate, rateAt } from '../window.ts';
 import type { WindowData } from '../window.ts';
@@ -63,11 +64,14 @@ export function passDaylight(
 ): GameState {
   const h = Math.max(0, Math.min(hours, state.hoursLeft));
   if (h <= 0) return state;
+  const power = Math.min(BALANCE.power.max, state.power + incomePerHour(state) * h);
+  const tally = state.today.tally ?? emptyTally();
   return {
     ...state,
     dose: state.dose + doseOver(win, state.sol, clockOf(state), h, shield),
-    power: Math.min(BALANCE.power.max, state.power + incomePerHour(state) * h),
+    power,
     hoursLeft: Math.max(0, state.hoursLeft - h),
+    today: { ...state.today, tally: { ...tally, solar: tally.solar + Math.max(0, power - state.power) } },
   };
 }
 

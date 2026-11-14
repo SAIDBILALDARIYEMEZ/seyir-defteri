@@ -44,6 +44,22 @@ export interface PlannedTask {
   urgent?: boolean;
 }
 
+/** F6 "Why did it happen?": a lesson code for PUSULA's night note; `n` = hours / amount / tasks. */
+export type LessonCode = 'harvestFull' | 'airFull' | 'endEarly' | 'stormOutside' | 'overdueAgain';
+export interface Lesson {
+  code: LessonCode;
+  n: number;
+}
+
+/** F6: what the day brought, for the night card's itemized rows (power from the panels and spent on work, air and food made). */
+export interface Tally {
+  solar: number;
+  work: number;
+  air: number;
+  food: number;
+}
+export const emptyTally = (): Tally => ({ solar: 0, work: 0, air: 0, food: 0 });
+
 /** One line per sol for the Commander's Logbook (codes only; text comes from i18n). */
 export interface SolLog {
   sol: number;
@@ -62,6 +78,10 @@ export interface SolLog {
   missed?: string[];
   /** Overdue tasks charged tonight (F5b: undone although they still fitted the daylight). */
   charged?: string[];
+  /** F6: PUSULA's notes for tonight (at most BALANCE.lessons.perNight); missing in older saves. */
+  lessons?: Lesson[];
+  /** F6: the day's itemized power / air / food; missing in older saves. */
+  tally?: Tally;
 }
 
 export interface Today {
@@ -74,6 +94,10 @@ export interface Today {
   scannedRock: boolean;
   /** PUSULA's list as it stood in the morning (after the sol-1 setup on sol 1). */
   plan: PlannedTask[];
+  /** F6: wasted work / choices spotted today (all of them; the night card shows the top ones). */
+  lessons?: Lesson[];
+  /** F6: the day's itemized gains and costs (night card). */
+  tally?: Tally;
 }
 
 export interface GameState {
@@ -132,6 +156,8 @@ export function freshToday(dose: number): Today {
     readCuriosity: false,
     scannedRock: false,
     plan: [],
+    lessons: [],
+    tally: emptyTally(),
   };
 }
 

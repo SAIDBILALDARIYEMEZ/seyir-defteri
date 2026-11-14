@@ -8,9 +8,11 @@ import { BALANCE } from '../config/balance.ts';
 import type { Action } from './actions.ts';
 import type { Rng } from './rng.ts';
 import { check, costOf, replayTarget } from './rules.ts';
+import { emptyTally } from './state.ts';
 import type { GameState } from './state.ts';
 import { placeStarter, relocate, rotateBuilding, setupDone, startBuilding } from './systems/build.ts';
 import { buyUpgrade, collect, foodMax } from './systems/explore.ts';
+import { noteStormHours, noteWaste } from './systems/lessons.ts';
 import { endSol, lose, morningPlan } from './systems/night.ts';
 import { passDaylight, shelterShield } from './systems/time.ts';
 import type { WindowData } from './window.ts';
@@ -85,14 +87,30 @@ export function reduce(state: GameState, action: Action, _rng: Rng, win: WindowD
   if (action.type === 'rotate') return { ...rotateBuilding(state, action.station), rejection: null };
 
   const cost = costOf(state, action);
-  let s = passDaylight({ ...state, rejection: null }, win, cost.walk, BALANCE.dose.habitatShield);
+  const sheltering = action.type === 'shelterWait';
+  // F6: storm hours spent outside a ready shelter (walk + work) become PUSULA's night note.
+  let s = noteStormHours(noteStormHours({ ...state, rejection: null }, win, cost.walk, false), win, cost.hours, sheltering);
+  s = passDaylight(s, win, cost.walk, BALANCE.dose.habitatShield);
   s = {
     ...s,
     crew: s.crew.map((c) => (c.id === action.crewId ? { ...c, location: cost.station } : c)),
     power: s.power - cost.power,
   };
-  s = applyEffect(s, action);
-  const sheltering = action.type === 'shelterWait';
+  const paid = s;
+  s = noteWaste(paid, applyEffect(paid, action), action, foodMax(paid));
+  const tally = s.today.tally ?? emptyTally();
+  s = {
+    ...s,
+    today: {
+      ...s.today,
+      tally: {
+        ...tally,
+        work: tally.work + cost.power,
+        air: tally.air + Math.max(0, s.air - paid.air),
+        food: tally.food + Math.max(0, s.food - paid.food),
+      },
+    },
+  };
   const shield = sheltering ? shelterShield(s.shelterLevel) : BALANCE.dose.habitatShield;
   s = passDaylight(s, win, cost.hours, shield);
   s = {

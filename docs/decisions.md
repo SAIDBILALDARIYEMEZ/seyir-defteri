@@ -684,3 +684,27 @@ choice was made and is written here (marked **Choice**).
 - Bots: `pusula` follows the suggestion (`nextTask ?? exploreTask ?? end`); `balanced` takes it
   only when its own list is empty (rare). Other strategies never explore.
 - Saves without the new fields read as empty lists (`debris` / `upgrades` are optional).
+
+**2. "Why did it happen?" — PUSULA's note** (`sim/systems/lessons.ts`, numbers in `BALANCE.lessons`).
+The sim notes five codes in `today.lessons` while the day runs and copies the top ones to the
+log line (`SolLog.lessons`); they never change a gauge or a rule, so the bot report is unchanged.
+- `airFull`: MOXIE run whose oxygen did not fit the tank (amount lost >= 1).
+- `harvestFull`: harvest whose food did not fit the store. **Choice:** a harvest into a *full*
+  store is already refused by the "no empty work" rule, so the note catches the part that is lost.
+- `endEarly`: the day was ended with a doable task on PUSULA's live list and >= 2 h of daylight.
+- `stormOutside`: daylight hours at a radiation-event rate spent outside a *ready* shelter (walks,
+  work, and the leftover daylight when the day ends). No note before the shelter exists.
+- `overdueAgain`: overdue tasks charged tonight (left undone again although they fitted).
+At most two a night, in this order: storm, overdue, ended early, oxygen, harvest. Text: three short
+lines each (What happened -> Why -> Next time), EN/TR, plain and never blaming (`lesson.*`).
+
+**3. Night card** (`ui/nightCard.ts`, `src/night.css`, as in the trial build's night summary).
+"☀️ Today" rows (panels made, work used, oxygen made, harvest, science, parts found; only rows
+that are not zero) from a new per-day tally in the sim (`today.tally`: panel power actually stored,
+power spent on work, air and food actually added), then "🌙 Tonight" rows (heating, breathing,
+cold night, dinner, overdue line, panel dust, storm dose: all kept from before), the "why" lines and
+the "What if?" box (kept), then **"Now we have"**: six boxes (power, air, food, storm dose %,
+science, parts) with the value at the next morning and the change since this morning (green up,
+red down; for the dose up is red), then PUSULA's note. The card scrolls on small screens and its
+buttons stick to the bottom. **Choice:** no separate "morning consumption" row: in this game every
+cost happens at night (the request listed it as an example).

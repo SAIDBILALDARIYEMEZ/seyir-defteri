@@ -17,6 +17,7 @@ import { dateOfSol, rateAt } from '../sim/window.ts';
 import type { WindowData } from '../sim/window.ts';
 import { sourceTag } from './cards.ts';
 import { fmt, formatDate } from './dom.ts';
+import { dayRows, nightExtra } from './nightCard.ts';
 import { nightOverdueLine } from './overdue.ts';
 import type { ModalSpec } from './overlays.ts';
 import { delayParams } from './rescue.ts';
@@ -41,17 +42,17 @@ export function nightSpec(before: GameState, state: GameState, win: WindowData, 
   const log = state.log[state.log.length - 1];
   const flags = log?.flags ?? [];
   const gained = log?.doseGained ?? 0;
-  const lines: (string | [string, string])[] = [
-    [t('night.heating'), `−${power.nightHeating}⚡`],
-    [t('night.air'), `−${air.perSol}💨`],
-  ];
-  if (flags.includes('cold')) lines.push([t('night.cold'), `−${air.coldPenalty}💨`]);
-  if (before.sol >= food.unlockSol) lines.push([t('night.food'), `−${food.perSol}🥫`]);
+  // F6: itemized like the trial build: the day's gains and costs, then the night's.
+  const day = dayRows(before, state, log);
+  const lines: (string | [string, string])[] = day.length > 0 ? [[t('night.section.day'), ''], ...day] : [];
+  lines.push([t('night.section.night'), ''], [`🔥 ${t('night.heating')}`, `−${power.nightHeating}⚡`], [`🫁 ${t('night.air')}`, `−${air.perSol}💨`]);
+  if (flags.includes('cold')) lines.push([`🥶 ${t('night.cold')}`, `−${air.coldPenalty}💨`]);
+  if (before.sol >= food.unlockSol) lines.push([`🍽️ ${t('night.food')}`, `−${food.perSol}🥫`]);
   const late = nightOverdueLine(before, log?.missed ?? [], log?.charged ?? []);
   if (late) lines.push(late);
-  lines.push([t('night.panels'), `${Math.round((1 - state.panelEff) * 100)}%`]);
+  lines.push([`🟫 ${t('night.panels')}`, `${Math.round((1 - state.panelEff) * 100)}%`]);
   const doseOpen = before.sol >= BALANCE.unlockSol.shelterBuild;
-  if (doseOpen) lines.push([t('night.dose'), `+${share(gained)}% ☢️`]);
+  if (doseOpen) lines.push([`☢️ ${t('night.dose')}`, `+${share(gained)}%`]);
 
   const why = WHY_FLAGS.filter((flag) => flags.includes(flag));
   if (why.length === 0) lines.push(`🧭 ${t('night.why.calm')}`);
@@ -78,7 +79,8 @@ export function nightSpec(before: GameState, state: GameState, win: WindowData, 
     buttons.unshift({ label: t('data.button'), onClick: () => on.onData(before.sol, gained) });
   }
   if (on.replay) buttons.unshift(on.replay);
-  return { kind: 'night', title: `🌙 ${t('night.title', { n: before.sol })}`, lines, fact, buttons };
+  const extra = (): HTMLElement => nightExtra(before, state, log);
+  return { kind: 'night', title: `🌙 ${t('night.title', { n: before.sol })}`, lines, fact, buttons, extra };
 }
 
 export type CardBuild = (close: () => void) => ModalSpec;
