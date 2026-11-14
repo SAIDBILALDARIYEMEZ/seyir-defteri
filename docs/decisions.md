@@ -600,3 +600,59 @@ PUSULA play it. No new dependency.
 the game (the flash hides the swap; tilting the scenery lander would change picking and the walk
 blockers). Bot report after F5c: unchanged from F5b (balanced 81.0 / 78.0 / 87.0%, pusula 86.0 /
 90.5 / 89.5%).
+
+## D-021 — 2026-11-15 — F5c fix: smooth cutscenes, story dialogue, crashed rocket
+Human requests (two messages; the second replaced the dialogue and the closings of the first).
+The sim is untouched (bot report identical).
+
+**Stutter: cause and fix.** Measured in a real Chrome tab (rAF frame times, M-series Mac):
+- The evacuation scene switched 6 real `PointLight`s off one by one. Every change in the number
+  of lights makes three.js recompile every shader: a ~290 ms freeze each 0.7-0.9 s (the "plays
+  1 s, freezes" pattern). On slower GPUs (Windows / ANGLE, tablets) these stalls last seconds.
+- First use of a material (space scene, storm particles, dust burst, debris, flame) compiled its
+  shader mid-scene (317 ms at the start of the intro, 84 ms at the storm), and meshes coming into
+  view for the first time uploaded buffers and textures (stalls while the camera toured the
+  village).
+- Fixes: base lights are unlit glows (bulb + ground glow, no real light, ever). Before a cutscene
+  `scene/warm.ts` shows every hidden object, compiles all shaders with `compileAsync`
+  (parallel, non-blocking), draws once with frustum culling off (uploads every buffer / texture,
+  builds shadow programs), and restores visibility; a "Preparing…" cover hides it and frames
+  pause meanwhile. Props come from a small pool (`pooled`, built once, reset on reuse); no
+  geometry, material or vector is created per frame; the dust burst has 450 / 300 points. The
+  noise buffer for whoosh / rumble / impact is made once when audio starts. The overlay has no
+  timers: eyelids and blur are set each frame from the cutscene clock; subtitles are timed on the
+  same clock; the DOM is written only when a value changes. dt stays capped at 0.1 s, so after a
+  stall the clock goes on without skipping a shot or a line.
+- Debug panel: `cine:intro` / `cine:win` / `cine:lose` play a cutscene now (sample village), and
+  `window.cineT` holds the cutscene clock with `?debug`, for frame-time traces.
+
+| Scene (fresh page) | Before: frames > 50 ms / longest | After: frames > 50 ms / longest |
+|---|---|---|
+| Opening | 3 / 317 ms | 5 / 83 ms (none > 100 ms) |
+| Evacuation | 18 / 483 ms (five ~290 ms freezes) | 3 / 133 ms (one frame, at a random moment: GC) |
+| Success | 5 / 133 ms | 6 / 151 ms (first run after the texture fix; 14 / 249 ms before it) |
+
+**Dialogue (EN/TR, subtitles with the speaker's name).** Storm: PUSULA "Dust storm! We're drifting
+off course. Hold on!". Wake-up: PUSULA / Ada / PUSULA / PUSULA / Ada / PUSULA (six lines, from
+"Ada? Ada, can you hear me?" to "…do the science we came here for."). Success: "Signal received!
+Rescue is landing. We did it!". Evacuation: "We're safe, Ada. But we didn't reach our real goal:
+the science." Each line stays 1.2 s + 0.34 s per word (1.8-7.5 s), back to back, no gaps, each
+once. The wake-up shot waits for the dialogue and the camera drifts slowly round Ada and PUSULA
+while they talk, so the opening is now about 36 s (Skip / Esc work at any time).
+**Goal card** after the opening (before PUSULA's welcome): "Your mission: 🛟 Survive 30 sols ·
+📡 Reach Earth · ⭐ Collect science · 🚀 Land the rescue ship".
+
+**Closings.** Success: dawn, the big rescue ship (lander model x1.4) lands on the player's landing
+marker (beside the village if none), village tour, Ada waves, PUSULA's line, then the card
+"Mission complete. ⭐ N science results reached Earth." (N = `state.science`). Evacuation: night, a
+light blinks in the sky, a small emergency capsule (made in code) comes down under an orange
+parachute in front of Ada, Ada and PUSULA board, it lifts off gently (soft whoosh, no shake, no
+rumble); the camera pulls back to the half-built base and the wreck, the lights go out one by
+one, light dust drifts in, then "Mission called off. Most of the science never reached Earth.
+Every commander learns this way." The old taglines were replaced.
+
+**Crashed rocket.** The landing rocket in the game leans (`WRECK.tilt` −0.24 rad, away from Ada's
+start spot) and sits 0.35 sunk, with a scorch mark and four broken panels on the ground
+(`scene/entities/wreck.ts`). Only an inner "wreck" pivot tilts: the rocket group keeps its pick tag,
+position and walk blocker; the details are outside the group, so they are not pickable. The opening
+crash rocks back into exactly this pose before the swap, and it never flies in either closing.

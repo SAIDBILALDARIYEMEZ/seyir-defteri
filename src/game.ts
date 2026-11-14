@@ -8,6 +8,7 @@ import { setStormSound, sfx } from './audio/sound.ts';
 import { createFlow } from './game/flow.ts';
 import { backdropOf } from './game/backdrop.ts';
 import { createCinema } from './game/cinema.ts';
+import type { CineKind } from './game/cinema.ts';
 import { reduceMotion } from './lib/motion.ts';
 import { bubbleOf, computeGuide, labelOf } from './game/guide.ts';
 import type { Guide } from './game/guide.ts';
@@ -57,6 +58,8 @@ export interface Game {
   frame(dt: number): void;
   /** Redraws from the current state (e.g. after the models were swapped in). */
   refresh(): void;
+  /** Debug: plays a cutscene over the sample village (intro: empty valley). */
+  cutscene(kind: CineKind): void;
 }
 
 /** Store layout (px): matches the 900 px breakpoint in styles.css. */
@@ -317,6 +320,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     },
     dispatch: perform,
     refresh: () => render(),
+    cutscene: (kind) => flow.preview(kind),
     frame(dt) {
       world.update(s.closePause ? 0 : dt);
       if (s.mode === 'menu' && !reduceMotion()) world.view.turnBy(dt * MENU_SPIN);

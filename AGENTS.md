@@ -201,3 +201,12 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
   running Vite server of this folder (check `lsof` cwd) serves the live files.
 - `styles.css` is at the 500-line limit: new UI styles go into their own CSS file, `@import`ed at
   the top of styles.css (like `cinema.css`).
+- Never add, remove or hide real three.js lights at runtime: a change in the light count
+  recompiles every shader (F5c evacuation froze ~290 ms per light). Use unlit glows.
+- Cutscenes warm up first (`scene/warm.ts`): anything a cutscene shows must already be in the
+  scene (hidden is fine) when `cinema.play` starts, or it compiles mid-scene. Measure in a real
+  Chrome tab with the debug `cine:*` buttons and `window.cineT`; Chrome-extension screenshots
+  themselves cause 50-80 ms frames, so measure without them.
+- Editing any source file reloads every open tab of the dev server (HMR), so never edit while a
+  measurement runs; store results in localStorage, not in page variables.
+

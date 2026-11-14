@@ -23,6 +23,8 @@ export interface DebugHandlers {
   setGauge(gauge: DebugGauge, value: number): void;
   triggerDust(): void;
   triggerMalfunction(station: StationId): void;
+  /** F5c: plays a cutscene now (timing and frame-time checks). */
+  cutscene(kind: 'intro' | 'win' | 'lose'): void;
 }
 
 const SKIP_MANY = 5;
@@ -87,6 +89,16 @@ export function mountDebugPanel(root: HTMLElement, getWin: () => WindowData, on:
     actionRow.append(b);
   }
   rows.append(actionRow);
+
+  const cineRow = document.createElement('div');
+  for (const kind of ['intro', 'win', 'lose'] as const) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = `cine:${kind}`; // code names, debug only
+    b.addEventListener('click', () => on.cutscene(kind));
+    cineRow.append(b);
+  }
+  rows.append(cineRow);
 
   onLangChange(() => {
     for (const [node, key] of labels) node.textContent = t(key);

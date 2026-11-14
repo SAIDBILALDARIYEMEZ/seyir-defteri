@@ -35,7 +35,7 @@ licenses; `asset-sources.md` there).
 | Curiosity spot | quaternius/Rover_1 | A stylised rover, not the real Curiosity model. |
 | Science spot | kaykit/drill_structure + kaykit/rocks_B | |
 | Landing rocket | kaykit/lander_A | |
-| Cutscene ships (F5c): crashing rocket, rescue ship, evacuation capsule | kaykit/lander_A (fresh clones) | Primitive rocket fallback; the flame, stars, Mars globe, dust burst, debris and base lights are made in code (no files). |
+| Cutscene ships (F5c): crashing rocket, rescue ship | kaykit/lander_A (pooled clones) | Primitive rocket fallback; the flame, stars, Mars globe, dust burst, debris, base lights, the emergency capsule and its parachute, the wreck's scorch mark and panels are made in code (no files). |
 | Rover decor at the valley edge | nasa/perseverance | Logo decal sheet (`arm_graphics`: NASA / JPL / mission name) removed; a tiny flag texel area greyed out in the shader (Hard Rule 13). Merged per material, no shadows. |
 
 ## Software files shipped as assets

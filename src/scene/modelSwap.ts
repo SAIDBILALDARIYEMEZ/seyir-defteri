@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import type { StationId } from '../sim/actions.ts';
 import { makeFader } from './construction.ts';
+import { WRECK } from './entities/wreck.ts';
 import { buildLander, buildRoverDecor, buildStationModel, PANEL_CLEAN, PANEL_DUSTY } from './entities/stationModels.ts';
 
 export interface SwapView {
@@ -59,11 +60,11 @@ export function syncModelLooks(panels: SwapView, shelter: SwapView, panelEff: nu
 export function swapLander(lander: THREE.Object3D): void {
   const model = buildLander();
   if (!model) return;
-  const pos = lander.position.clone();
-  for (const child of [...lander.children]) lander.remove(child);
+  // F5c: the model goes into the tilted "wreck" pivot (crashed pose), the group stays put.
+  const pivot = lander.getObjectByName(WRECK.name) ?? lander;
+  for (const child of [...pivot.children]) pivot.remove(child);
   castShadows(model);
-  lander.add(model);
-  lander.position.copy(pos);
+  pivot.add(model);
 }
 
 /** The rover decor at the valley edge, or nothing if its file did not load. */

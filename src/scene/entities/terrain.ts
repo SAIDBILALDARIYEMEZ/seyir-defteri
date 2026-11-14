@@ -1,12 +1,13 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
 // The valley: a flat build floor, sand dunes and hills around it, rocks, the craters of the
-// build grid, and the landing rocket. Deterministic, no randomness.
+// build grid, and the crashed landing rocket. Deterministic, no randomness.
 
 import * as THREE from 'three';
 import { BALANCE } from '../../config/balance.ts';
 import { CELL, GRID_HALF, cellToWorld } from '../grid.ts';
 import { COLORS } from '../layout.ts';
+import { WRECK, primitiveLander, wreckDetails, wreckPose } from './wreck.ts';
 
 const flat = (color: number): THREE.MeshLambertMaterial =>
   new THREE.MeshLambertMaterial({ color, flatShading: true });
@@ -118,28 +119,17 @@ function hills(): THREE.Group {
 /** The landing rocket on its grid cell: tapping it only opens its info card (F5a). */
 function passive(): THREE.Group {
   const g = new THREE.Group();
-  const WHITE = 0xf2ece4;
   const ship = new THREE.Group();
-  const add = (geo: THREE.BufferGeometry, color: number, y: number): THREE.Mesh => {
-    const m = new THREE.Mesh(geo, flat(color));
-    m.position.y = y;
-    m.castShadow = true;
-    ship.add(m);
-    return m;
-  };
-  add(new THREE.CylinderGeometry(1.5, 1.8, 7, 10), WHITE, 4.5);
-  add(new THREE.ConeGeometry(1.5, 2.6, 10), 0xc8452f, 9.3);
-  for (let i = 0; i < 3; i++) {
-    const a = (i / 3) * Math.PI * 2;
-    const fin = add(new THREE.BoxGeometry(0.2, 2.4, 1.6), 0xa9a39b, 1.2);
-    fin.position.set(Math.cos(a) * 1.9, 1.2, Math.sin(a) * 1.9);
-    fin.rotation.y = -a + Math.PI / 2;
-  }
+  // F5c: the body leans inside a pivot; the group (pick tag, position) stays upright.
+  const body = primitiveLander();
+  body.name = WRECK.name;
+  wreckPose(body);
+  ship.add(body);
   const [lx, lz] = cellToWorld(BALANCE.grid.lander);
   ship.position.set(lx, 0, lz);
   ship.name = 'lander';
   ship.userData.station = 'lander';
-  g.add(ship);
+  g.add(ship, wreckDetails(lx, lz));
   return g;
 }
 

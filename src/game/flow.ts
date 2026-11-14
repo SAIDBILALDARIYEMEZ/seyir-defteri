@@ -22,6 +22,7 @@ import { resultSpec, resultTitle } from '../ui/result.ts';
 import { hazardTable, pickStormSpec } from '../ui/learn.ts';
 import { stormSpec } from '../ui/storm.ts';
 import { createMenuCards } from './menus.ts';
+import { backdropOf } from './backdrop.ts';
 import { languagePicker } from '../ui/overlays.ts';
 import { showToast } from '../ui/toast.ts';
 import { CREW_ID } from './context.ts';
@@ -202,6 +203,16 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     ctx.render();
   }
 
+  /** Debug: any cutscene, then back to where the player was. */
+  function preview(kind: 'intro' | 'win' | 'lose'): void {
+    const back = s.mode;
+    if (back === 'cine') return;
+    s.mode = 'cine';
+    const shown = kind === 'intro' ? createInitialState(s.seed, s.win) : backdropOf(s.seed, s.win);
+    ctx.cinema.play(kind, shown, s.win, () => (back === 'play' ? enterPlay() : showMenu()));
+    ctx.render();
+  }
+
   function showResult(): void {
     clearSave(s.state);
     world.setNight(false);
@@ -284,14 +295,25 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     s.mode = 'cine';
     ctx.cinema.play('intro', s.state, s.win, () => {
       enterPlay();
-      const close = ctx.modal(() => ({
-        kind: 'event',
-        title: `🧭 ${t('tutorial.welcome.title')}`,
-        lines: [t('tutorial.welcome1'), t('tutorial.welcome2')],
-        buttons: [{ label: t('event.ok'), onClick: () => close(), primary: true }],
+      // F5c: the four mission goals first, then PUSULA's welcome.
+      const closeGoal = ctx.modal(() => ({
+        kind: 'event goal',
+        full: true,
+        title: `🎯 ${t('goal.title')}`,
+        lines: [`🛟 ${t('goal.survive')}`, `📡 ${t('goal.earth')}`, `⭐ ${t('goal.science')}`, `🚀 ${t('goal.rescue')}`],
+        buttons: [{ label: t('event.ok'), onClick: () => { closeGoal(); welcome(); }, primary: true }],
       }));
     });
     ctx.render();
+  }
+
+  function welcome(): void {
+    const close = ctx.modal(() => ({
+      kind: 'event',
+      title: `🧭 ${t('tutorial.welcome.title')}`,
+      lines: [t('tutorial.welcome1'), t('tutorial.welcome2')],
+      buttons: [{ label: t('event.ok'), onClick: () => close(), primary: true }],
+    }));
   }
 
   function showMenu(): void {
@@ -309,6 +331,7 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     showResult,
     finish,
     watchIntro,
+    preview,
     continueMission,
     newMission,
     ...createMenuCards(ctx, { continueMission, confirmReset }),

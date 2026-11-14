@@ -87,6 +87,7 @@ const debugPanel = isDebug
       setGauge: (gauge, value) => game.setState(setGauge(game.getState(), gauge, value)),
       triggerDust: () => game.setState(triggerDust(game.getState())),
       triggerMalfunction: (station) => game.setState(triggerMalfunction(game.getState(), station)),
+      cutscene: (kind) => game.cutscene(kind),
     })
   : null;
 

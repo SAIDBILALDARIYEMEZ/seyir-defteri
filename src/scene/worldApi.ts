@@ -52,6 +52,8 @@ export interface World {
   useModels(onSwap: () => void): Promise<void>;
   /** F5c: the pieces a cutscene moves (scene, Ada, PUSULA, rocket, cameras). */
   stage(): Stage;
+  /** F5c: compiles the shaders a cutscene needs (no first-use stalls); frames pause meanwhile. */
+  warm(cutscene: Cutscene): Promise<void>;
   /** F5c: a running cutscene owns the camera, sky and storm; null gives them back. */
   play(cutscene: Cutscene | null): void;
 }

@@ -24,6 +24,7 @@ import type { StormMode } from './fx/storm.ts';
 import { GRID_HALF, cellToWorld, stationCell } from './grid.ts';
 import { FOOTPRINT, LABEL_HEIGHT, PUSULA_SIDE, STAND_OFFSET, STATION_IDS, WALK_SPEED } from './layout.ts';
 import { createLighting } from './lighting.ts';
+import { warmShaders } from './warm.ts';
 import { findPath, pushOut } from './path.ts';
 import type { Blocker, Point } from './path.ts';
 
@@ -119,6 +120,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
   let stormMode: StormMode = 'none';
   let night = false;
   let cut: Cutscene | null = null;
+  let warming = false;
 
   const orbit = createOrbitCamera();
   const camera = orbit.camera;
@@ -155,6 +157,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
 
   return {
     update(dt) {
+      if (warming) return;
       orbit.follow(ada.group.position.x, ada.group.position.z);
       orbit.update(dt);
       ada.update(dt);
@@ -272,6 +275,9 @@ export function createWorld(canvas: HTMLCanvasElement): World {
       spots: () => STATION_IDS.filter((id) => views[id].group.visible).map((id) => ({ id, x: posOf(id).x, z: posOf(id).z })),
       habitatStand: () => (views.habitat.group.visible ? standOf('habitat') : null),
     }),
+    async warm(next) {
+      await warmShaders(renderer, next.scene ? [scene, next.scene] : [scene], next.camera, (on) => (warming = on));
+    },
     play(next) {
       cut = next;
       if (!next) storm.setMode(stormMode);

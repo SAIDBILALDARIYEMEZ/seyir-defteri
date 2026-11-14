@@ -52,12 +52,12 @@ export type Beat =
   | 'flash'
   | 'black'
   | 'wake'
-  | 'blink'
-  | 'pusula'
+  | 'talk'
   | 'clear'
   | 'land'
-  | 'tagline'
   | 'lightsOut'
+  | 'final'
+  | 'board'
   | 'liftoff'
   | 'end';
 
@@ -65,7 +65,12 @@ export type Beat =
 export interface CutsceneOptions {
   /** Reduce motion (F5c setting): no camera shake. */
   calm: boolean;
-  onBeat(beat: Beat): void;
+  /** Seconds the cutscene's main dialogue needs (from word counts); shots wait for it. */
+  talk: number;
+  /** `at`: the beat's scheduled time on the cutscene clock. */
+  onBeat(beat: Beat, at: number): void;
+  /** Every frame with the cutscene clock (frame-driven overlay effects and subtitles). */
+  onTick(t: number): void;
   /** Runs once when the last shot ends (not on skip). */
   onEnd(): void;
 }
@@ -76,9 +81,10 @@ export interface Playing extends Cutscene {
 }
 
 /** Fires each beat once when the clock passes its time. */
-export function beatClock(beats: [number, Beat][], onBeat: (beat: Beat) => void): (t: number) => void {
+export function beatClock(beats: [number, Beat][], onBeat: (beat: Beat, at: number) => void): (t: number) => void {
+  const list = [...beats].sort((a, b) => a[0] - b[0]);
   let next = 0;
   return (t) => {
-    while (next < beats.length && (beats[next]?.[0] ?? Infinity) <= t) onBeat(beats[next++]?.[1] ?? 'end');
+    for (let b = list[next]; b && b[0] <= t; b = list[++next]) onBeat(b[1], b[0]);
   };
 }

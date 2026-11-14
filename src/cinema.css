@@ -1,5 +1,5 @@
 /* SI-assistance note: written with the help of Anthropic's Claude (coding assistant). */
-/* F5c cutscenes: letterbox bars, subtitle, PUSULA bubble, alarm glow, flash, fade, eyelids. */
+/* F5c cutscenes: letterbox bars, subtitles, alarm glow, flash, fade, eyelids, preparing cover. */
 .cine { position: absolute; inset: 0; z-index: 50; pointer-events: none !important; overflow: hidden; }
 .cine > * { position: absolute; pointer-events: none; }
 .cine-bar { left: 0; right: 0; height: 0; background: #000; transition: height 0.8s cubic-bezier(0.65, 0, 0.35, 1); }
@@ -7,19 +7,19 @@
 .cine-bar.bottom { bottom: 0; }
 .cine.bars .cine-bar { height: 11vh; }
 .cine-sub {
-  left: 50%; bottom: calc(11vh + 18px); margin: 0; max-width: min(88vw, 760px); transform: translate(-50%, 8px);
-  font-size: clamp(20px, 3.2vw, 32px); font-weight: 700; letter-spacing: 0.02em; text-align: center; color: #fff6ec;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85); opacity: 0; transition: opacity 0.8s ease, transform 0.8s ease;
+  left: 50%; bottom: calc(11vh + 18px); margin: 0; max-width: min(88vw, 760px); transform: translateX(-50%);
+  display: grid; gap: 2px; justify-items: center;
+  font-size: clamp(20px, 3vw, 30px); font-weight: 700; letter-spacing: 0.01em; text-align: center; color: #fff6ec;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85); opacity: 0; transition: opacity 0.25s ease;
 }
-.cine-sub.on { opacity: 1; transform: translate(-50%, 0); }
-.cine-bubble {
-  left: 50%; top: calc(11vh + 18px); display: grid; gap: 2px; max-width: min(86vw, 520px); padding: 12px 18px;
-  transform: translate(-50%, -8px) scale(0.96); font-size: clamp(17px, 2.4vw, 22px); color: #2a140c;
-  background: #fff8ef; border: 3px solid #35e0d0; border-radius: 18px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  opacity: 0; transition: opacity 0.35s ease, transform 0.35s ease;
+.cine-sub.on { opacity: 1; }
+.cine-sub .cine-who { font-size: 14px; letter-spacing: 0.1em; color: #6ff0e2; text-transform: uppercase; }
+.cine-sub .cine-who[hidden] { display: none; }
+.cine-prep {
+  inset: 0; margin: 0; display: grid; place-items: center; font-size: 20px; font-weight: 700; color: #f3cdb4;
+  background: #000; opacity: 0; transition: opacity 0.2s;
 }
-.cine-bubble.on { opacity: 1; transform: translate(-50%, 0) scale(1); }
-.cine-who { font-size: 13px; letter-spacing: 0.08em; color: #0f8f84; }
+.cine.prep .cine-prep { opacity: 1; }
 .cine-alarm { inset: 0; opacity: 0; transition: opacity 0.4s; box-shadow: inset 0 0 18vmin 4vmin rgba(255, 30, 20, 0.75); }
 .cine.alarm .cine-alarm { opacity: 1; animation: cine-alarm 0.9s ease-in-out infinite; }
 .cine.alarm.calm .cine-alarm, .reduce-motion .cine.alarm .cine-alarm { animation: none; opacity: 0.6; }
@@ -28,16 +28,19 @@
 .cine-flash.go { animation: cine-flash 0.9s ease-out; }
 @keyframes cine-flash { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0.9; } }
 .cine-black { inset: 0; background: #000; opacity: 0; }
-.cine-lid { left: -5%; right: -5%; height: 0; background: #000; }
-.cine-lid.top { top: 0; border-radius: 0 0 50% 50% / 0 0 30% 30%; }
-.cine-lid.bottom { bottom: 0; border-radius: 50% 50% 0 0 / 30% 30% 0 0; }
-.cine.lids .cine-lid { height: 52%; }
-.cine.blink .cine-lid { animation: cine-blink 2.2s ease-in-out forwards; }
-.cine.blink.calm .cine-lid { animation: cine-open 2.2s ease-in-out forwards; }
-@keyframes cine-blink { 0% { height: 52%; } 25% { height: 30%; } 40% { height: 50%; } 75% { height: 12%; } 100% { height: 0; } }
-@keyframes cine-open { 0% { height: 52%; } 100% { height: 0; } }
+.cine-lid { left: -5%; right: -5%; height: 52%; background: #000; display: none; will-change: transform; }
+.cine-lid.top { top: 0; transform-origin: top; border-radius: 0 0 50% 50% / 0 0 30% 30%; }
+.cine-lid.bottom { bottom: 0; transform-origin: bottom; border-radius: 50% 50% 0 0 / 30% 30% 0 0; }
+.cine.lids .cine-lid { display: block; }
 .cine-skip {
   right: 16px; bottom: 16px; z-index: 2; pointer-events: auto !important; min-height: 48px; padding: 10px 18px;
   font-size: 17px; font-weight: 700; background: rgba(20, 10, 6, 0.7); border: 2px solid rgba(255, 255, 255, 0.35);
 }
 .cine-skip:hover, .cine-skip:focus-visible { border-color: var(--accent); }
+.cine-card {
+  left: 50%; top: calc(11vh + 24px); margin: 0; max-width: min(86vw, 640px); padding: 18px 26px; transform: translate(-50%, 0) scale(0.97);
+  font-size: clamp(20px, 2.8vw, 28px); font-weight: 800; line-height: 1.35; text-align: center; color: #fff6ec;
+  background: rgba(20, 10, 6, 0.72); border: 2px solid rgba(255, 179, 71, 0.6); border-radius: 18px;
+  opacity: 0; transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.cine-card.on { opacity: 1; transform: translate(-50%, 0) scale(1); }

@@ -94,6 +94,7 @@ export function unlockAudio(): void {
   master.gain.value = enabled ? SND.master : 0;
   master.connect(ctx.destination);
   startLoops(ctx, master);
+  sharedNoise(ctx);
 }
 
 export const soundEnabled = (): boolean => enabled;
@@ -130,15 +131,25 @@ function tone(freq: number, start: number, len: number, gain: number, type: Osci
   osc.stop(t0 + len + 0.05);
 }
 
-/** Filtered noise burst; `toCutoff` sweeps the filter (a whoosh). */
+/** One shared noise buffer, made once when audio starts (no big loops while a cutscene runs). */
+let noiseBuf: AudioBuffer | null = null;
+const NOISE_S = 5;
+
+function sharedNoise(c: AudioContext): AudioBuffer {
+  if (noiseBuf) return noiseBuf;
+  noiseBuf = c.createBuffer(1, c.sampleRate * NOISE_S, c.sampleRate);
+  const data = noiseBuf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  return noiseBuf;
+}
+
+/** Filtered noise burst from the shared buffer; `toCutoff` sweeps the filter (a whoosh). */
 function noise(len: number, gain: number, cutoff: number, toCutoff?: number, type: BiquadFilterType = 'lowpass'): void {
   if (!ctx || !master || !enabled) return;
   const t0 = ctx.currentTime;
-  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * len), ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
   const src = ctx.createBufferSource();
-  src.buffer = buf;
+  src.buffer = sharedNoise(ctx);
+  src.loop = true;
   const filter = ctx.createBiquadFilter();
   filter.type = type;
   filter.frequency.setValueAtTime(cutoff, t0);
@@ -148,7 +159,7 @@ function noise(len: number, gain: number, cutoff: number, toCutoff?: number, typ
   g.gain.exponentialRampToValueAtTime(gain, t0 + Math.min(0.4, len * 0.25));
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + len);
   src.connect(filter).connect(g).connect(master);
-  src.start(t0);
+  src.start(t0, Math.random() * NOISE_S);
   src.stop(t0 + len + 0.05);
 }
 
