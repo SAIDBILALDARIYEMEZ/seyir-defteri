@@ -27,10 +27,10 @@ const calm = (over: Partial<GameState> = {}): GameState => ({
 const atSol = (sol: number, over: Partial<GameState> = {}): GameState => calm({ sol, ...over });
 
 describe('time and night', () => {
-  it('a quiet sol adds about one shielded dose point and the night bill', () => {
+  it('a quiet sol adds no storm dose and pays the night bill', () => {
     const s = step(calm(), END);
     expect(s.sol).toBe(2);
-    expect(s.dose).toBeCloseTo(((4 * 24) / 100) * 0.7, 5); // 05:00 to the next 05:00
+    expect(s.dose).toBe(0); // only dose above the quiet rate counts
     expect(s.power).toBeCloseTo(50 + 30 - 15, 5);
     expect(s.air).toBe(60);
     expect(s.food).toBe(8); // ship rations before sol 3
@@ -116,7 +116,7 @@ describe('radiation from the real curve', () => {
   });
 
   it('too much dose ends the mission as an early evacuation', () => {
-    const s = step(atSol(18, { dose: 99.9 }), act('moxie'));
+    const s = step(atSol(18, { dose: BALANCE.dose.budget - 0.1 }), act('moxie'));
     expect(s.phase).toBe('lost');
     expect(s.lossReason).toBe('dose');
     expect(s.result).toBe('evacuation');
@@ -137,9 +137,10 @@ describe('rescue chain and results', () => {
 
   it('grades the end of sol 30', () => {
     const end = (over: Partial<GameState>): GameState => step(atSol(30, over), END);
-    expect(end({ rescueStage: 4, science: 8 }).result).toBe('legend');
-    expect(end({ rescueStage: 4, science: 7 }).result).toBe('success');
-    expect(end({ rescueStage: 3, science: 9 }).result).toBe('hardRescue');
+    expect(end({ rescueStage: 4, science: BALANCE.science.legendMin }).result).toBe('legend');
+    expect(end({ rescueStage: 4, science: BALANCE.science.legendMin - 1 }).result).toBe('success');
+    expect(end({ rescueStage: 3, science: BALANCE.science.legendMin }).result).toBe('hardRescue');
+    expect(end({ rescueStage: 4, science: 99, dose: BALANCE.dose.legendMax }).result).toBe('success');
     expect(end({ air: 5 }).lossReason).toBe('air');
     expect(end({ food: 0, foodEmptySols: 1 }).lossReason).toBe('food');
   });

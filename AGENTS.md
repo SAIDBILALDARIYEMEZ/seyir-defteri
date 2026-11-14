@@ -117,3 +117,7 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
 - DONKI lists no SEP on 2024-05-20: the big Mars event is only in the RAD curve. Warnings
   therefore use DONKI SEP days plus RAD-measured event days (D-006).
 - DONKI `notifications?type=FLR` gives the alert threshold crossed, not the flare class.
+- The dose gauge is **storm dose**: only the RAD rate above the month's median counts, at
+  24.5 uGy per point, budget 45 (D-008). Never describe it to players as total radiation.
+- `node tools/bot/probe.ts` prints dose / science spreads of winning games: use it before
+  touching the Legend limits.

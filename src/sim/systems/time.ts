@@ -15,7 +15,7 @@ export function clockOf(state: GameState): number {
   return BALANCE.dayStartHour + (BALANCE.daylightHours - state.hoursLeft);
 }
 
-/** Dose points received over `hours` starting at `clock` on `sol`, behind `shield` (0-1). */
+/** Storm dose points received over `hours` starting at `clock` on `sol`, behind `shield` (0-1). */
 export function doseOver(
   win: WindowData,
   sol: number,
@@ -30,7 +30,9 @@ export function doseOver(
     const h = Math.floor(t + EPS);
     const seg = Math.min(left, h + 1 - t);
     const daysOver = Math.floor(h / BALANCE.hoursPerSol);
-    uGy += rateAt(win, sol + daysOver, h % BALANCE.hoursPerSol) * seg;
+    // D-008: the budget counts storm dose only, i.e. the part above the month's quiet rate.
+    const rate = rateAt(win, sol + daysOver, h % BALANCE.hoursPerSol);
+    uGy += Math.max(0, rate - win.quietRate) * seg;
     t += seg;
     left -= seg;
   }

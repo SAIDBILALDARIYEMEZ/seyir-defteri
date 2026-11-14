@@ -116,3 +116,42 @@ gauges. Options, all inside `balance.ts`: (a) lower `uGyPerPoint` so the same re
 more of the budget, described honestly as "mission dose budget" (for example 25 uGy per point);
 (b) lower the budget and the Legend limit; (c) keep the honest scale and make the trade-off
 about the Legend limit only. Not decided here: game design belongs to the human.
+
+## D-008 — 2026-11-14 — Radiation scale (resolves D-007; human decisions)
+- **Approved as written:** D-006, including warnings = DONKI SEP days plus RAD-measured Mars
+  event days.
+- **D-007 answer: shrink the scale, keep the real curve.** One linear scale cannot give both
+  "2024-05-20 is about 60 points" and "a quiet month stays small": in the real data the event
+  sol is 1,582 uGy while a quiet month is 3,341 uGy (5,501 in September 2017). The human chose:
+  **the dose budget counts storm dose only**, i.e. the part of the RAD hourly rate above that
+  month's RAD median. The curve itself is not reshaped; one constant converts it:
+  **1 dose point = 24.5 uGy of storm dose** (`BALANCE.dose.uGyPerPoint`).
+  Result: 2024-05-20 (05:00 to 05:00) is 60 points unshielded; the rest of window 1 adds about
+  7 points, all of window 2 about 17, all of window 3 about 4.
+- **Label duty (Hard Rule 7):** UI must call this the "storm dose budget" and say the everyday
+  cosmic-ray background is not counted. The background stays visible as real data (Curiosity
+  reading card, R5 info card).
+- **Budget lowered from 100 to 45** (`BALANCE.dose.budget`), also the human's choice: with the
+  event at 60 points and a 30% habitat shield, a crew that never shelters ends window 1 at
+  about 47 points, so a 100-point budget could never be reached. The HUD can show the gauge as
+  a share of the budget.
+**Why:** data honesty (real curve, one constant) plus a shelter choice that matters.
+**Alternatives:** count 25% of the background (two constants, no real basis); keep 100 uGy per
+point (event only 15 points, shelter irrelevant); budget 100 with the event at 130 points.
+
+## D-009 — 2026-11-14 — F1b bot tuning result (3 of 6 rounds used, balance.ts only)
+Changed: `dose.uGyPerPoint` 100 -> 24.5, `dose.budget` 100 -> 45, `dose.legendMax` 50 -> 20,
+`science.legendMin` 8 -> 62 (science is up to 3 per sol, so 8 was met by every win).
+Met: never-shelter wins 0% in window 1; balanced wins 82.5 / 86.5 / 91.5%; always-shelter
+Legend 0 / 0 / 9.5%; random <= 1%; balanced Legend 26% in window 1.
+**Still off target:**
+- balanced Legend is 80.5% (w2) and 91.5% (w3): one science limit cannot fit all windows,
+  because median science of a balanced win is 60 / 66 / 71 (fewer shelter days = more science)
+  and the storm dose in w2 / w3 is far below any limit.
+- no-antenna wins more than balanced (95 / 97 / 98.5%). The DONKI warnings on sols 7-11 give
+  every strategy time to max the shelter (9 work hours in total) long before sol 18, so the
+  longer warning lead changes nothing, while the antenna chain costs 6 work hours.
+- greedy is 0% in window 1 (it never shelters), 5% elsewhere; never-shelter still wins 91.5%
+  in w2 / w3 (target was only for window 1).
+- pusula untouched by request (0% Legend, 53-66% wins) until F3.
+These need rule or content changes (not numbers), so they wait for the human.

@@ -17,17 +17,23 @@ export const BALANCE = {
   panel: { start: 1, decayPerSol: 0.1, dustDecayPerSol: 0.25, cleanAt: 0.9 },
 
   dose: {
-    budget: 100,
-    /** D-002 R2: 1 dose point is about 100 uGy (quiet 2024 sol, unshielded). */
-    uGyPerPoint: 100,
+    /** Mission storm-dose budget (D-008). Reaching it means Early Evacuation. */
+    budget: 45,
+    /**
+     * D-008: one dose point = 24.5 uGy of storm dose (dose above the month's quiet RAD median).
+     * The real 2024-05-20 curve is then about 60 points unshielded. Single scale constant.
+     */
+    uGyPerPoint: 24.5,
     habitatShield: 0.3,
     /** Shield while waiting in the shelter, by shelter level 0-3. */
     shelterShield: [0.5, 0.7, 0.85, 0.95],
     /** An hour counts as a radiation event when the rate is this many times the quiet rate. */
     eventRateFactor: 2,
-    legendMax: 50,
+    /** Legend needs less storm dose than this (sheltering through most of the big event). */
+    legendMax: 20,
   },
-  science: { legendMin: 8 },
+  /** Tuned with the bot (D-009): curiosity + rock scan give up to 3 per sol. */
+  science: { legendMin: 62 },
 
   actions: {
     clean: { hours: 2 },
