@@ -3,7 +3,7 @@
 // Night accounting, win/lose checks, the logbook line, and the next morning.
 
 import { BALANCE } from '../../config/balance.ts';
-import { RESCUE_DONE, emptyTally, freshToday, snapshotOf } from '../state.ts';
+import { RESCUE_DONE, RESCUE_FINDABLE, emptyTally, freshToday, snapshotOf } from '../state.ts';
 import type { GameState, LossReason, ReplyKind, Result, SolLog } from '../state.ts';
 import type { WindowData } from '../window.ts';
 import { chargedTasks, nextTask, planDay, urgentNeeds } from './advisor.ts';
@@ -48,9 +48,14 @@ export function lose(state: GameState, reason: LossReason, flags: string[] = [],
   };
 }
 
+/** Science stars the top grade needs in this real month (F6: calmer months ask for more). */
+export function legendScience(windowId: string): number {
+  return BALANCE.science.legendMinByWindow[windowId] ?? BALANCE.science.legendMin;
+}
+
 function resultOf(state: GameState): Result {
   if (state.rescueStage < RESCUE_DONE) return 'hardRescue';
-  const legend = state.dose < BALANCE.dose.legendMax && state.science >= BALANCE.science.legendMin;
+  const legend = state.dose < BALANCE.dose.legendMax && state.science >= legendScience(state.windowId);
   return legend ? 'legend' : 'success';
 }
 
@@ -152,6 +157,10 @@ export function endSol(input: GameState, win: WindowData): GameState {
   if (s.dose >= dose.budget) return lose(s, 'dose', flags, dusk, missed);
   if (s.foodEmptySols >= food.emptySolsToLose) return lose(s, 'food', flags, dusk, missed);
   s = { ...s, log: [...s.log, logLine(s, flags, dusk, missed, charged)] };
-  if (s.sol >= BALANCE.totalSols) return { ...s, phase: 'won', result: resultOf(s) };
+  if (s.sol >= BALANCE.totalSols) {
+    // F6: no antenna, no location sent: the rescue ship cannot find the base (rule, not balance).
+    if (s.rescueStage < RESCUE_FINDABLE) return { ...s, phase: 'lost', lossReason: 'noSignal', result: 'evacuation' };
+    return { ...s, phase: 'won', result: resultOf(s) };
+  }
   return nextMorning(s, win, [...missed, ...waitingTasks(s)]);
 }

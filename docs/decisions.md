@@ -730,3 +730,22 @@ dose bar, with regolith under ~10%, while a player who stays outside goes far ov
   costs the day's work; working outside in a storm is now what hurts.
 - Bot report after part 4 (100 games): balanced 84 / 80 / 87%, pusula 94 / 98 / 96%,
   never-shelter w1 0%, random <= 1% — all targets kept.
+
+**5. Remaining balance (2 of the 4 allowed rounds used).**
+- **no-antenna (rule, not numbers):** at the end of sol 30 a base whose location never reached
+  Earth (`rescueStage < 2`: no antenna, or antenna but no message) cannot be found: Early
+  Evacuation with the new loss reason `noSignal` (result text, key decision and "what we learned"
+  point to antenna -> message). Location sent but no marker stays "Tough Rescue". no-antenna:
+  96 / 91 / 99% -> **0 / 0 / 0%**.
+- **greedy:** it never built the antenna, so the rule above would lock it at 0%. Its definition
+  now taps the store and the radio when no gauge needs it (shelter, antenna, marker, message, set
+  the marker): still no plan, but it can complete the chain. It dies of cold nights (it spends the
+  power the night heating needs), 4.5% in every window.
+  - Round 1 (reverted): `air.coldPenalty` 15 -> 8 gave greedy only +2 points but balanced jumped to
+    97 / 99 / 100% (it also has cold nights). **Remaining deviation:** greedy 4.5% vs target
+    30-60%. The gap is the strategy's missing power plan; closing it with numbers would flatten the
+    game for everyone. Left for the human.
+- **Legend in w2 / w3** (round 2, kept): calmer months leave more time for science, so the top
+  grade asks for more there: `science.legendMinByWindow` w2 75, w3 80 (w1 stays 72). Balanced
+  Legend 29 / 69.5 / 86.5% -> **29 / 40.5 / 44%** (target 25-50%). never-shelter Legend in w2 / w3
+  stays high (86 / 78%): in a calm month it plays like balanced; its target is w1 only (0%).

@@ -24,13 +24,16 @@ export interface Building {
 }
 
 export type GamePhase = 'playing' | 'won' | 'lost';
-export type LossReason = 'air' | 'dose' | 'food';
+/** `noSignal` (F6): sol 30 came and no location ever reached Earth, so the rescue ship could not find the base. */
+export type LossReason = 'air' | 'dose' | 'food' | 'noSignal';
 export type Result = 'legend' | 'success' | 'hardRescue' | 'evacuation';
 export type ReplyKind = 'coords' | 'forecast' | 'advice';
 
 /** Rescue chain: 0 none, 1 antenna repaired, 2 location sent, 3 coordinates received, 4 beacon set. */
 export type RescueStage = 0 | 1 | 2 | 3 | 4;
 export const RESCUE_DONE: RescueStage = 4;
+/** F6: the rescue can only find the base once its location was sent (antenna + message). */
+export const RESCUE_FINDABLE: RescueStage = 2;
 
 /** A task from PUSULA's list. `overdue`: carried over from an earlier sol (F5a). */
 export interface PlannedTask {

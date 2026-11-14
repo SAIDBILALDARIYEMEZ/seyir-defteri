@@ -639,5 +639,7 @@
   "lesson.stormOutside.next": "Fırtına sürerken sığınakta bekle.",
   "lesson.overdueAgain.what": "Gecikmiş görevler bir gün daha bekledi: {n} tanesi bu gece bedel ödetti.",
   "lesson.overdueAgain.why": "Bir görev bir gün bedava bekleyebilir; sonrası küçük bir bedel ister.",
-  "lesson.overdueAgain.next": "Önce ⏰ gecikmiş görevleri yap."
+  "lesson.overdueAgain.next": "Önce ⏰ gecikmiş görevleri yap.",
+  "result.what.lost.noSignal": "Sol {n} geldi ama konumumuz Dünya'ya hiç ulaşmadı, kurtarma gemisi üssü bulamadı. Ekip kapsülle ayrıldı.",
+  "result.key.noSignal": "Anten olmadan Mars'tan hiç mesaj çıkmadı. Önce anteni kur, sonra konumumuzu gönder."
 }

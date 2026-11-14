@@ -40,7 +40,14 @@ export const BALANCE = {
     legendMax: 20,
   },
   /** Tuned with the bot (D-009): curiosity + rock scan give up to 3 per sol. */
-  science: { legendMin: 72 },
+  science: {
+    legendMin: 72,
+    /**
+     * F6: calmer months (fewer storm hours in the shelter) leave more time for science, so the
+     * top grade asks for more there. Bot median science of balanced winners: w1 71, w2 75, w3 80.
+     */
+    legendMinByWindow: { w2: 75, w3: 80 } as Record<string, number>,
+  },
 
   actions: {
     clean: { hours: 2 },

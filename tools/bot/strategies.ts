@@ -50,7 +50,9 @@ const random: Strategy = (state, win, rng) => {
 
 /**
  * Fixes whichever gauge is lowest right now; builds a station only when that gauge needs it.
- * No plan, no shelter, no antenna.
+ * No plan, no shelter. F6: with nothing to fix it taps what the store and the radio offer
+ * (next station, message, marker), like a child pressing the shiny buttons: since D-022 the
+ * rescue needs the antenna, so a bot that never builds it can never win.
  */
 const greedy: Strategy = (state, win) => {
   const needs: [number, Action, Action | null][] = [
@@ -63,7 +65,8 @@ const greedy: Strategy = (state, win) => {
     if (check(state, action, win) === null) return action;
     if (station && check(state, station, win) === null) return station;
   }
-  return END;
+  const extras: Action[] = [build('shelter'), build('antenna'), build('beacon'), simple('message'), simple('beacon')];
+  return extras.find((x) => check(state, x, win) === null && !(x.type === 'message' && state.rescueStage !== 1)) ?? END;
 };
 
 interface PlanOptions {

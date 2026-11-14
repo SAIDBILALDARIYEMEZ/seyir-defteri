@@ -160,6 +160,10 @@ describe('rescue chain and results', () => {
     expect(end({ rescueStage: 4, science: BALANCE.science.legendMin }).result).toBe('legend');
     expect(end({ rescueStage: 4, science: BALANCE.science.legendMin - 1 }).result).toBe('success');
     expect(end({ rescueStage: 3, science: BALANCE.science.legendMin }).result).toBe('hardRescue');
+    expect(end({ rescueStage: 2 }).result).toBe('hardRescue');
+    // F6: no location ever sent -> the rescue cannot find the base.
+    expect(end({ rescueStage: 1 }).lossReason).toBe('noSignal');
+    expect(end({ rescueStage: 0 }).phase).toBe('lost');
     expect(end({ rescueStage: 4, science: 99, dose: BALANCE.dose.legendMax }).result).toBe('success');
     expect(end({ air: 5 }).lossReason).toBe('air');
     expect(end({ food: 0, foodEmptySols: 1 }).lossReason).toBe('food');

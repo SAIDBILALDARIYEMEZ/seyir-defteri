@@ -639,5 +639,7 @@
   "lesson.stormOutside.next": "When the storm is on, wait in the shelter.",
   "lesson.overdueAgain.what": "Overdue tasks waited one more day: {n} cost us tonight.",
   "lesson.overdueAgain.why": "A task may wait one day for free; after that it costs a little.",
-  "lesson.overdueAgain.next": "Do the ⏰ overdue tasks first."
+  "lesson.overdueAgain.next": "Do the ⏰ overdue tasks first.",
+  "result.what.lost.noSignal": "Sol {n} came, but our location never reached Earth, so the rescue ship could not find the base. The crew left in the capsule.",
+  "result.key.noSignal": "Without the antenna no message left Mars. Build the antenna, then send our location."
 }

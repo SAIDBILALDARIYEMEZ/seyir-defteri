@@ -13,6 +13,7 @@ import type { WindowData } from '../sim/window.ts';
 import { sourceTag, svg } from './cards.ts';
 import { el, fmt, formatDate } from './dom.ts';
 import type { ModalSpec } from './overlays.ts';
+import { legendScience } from '../sim/systems/night.ts';
 
 const share = (points: number): string => fmt((points / BALANCE.dose.budget) * 100);
 const ICON = { legend: '🏆', success: '🚀', hardRescue: '🛟', evacuation: '🧳' } as const;
@@ -30,13 +31,13 @@ const shelterHours = (log: SolLog): number =>
   log.actions.filter((a) => a === 'shelterWait').length * BALANCE.actions.shelterWait.stepHours;
 
 function whatAndWhy(state: GameState): string[] {
-  const { dose, science } = BALANCE;
+  const { dose } = BALANCE;
   if (state.phase === 'lost') return [t(`result.what.lost.${state.lossReason ?? 'air'}`, { n: state.sol }), t('result.why.lost')];
   if (state.result === 'legend') return [t('result.what.won'), t('result.why.legend')];
   if (state.result === 'hardRescue') return [t('result.what.won'), t('result.why.hardRescue')];
   const why = state.dose >= dose.legendMax
     ? t('result.why.successDose', { n: share(dose.legendMax) })
-    : t('result.why.successScience', { n: science.legendMin });
+    : t('result.why.successScience', { n: legendScience(state.windowId) });
   return [t('result.what.won'), why];
 }
 
@@ -50,6 +51,7 @@ function keyDecisions(state: GameState, win: WindowData): string[] {
       return [cold ? t('result.key.cold', { n: cold.sol }) : t('result.key.air', { made: count(log, 'moxie'), sols: log.length })];
     }
     if (state.lossReason === 'food') return [t('result.key.food', { n: count(log, 'greenhouse'), sols: log.length })];
+    if (state.lossReason === 'noSignal') return [t('result.key.noSignal')];
     return storm ? [t('result.key.dose', { sol: storm.sol, got: share(storm.doseGained), h: fmt(shelterHours(storm)) })] : [];
   }
   const out: string[] = [];
@@ -65,6 +67,7 @@ function learned(state: GameState): string[] {
   const list: string[] = [];
   if (state.lossReason === 'air') list.push(t('learned.air'));
   if (state.lossReason === 'food') list.push(t('learned.food'));
+  if (state.lossReason === 'noSignal') list.push(t('learned.rescue'));
   list.push(t('learned.shelter'), t(state.rescueStage >= 2 ? 'learned.delay' : 'learned.rescue'), t('learned.power'));
   return list.slice(0, LEARNED_COUNT);
 }
