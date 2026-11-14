@@ -25,9 +25,15 @@ export const BALANCE = {
      * The real 2024-05-20 curve is then about 60 points unshielded. Single scale constant.
      */
     uGyPerPoint: 24.5,
-    habitatShield: 0.3,
+    /**
+     * F6 shelter balance (D-022): daylight work happens outside in the suit (`outsideShield`);
+     * the night and leftover daylight are spent inside the habitat (`habitatShield`); the
+     * shelter shields most, more with every regolith level 0-3. Game simplification.
+     */
+    outsideShield: 0.05,
+    habitatShield: 0.8,
     /** Shield while waiting in the shelter, by shelter level 0-3. */
-    shelterShield: [0.5, 0.7, 0.85, 0.95],
+    shelterShield: [0.92, 0.95, 0.97, 0.99],
     /** An hour counts as a radiation event when the rate is this many times the quiet rate. */
     eventRateFactor: 2,
     /** Legend needs less storm dose than this (sheltering through most of the big event). */
@@ -157,7 +163,8 @@ export const BALANCE = {
     foodComfort: 5,
     panelDirty: 0.5,
     panelCleanAt: 0.7,
-    shelterHoursOnEvent: 4,
+    /** F6: PUSULA advises the shelter for the whole storm (all event hours of the daylight). */
+    shelterHoursOnEvent: 10,
     hardChoiceNeeds: 2,
   },
 

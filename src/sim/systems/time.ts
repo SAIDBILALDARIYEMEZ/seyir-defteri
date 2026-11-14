@@ -82,7 +82,7 @@ export function shelterShield(level: number): number {
 
 /**
  * "What if?" box: dose of one whole sol if the first `shelterHours` of daylight were spent
- * in the shelter and the rest behind the habitat shield.
+ * in the shelter, the rest of the daylight working outside and the night in the habitat.
  */
 export function whatIfSolDose(
   win: WindowData,
@@ -94,6 +94,7 @@ export function whatIfSolDose(
   const start = BALANCE.dayStartHour;
   return (
     doseOver(win, sol, start, inShelter, shelterShield(shelterLevel)) +
-    doseOver(win, sol, start + inShelter, BALANCE.hoursPerSol - inShelter, BALANCE.dose.habitatShield)
+    doseOver(win, sol, start + inShelter, BALANCE.daylightHours - inShelter, BALANCE.dose.outsideShield) +
+    doseOver(win, sol, start + BALANCE.daylightHours, BALANCE.hoursPerSol - BALANCE.daylightHours, BALANCE.dose.habitatShield)
   );
 }

@@ -708,3 +708,25 @@ science, parts) with the value at the next morning and the change since this mor
 red down; for the dose up is red), then PUSULA's note. The card scrolls on small screens and its
 buttons stick to the bottom. **Choice:** no separate "morning consumption" row: in this game every
 cost happens at night (the request listed it as an example).
+
+**4. Shelter balance** (balance.ts only, plus which shield an hour uses).
+Target asked: on w1 sol 18, 4 h in the shelter without regolith keeps the storm under ~20% of the
+dose bar, with regolith under ~10%, while a player who stays outside goes far over the budget.
+- **Finding:** with the real RAD curve this cannot hold for *4 hours*. Sol 18 + 19 carry ~64 dose
+  points unshielded; the first 4 storm hours only 29. Whatever the shields, the outside dose is at
+  most 1.84x the 4-hour-shelter dose (64 / 34.7), so "4 h ≈ 20%" and "outside > 100%" exclude each
+  other. Probe: `outside 100%, 4 h no regolith 86%, regolith 56%` before F6.
+- **Choice (closest honest fit):** (a) **PUSULA advises the shelter for the whole storm** (all
+  storm hours of the daylight: `advisor.shelterHoursOnEvent` 4 -> 10; the shelter loop and the
+  watch follow it; the "What if?" box uses the storm hours of that day); (b) daylight work is done
+  **outside in the suit** (`dose.outsideShield` 0.05, new) while the night and leftover daylight are
+  spent **inside the habitat** (`habitatShield` 0.3 -> 0.8); (c) the shelter shields most
+  (`shelterShield` [0.5, 0.7, 0.85, 0.95] -> [0.92, 0.95, 0.97, 0.99]). The storm dose stays the
+  real RAD curve; only the shields are game simplifications.
+- Result in the real sim (w1 sol 18 + 19, `src/sim/shelter.test.ts` checks the shape):
+  whole storm in the shelter **19%** without regolith, **12%** with 3 levels; staying outside
+  -> Early Evacuation on sol 18 (~112% if the mission went on). 4 h only: 42% / 38%.
+- Side effect: ending the day early in a storm (going inside the habitat) also shields well, but
+  costs the day's work; working outside in a storm is now what hurts.
+- Bot report after part 4 (100 games): balanced 84 / 80 / 87%, pusula 94 / 98 / 96%,
+  never-shelter w1 0%, random <= 1% — all targets kept.

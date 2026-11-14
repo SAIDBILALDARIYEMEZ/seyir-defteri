@@ -11,6 +11,7 @@ import type { BuildableId } from '../sim/actions.ts';
 import type { GameState } from '../sim/state.ts';
 import { BUILDABLES, buildStatus } from '../sim/systems/build.ts';
 import { isDustSol } from '../sim/systems/schedule.ts';
+import { eventHoursOver } from '../sim/systems/lessons.ts';
 import { whatIfSolDose } from '../sim/systems/time.ts';
 import { sepWarnedToday, visibleWarnings } from '../sim/systems/warnings.ts';
 import { dateOfSol, rateAt } from '../sim/window.ts';
@@ -63,7 +64,8 @@ export function nightSpec(before: GameState, state: GameState, win: WindowData, 
   if (flags.includes('radEvent') && doseOpen) {
     const waited = (log?.actions ?? []).filter((a) => a === 'shelterWait').length * actions.shelterWait.stepHours;
     const level = state.shelterLevel;
-    const target = advisor.shelterHoursOnEvent;
+    // F6: PUSULA advises the whole storm: the storm hours of that sol's daylight (real curve, past).
+    const target = Math.min(advisor.shelterHoursOnEvent, Math.ceil(eventHoursOver(win, before.sol, BALANCE.dayStartHour, BALANCE.daylightHours)));
     if (waited >= target) {
       const alt = whatIfSolDose(win, before.sol, level, 0);
       fact = `${t('whatif.title')} ${t('whatif.sheltered', { got: share(gained), alt: share(alt) })}`;

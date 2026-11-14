@@ -90,7 +90,7 @@ export function reduce(state: GameState, action: Action, _rng: Rng, win: WindowD
   const sheltering = action.type === 'shelterWait';
   // F6: storm hours spent outside a ready shelter (walk + work) become PUSULA's night note.
   let s = noteStormHours(noteStormHours({ ...state, rejection: null }, win, cost.walk, false), win, cost.hours, sheltering);
-  s = passDaylight(s, win, cost.walk, BALANCE.dose.habitatShield);
+  s = passDaylight(s, win, cost.walk, BALANCE.dose.outsideShield);
   s = {
     ...s,
     crew: s.crew.map((c) => (c.id === action.crewId ? { ...c, location: cost.station } : c)),
@@ -111,7 +111,7 @@ export function reduce(state: GameState, action: Action, _rng: Rng, win: WindowD
       },
     },
   };
-  const shield = sheltering ? shelterShield(s.shelterLevel) : BALANCE.dose.habitatShield;
+  const shield = sheltering ? shelterShield(s.shelterLevel) : BALANCE.dose.outsideShield;
   s = passDaylight(s, win, cost.hours, shield);
   s = {
     ...s,
