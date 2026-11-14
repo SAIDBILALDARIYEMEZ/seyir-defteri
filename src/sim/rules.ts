@@ -36,7 +36,7 @@ export function costOf(state: GameState, action: Action): Cost {
   if (action.type === 'endSol' || action.type === 'replayYesterday') {
     return { station: 'habitat', walk: 0, hours: 0, power: 0 };
   }
-  if (action.type === 'bonus' || action.type === 'place') {
+  if (action.type === 'bonus' || action.type === 'place' || action.type === 'rotate') {
     return { station: locationOf(state, action.crewId), walk: 0, hours: 0, power: 0 };
   }
   const station =
@@ -137,6 +137,7 @@ export function check(state: GameState, action: Action, win: WindowData): Reason
   }
   if (state.phase !== 'playing') return 'gameOver';
   if (action.type === 'bonus') return null;
+  if (action.type === 'rotate') return state.buildings[action.station] ? null : 'notBuilt';
   if (action.type === 'place') return specific(state, action, win);
   if (!setupDone(state)) return 'needSetup';
   if (action.type === 'endSol') return null;

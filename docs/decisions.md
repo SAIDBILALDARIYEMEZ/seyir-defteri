@@ -379,3 +379,27 @@ Human request (B3). The sim is untouched: everything lives in a separate profile
 - **HUD:** rank badge + XP bar top-left, "+XP" toast, big toast on rank up; result shows XP
   this mission and the rank. Pause has a confirmed "Reset progress".
 - Smart board: capsule / question / picker / storm cards use >= 64 px buttons, 18-24 px text.
+
+## D-017 — 2026-11-14 — B4: 360° camera, building facing, scene clean-up
+Human request (B4). Build choices (not yet confirmed by the human):
+- **Camera** (`scene/camera.ts`): unlimited turn around the village; tilt limited to
+  0.18-1.45 rad (never under the ground, up to a near top-down view); zoom 36-84 as before.
+  Inputs set a goal and the camera eases to it. Mouse: left drag turns (as before), right or
+  middle drag turns + tilts, wheel zooms. Touch: one finger as before (tap = walk / place,
+  drag = turn); two fingers twist or slide sideways = turn, slide up / down = tilt, pinch =
+  zoom; a two-finger gesture never counts as a tap. Screen buttons ↺ ⌂ ↻ (64 px) on the left
+  middle (right side under 900 px): 45° per press, ⌂ resets. Picking (ghost cells, labels,
+  stations) already raycasts through the live camera, so it works from every angle.
+- **Hills** are a full ring at r 112-136 (they were only behind the base and inside the
+  camera's path from the back).
+- **Facing:** `Building.rot` (0-3 quarter turns, optional: saves without it read as 0, so
+  `saveVersion` stays 3). `build` / `place` / `relocate` take an optional `rot`; new sim
+  action `rotate` (free, instant, not counted in today's actions, refused with `notBuilt`).
+  Cosmetic only: placement rules and costs ignore it; the bot never sends it (**bot report
+  unchanged**: balanced 81 / 78 / 87%, pusula 88.5 / 92 / 93%). The turn button sits in the
+  placement banner ("↻ Turn (R)") instead of floating next to the ghost: a button that
+  follows the ghost runs away from the pointer. R turns too. Ready station menus have
+  "↻ Turn" (the menu stays open for more turns). Ada's stand point and PUSULA follow the door.
+- **Clean-up:** the six grey-white "sleep capsules" in a row behind the grid (near the
+  Curiosity spot) were F2 scenery from the fixed layout, with no station or action: removed.
+- Ada turns to face the building (or building site) she walked to.

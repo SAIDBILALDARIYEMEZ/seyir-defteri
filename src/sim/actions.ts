@@ -40,13 +40,18 @@ export interface Cell {
   y: number;
 }
 
+/** Facing of a placed station in quarter turns (cosmetic only: no balance effect, B4). */
+export type Turn = 0 | 1 | 2 | 3;
+
 export type Action =
   | { type: SimpleActionType; crewId: number }
-  | { type: 'build'; crewId: number; station: BuildableId; cell: Cell }
+  | { type: 'build'; crewId: number; station: BuildableId; cell: Cell; rot?: Turn }
   /** Sol-1 setup: put a starter station on the grid (free, instant). */
-  | { type: 'place'; crewId: number; station: StarterId; cell: Cell }
+  | { type: 'place'; crewId: number; station: StarterId; cell: Cell; rot?: Turn }
   /** Move a ready station to another cell (work hours, no parts). */
-  | { type: 'relocate'; crewId: number; station: PlacedId; cell: Cell }
+  | { type: 'relocate'; crewId: number; station: PlacedId; cell: Cell; rot?: Turn }
+  /** Turn a placed station 90 degrees (free, instant, cosmetic). */
+  | { type: 'rotate'; crewId: number; station: PlacedId }
   /** Room for B3: bonus parts / science from crates found while exploring. */
   | { type: 'bonus'; crewId: number; parts: number; science: number }
   | { type: 'shelterWait'; crewId: number; hours: number }
@@ -104,6 +109,7 @@ export const STATION_OF: Record<ActionType, StationId> = {
   build: 'habitat',
   place: 'habitat',
   relocate: 'habitat',
+  rotate: 'habitat',
   bonus: 'habitat',
   endSol: 'habitat',
   replayYesterday: 'habitat',

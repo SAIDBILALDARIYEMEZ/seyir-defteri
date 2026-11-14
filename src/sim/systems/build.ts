@@ -4,7 +4,7 @@
 // grid placement rules and overnight construction. Pure: codes only, never text.
 
 import { BALANCE } from '../../config/balance.ts';
-import type { BuildableId, Cell, PlacedId, ReasonCode, StarterId, StationId } from '../actions.ts';
+import type { BuildableId, Cell, PlacedId, ReasonCode, StarterId, StationId, Turn } from '../actions.ts';
 import { snapshotOf } from '../state.ts';
 import type { GameState } from '../state.ts';
 
@@ -121,20 +121,29 @@ export function suggestCell(state: GameState, id: PlacedId): Cell {
 }
 
 /** Puts a starter on the grid. On the sol's morning the snapshot follows, so a replay keeps it. */
-export function placeStarter(state: GameState, id: StarterId, cell: Cell): GameState {
+export function placeStarter(state: GameState, id: StarterId, cell: Cell, rot: Turn = 0): GameState {
   const next: GameState = {
     ...state,
-    buildings: { ...state.buildings, [id]: { cell: { x: cell.x, y: cell.y }, solsLeft: 0 } },
+    buildings: { ...state.buildings, [id]: { cell: { x: cell.x, y: cell.y }, solsLeft: 0, rot } },
   };
   if (next.today.actions.length > 0) return next;
   const snap = snapshotOf(next);
   return { ...next, mornings: next.mornings.map((m) => (m.sol === next.sol ? snap : m)) };
 }
 
-export function relocate(state: GameState, id: PlacedId, cell: Cell): GameState {
+export function relocate(state: GameState, id: PlacedId, cell: Cell, rot?: Turn): GameState {
   const b = state.buildings[id];
   if (!b) return state;
-  return { ...state, buildings: { ...state.buildings, [id]: { ...b, cell: { x: cell.x, y: cell.y } } } };
+  const moved = { ...b, cell: { x: cell.x, y: cell.y }, rot: rot ?? b.rot ?? 0 };
+  return { ...state, buildings: { ...state.buildings, [id]: moved } };
+}
+
+/** Turns a placed station a quarter turn clockwise. Cosmetic: no time, power or parts (B4). */
+export function rotateBuilding(state: GameState, id: PlacedId): GameState {
+  const b = state.buildings[id];
+  if (!b) return state;
+  const rot = (((b.rot ?? 0) + 1) % 4) as Turn;
+  return { ...state, buildings: { ...state.buildings, [id]: { ...b, rot } } };
 }
 
 /** Full check of a build order (chain, parts, spot). Time and power are checked by rules.ts. */
@@ -146,12 +155,12 @@ export function buildReason(state: GameState, id: BuildableId, cell: Cell): Reas
   return placementReason(state, cell);
 }
 
-export function startBuilding(state: GameState, id: BuildableId, cell: Cell): GameState {
+export function startBuilding(state: GameState, id: BuildableId, cell: Cell, rot: Turn = 0): GameState {
   const rule = BALANCE.build.stations[id];
   return {
     ...state,
     parts: state.parts - rule.parts,
-    buildings: { ...state.buildings, [id]: { cell: { x: cell.x, y: cell.y }, solsLeft: rule.sols } },
+    buildings: { ...state.buildings, [id]: { cell: { x: cell.x, y: cell.y }, solsLeft: rule.sols, rot } },
   };
 }
 

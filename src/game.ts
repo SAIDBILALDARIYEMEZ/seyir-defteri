@@ -13,6 +13,7 @@ import type { Ctx, Mission, Missions, Session } from './game/context.ts';
 import { onLangChange, t } from './i18n/i18n.ts';
 import { createPlacement } from './input/placement.ts';
 import { attachPointer } from './input/pointer.ts';
+import { mountCamControls } from './ui/camControls.ts';
 import { debug } from './lib/debug.ts';
 import { loadGame, saveGame } from './save/save.ts';
 import type { World } from './scene/world.ts';
@@ -73,8 +74,9 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     world,
     canAct: free,
     reasonFor: (station, cell) => check(s.state, placeAction(s.state, station, cell), s.win),
-    onPlace: (id, cell) => stations.placeBuilding(id, cell),
+    onPlace: (id, cell, rot) => stations.placeBuilding(id, cell, rot),
     moving: (id) => s.state.buildings[id] !== undefined,
+    facing: (id) => s.state.buildings[id]?.rot ?? 0,
     onChange: () => {
       if (placement.selected()) menu.close();
       render();
@@ -91,6 +93,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
   const labels = mountLabels(ui, (id) => stations.selectStation(id));
   const depot = mountBuildMenu(ui, { onPress: (id, e) => placement.press(id, e), onSelect: (id) => placement.select(id) });
   const watch = mountWatch(ui, () => flow.showPusula());
+  const cam = mountCamControls(ui, { step: (dir) => world.stepView(dir), reset: () => world.resetView() });
   const marks = mountGuide(ui, () => flow.showPusula());
   const mainMenu = mountMainMenu(ui, {
     onNewMission: flow.newMission,
@@ -114,7 +117,8 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
   function render(snapGuide = false): void {
     const playing = s.mode === 'play';
     const view = s.frozen ?? s.state;
-    hud.root.hidden = labels.root.hidden = !playing;
+    hud.root.hidden = labels.root.hidden = cam.root.hidden = !playing;
+    cam.refresh();
     learn.render(playing);
     watch.root.hidden = depot.root.hidden = !playing || s.state.phase !== 'playing';
     mainMenu.root.hidden = playing;
@@ -180,6 +184,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     onGround: (x, z) => stations.walkGround(x, z),
   });
   window.addEventListener('keydown', (e) => {
+    if ((e.key === 'r' || e.key === 'R') && !e.metaKey && !e.ctrlKey) return placement.turn();
     if (e.key !== 'Escape') return;
     if (placement.selected()) placement.cancel();
     else flow.pause();

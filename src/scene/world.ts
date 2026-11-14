@@ -4,9 +4,10 @@
 
 import * as THREE from 'three';
 import { BALANCE } from '../config/balance.ts';
-import type { Cell, PlacedId, StationId } from '../sim/actions.ts';
+import type { Cell, PlacedId, StationId, Turn } from '../sim/actions.ts';
 import type { GameState } from '../sim/state.ts';
 import { isPlaceable } from '../sim/systems/build.ts';
+import { createOrbitCamera } from './camera.ts';
 import { buildScaffold, createGhost, FADE_BUILDING, makeFader } from './construction.ts';
 import { createAstronaut } from './entities/astronaut.ts';
 import { PUSULA_HEAD_HEIGHT, createPusula } from './entities/pusula.ts';
@@ -16,7 +17,7 @@ import { buildTerrain } from './entities/terrain.ts';
 import { createStorm } from './fx/storm.ts';
 import type { StormMode } from './fx/storm.ts';
 import { GRID_HALF, cellToWorld, stationCell } from './grid.ts';
-import { CAMERA, FOOTPRINT, LABEL_HEIGHT, PUSULA_SIDE, STAND_OFFSET, STATION_IDS, WALK_SPEED } from './layout.ts';
+import { FOOTPRINT, LABEL_HEIGHT, PUSULA_SIDE, STAND_OFFSET, STATION_IDS, WALK_SPEED } from './layout.ts';
 import { createLighting } from './lighting.ts';
 import { findPath } from './path.ts';
 import type { Blocker, Point } from './path.ts';
@@ -45,22 +46,26 @@ export interface World {
   placeAda(station: StationId): void;
   /** Screen position of a station label, or of Ada's / PUSULA's head. */
   screenOf(target: StationId | 'ada' | 'pusula'): ScreenPoint;
-  rotate(dxPixels: number): void;
+  /** Camera (B4): drag = turn around + tilt, twist / pinch for two fingers, buttons. */
+  drag(dxPixels: number, dyPixels: number): void;
+  turnBy(radians: number): void;
   zoom(delta: number): void;
+  zoomBy(factor: number): void;
+  stepView(direction: 1 | -1): void;
+  resetView(): void;
   /** Syncs visuals that depend on the game state (positions, build status, gauges). */
   sync(state: GameState, storm: StormMode): void;
   setNight(night: boolean): void;
   /** PUSULA rolls to this station; `danger` turns its light red. */
   setGuide(station: StationId, danger: boolean, snap?: boolean): void;
   /** Placement ghost: null hides it. */
-  setGhost(id: PlacedId | null, cell: Cell | null, valid: boolean): void;
+  setGhost(id: PlacedId | null, cell: Cell | null, valid: boolean, rot?: Turn): void;
 }
 
 const DUSTY_PANEL = new THREE.Color(0x9a6a4a);
 const CLEAN_PANEL = new THREE.Color(0x2f5fa8);
 const WALK_LIMIT = GRID_HALF + 3;
-/** Portrait phones: stop pulling the camera back here (fog would wash the valley out). */
-const MAX_FIT = 1.9;
+const QUARTER = Math.PI / 2;
 
 interface StationView extends StationParts {
   fade: (factor: number) => void;
@@ -101,7 +106,11 @@ export function createWorld(canvas: HTMLCanvasElement): World {
     scene.add(parts.group);
   }
   const posOf = (id: StationId): THREE.Vector3 => views[id].group.position;
-  const standOf = (id: StationId): [number, number] => [posOf(id).x, posOf(id).z + STAND_OFFSET[id]];
+  /** In front of the station's door: the stand turns with the building's facing (B4). */
+  const standOf = (id: StationId): [number, number] => {
+    const turn = views[id].group.rotation.y;
+    return [posOf(id).x + Math.sin(turn) * STAND_OFFSET[id], posOf(id).z + Math.cos(turn) * STAND_OFFSET[id]];
+  };
 
   // Fixed stations never move; placed ones (starters included) appear once on the grid.
   for (const id of STATION_IDS) {
@@ -150,24 +159,12 @@ export function createWorld(canvas: HTMLCanvasElement): World {
   let stormMode: StormMode = 'none';
   let night = false;
 
-  const camera = new THREE.PerspectiveCamera(CAMERA.fov, 1, 0.1, 600);
-  let azimuth = 0;
-  let radius: number = CAMERA.radius;
-  const placeCamera = (): void => {
-    const [tx, ty, tz] = CAMERA.target;
-    // Narrow (portrait-ish) screens need more distance to keep the whole valley in view.
-    const fit = THREE.MathUtils.clamp(1.45 / camera.aspect, 1, MAX_FIT);
-    const r = radius * fit;
-    const flatR = r * Math.cos(CAMERA.elevation);
-    camera.position.set(tx + Math.sin(azimuth) * flatR, ty + r * Math.sin(CAMERA.elevation), tz + Math.cos(azimuth) * flatR);
-    camera.lookAt(tx, ty, tz);
-  };
+  const orbit = createOrbitCamera();
+  const camera = orbit.camera;
   const resize = (): void => {
     const { innerWidth: w, innerHeight: h } = window;
     renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    placeCamera();
+    orbit.setAspect(w / h);
   };
   window.addEventListener('resize', resize);
   resize();
@@ -182,14 +179,17 @@ export function createWorld(canvas: HTMLCanvasElement): World {
   };
   /** Walks around buildings: one straight leg per waypoint (B3 path-finding). */
   let walkId = 0;
-  const walk = (x: number, z: number, onArrive: () => void): void => {
+  const walk = (x: number, z: number, onArrive: () => void, face?: Point): void => {
     const target = freeSpot(x, z);
     const from: Point = [ada.group.position.x, ada.group.position.z];
     const legs = findPath(from, target, blockers(), WALK_LIMIT);
     const id = ++walkId;
     const next = (): void => {
       const leg = legs.shift();
-      if (!leg || id !== walkId) return onArrive();
+      if (!leg || id !== walkId) {
+        if (face && id === walkId) ada.face(...face);
+        return onArrive();
+      }
       const d = Math.hypot(leg[0] - ada.group.position.x, leg[1] - ada.group.position.z);
       ada.walkTo(leg[0], leg[1], d / WALK_SPEED, next);
     };
@@ -198,6 +198,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
 
   return {
     update(dt) {
+      orbit.update(dt);
       ada.update(dt);
       pusula.update(dt);
       storm.update(dt);
@@ -218,17 +219,19 @@ export function createWorld(canvas: HTMLCanvasElement): World {
       return hit ? { x: hit.x, z: hit.z } : null;
     },
     walkTo(station, onArrive) {
-      walk(...standOf(station), onArrive);
+      walk(...standOf(station), onArrive, [posOf(station).x, posOf(station).z]);
     },
     walkToCell(cell, onArrive) {
       const [x, z] = cellToWorld(cell);
-      walk(x, z + 2.6, onArrive);
+      walk(x, z + 2.6, onArrive, [x, z]);
     },
     walkToPoint(x, z, onArrive) {
       walk(x, z, onArrive ?? (() => undefined));
     },
     placeAda(station) {
-      ada.place(...freeSpot(...(views[station].group.visible ? standOf(station) : landerStand)));
+      const shown = views[station].group.visible;
+      ada.place(...freeSpot(...(shown ? standOf(station) : landerStand)));
+      if (shown) ada.face(posOf(station).x, posOf(station).z);
     },
     screenOf(target) {
       if (target === 'ada') probe.copy(ada.group.position).setY(3.6);
@@ -241,14 +244,12 @@ export function createWorld(canvas: HTMLCanvasElement): World {
         visible: probe.z < 1 && (target === 'ada' || target === 'pusula' || views[target].group.visible),
       };
     },
-    rotate(dxPixels) {
-      azimuth = THREE.MathUtils.clamp(azimuth - dxPixels * CAMERA.rotateSpeed, -CAMERA.maxAzimuth, CAMERA.maxAzimuth);
-      placeCamera();
-    },
-    zoom(delta) {
-      radius = THREE.MathUtils.clamp(radius + delta * CAMERA.zoomSpeed, CAMERA.minRadius, CAMERA.maxRadius);
-      placeCamera();
-    },
+    drag: (dx, dy) => orbit.drag(dx, dy),
+    turnBy: (radians) => orbit.turnBy(radians),
+    zoom: (delta) => orbit.zoom(delta),
+    zoomBy: (factor) => orbit.zoomBy(factor),
+    stepView: (direction) => orbit.step(direction),
+    resetView: () => orbit.reset(),
     sync(state, mode) {
       stormMode = mode;
       storm.setMode(mode);
@@ -262,6 +263,7 @@ export function createWorld(canvas: HTMLCanvasElement): World {
         if (cell) {
           const [x, z] = cellToWorld(cell);
           view.group.position.set(x, 0, z);
+          view.group.rotation.y = -(b?.rot ?? 0) * QUARTER;
         }
         view.scaffold.visible = status === 'building';
         view.fade(status === 'building' ? FADE_BUILDING : 1);
@@ -281,8 +283,8 @@ export function createWorld(canvas: HTMLCanvasElement): World {
       pusula.goTo(x, z, snap);
       pusula.setDanger(danger);
     },
-    setGhost(id, cell, valid) {
-      ghost.set(id, cell, valid);
+    setGhost(id, cell, valid, rot = 0) {
+      ghost.set(id, cell, valid, rot);
     },
   };
 }

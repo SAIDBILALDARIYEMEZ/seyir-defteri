@@ -2,11 +2,11 @@
 // Concept, story, design and decisions: team Seyir Defteri.
 // Placing a building: drag a store card onto the ground (mouse or touch, pointer events),
 // or tap a card and then tap a spot. The ghost turns green on a valid cell, red with the
-// sim's reason on an invalid one. Placing only calls back with (station, cell): the game
-// turns that into the sim's `build` action.
+// sim's reason on an invalid one. R or the banner's turn button turns it 90 degrees (B4).
+// Placing only calls back with (station, cell, facing): the game turns that into a sim action.
 
 import { t } from '../i18n/i18n.ts';
-import type { PlacedId, Cell, ReasonCode } from '../sim/actions.ts';
+import type { PlacedId, Cell, ReasonCode, Turn } from '../sim/actions.ts';
 import { worldToCell } from '../scene/grid.ts';
 import type { World } from '../scene/world.ts';
 import { button, el } from '../ui/dom.ts';
@@ -21,9 +21,11 @@ export interface PlacementDeps {
   canAct(): boolean;
   /** The sim's reason why `id` cannot be built on `cell` right now, or null. */
   reasonFor(id: PlacedId, cell: Cell): ReasonCode | null;
-  onPlace(id: PlacedId, cell: Cell): void;
+  onPlace(id: PlacedId, cell: Cell, rot: Turn): void;
   /** True when `id` is already on the grid (the drop moves it). */
   moving(id: PlacedId): boolean;
+  /** Current facing of `id` (0 when not placed yet). */
+  facing(id: PlacedId): Turn;
   /** Selection changed: redraw the store. */
   onChange(): void;
 }
@@ -39,16 +41,23 @@ export interface Placement {
   hover(clientX: number, clientY: number): void;
   /** Tap on the canvas; true when placement used it. */
   tap(clientX: number, clientY: number): boolean;
+  /** Turns the ghost a quarter turn (R key, turn button). */
+  turn(): void;
 }
 
 export function createPlacement(d: PlacementDeps): Placement {
   let selected: PlacedId | null = null;
+  let rot: Turn = 0;
+  /** Last ghost position, so a turn redraws it in place. */
+  let lastCell: Cell | null = null;
+  let lastValid = false;
   const tip = el('div', 'ghost-tip');
   tip.hidden = true;
   const banner = el('div', 'place-banner');
   const bannerText = el('span');
   const cancelBtn = button('btn', '', () => cancel());
-  banner.append(bannerText, cancelBtn);
+  const turnBtn = button('turn-btn', '', () => turn());
+  banner.append(bannerText, turnBtn, cancelBtn);
   banner.hidden = true;
   d.ui.append(tip, banner);
 
@@ -74,18 +83,19 @@ export function createPlacement(d: PlacementDeps): Placement {
     const key = d.moving(selected) ? 'build.move' : 'build.place';
     bannerText.textContent = t(key, { station: t(`station.${selected}`) });
     cancelBtn.textContent = `✖ ${t('build.cancel')}`;
+    turnBtn.textContent = `↻ ${t('build.turn')}`;
   };
   /** Ghost + tip at a screen point. Returns the cell and the reason (null = valid). */
   const preview = (x: number, y: number): { cell: Cell | null; reason: ReasonCode | null } => {
     if (!selected) return { cell: null, reason: null };
     const cell = cellAt(x, y);
     if (!cell) {
-      d.world.setGhost(selected, null, false);
+      ghostAt(null, false);
       tip.hidden = true;
       return { cell, reason: 'cellOutside' };
     }
     const reason = d.reasonFor(selected, cell);
-    d.world.setGhost(selected, cell, reason === null);
+    ghostAt(cell, reason === null);
     const move = d.moving(selected);
     const okKey = move ? (dragging ? 'build.moveGood' : 'build.moveSpot') : dragging ? 'build.goodSpot' : 'build.tapSpot';
     const ok = `✅ ${t(okKey)}`;
@@ -96,9 +106,20 @@ export function createPlacement(d: PlacementDeps): Placement {
     const id = selected;
     const { cell, reason } = preview(x, y);
     if (!id || !cell || reason) return;
+    const facing = rot;
     cancel();
-    d.onPlace(id, cell);
+    d.onPlace(id, cell, facing);
   };
+  function ghostAt(cell: Cell | null, valid: boolean): void {
+    lastCell = cell;
+    lastValid = valid;
+    d.world.setGhost(selected, cell, valid, rot);
+  }
+  function turn(): void {
+    if (!selected) return;
+    rot = ((rot + 1) % 4) as Turn;
+    ghostAt(lastCell, lastValid);
+  }
   function cancel(): void {
     selected = null;
     d.world.setGhost(null, null, false);
@@ -107,8 +128,9 @@ export function createPlacement(d: PlacementDeps): Placement {
     d.onChange();
   }
   const begin = (id: PlacedId): void => {
+    if (selected !== id) rot = d.facing(id);
     selected = id;
-    d.world.setGhost(id, null, false);
+    ghostAt(null, false);
     refreshBanner();
     d.onChange();
   };
@@ -129,7 +151,7 @@ export function createPlacement(d: PlacementDeps): Placement {
         dragging = true;
         if (overScene(ev.clientX, ev.clientY)) preview(ev.clientX, ev.clientY);
         else {
-          d.world.setGhost(id, null, false);
+          ghostAt(null, false);
           tip.hidden = true;
         }
       };
@@ -147,7 +169,7 @@ export function createPlacement(d: PlacementDeps): Placement {
         if (ev.type === 'pointerup' && overScene(ev.clientX, ev.clientY)) {
           attempt(ev.clientX, ev.clientY);
         } else {
-          d.world.setGhost(id, null, false);
+          ghostAt(null, false);
           tip.hidden = true;
         }
       };
@@ -167,5 +189,6 @@ export function createPlacement(d: PlacementDeps): Placement {
       attempt(x, y);
       return true;
     },
+    turn,
   };
 }

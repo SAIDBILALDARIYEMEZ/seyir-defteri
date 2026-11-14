@@ -9,6 +9,8 @@ export interface Astronaut {
   /** Starts a walk to (x, z) lasting `seconds`; `onArrive` runs once at the end. */
   walkTo(x: number, z: number, seconds: number, onArrive: () => void): void;
   place(x: number, z: number): void;
+  /** Turns to look at (x, z), e.g. the building she walked to. */
+  face(x: number, z: number): void;
   update(dt: number): void;
 }
 
@@ -57,6 +59,11 @@ export function createAstronaut(): Astronaut {
       group.position.set(x, 0, z);
       group.rotation.y = 0;
       arrive = null;
+    },
+    face(x, z) {
+      const dx = x - group.position.x;
+      const dz = z - group.position.z;
+      if (dx * dx + dz * dz > 0.01) group.rotation.y = Math.atan2(dx, dz);
     },
     update(dt) {
       const walking = arrive !== null;

@@ -5,7 +5,7 @@
 
 import * as THREE from 'three';
 import { BALANCE } from '../config/balance.ts';
-import type { PlacedId, Cell } from '../sim/actions.ts';
+import type { PlacedId, Cell, Turn } from '../sim/actions.ts';
 import { PLACEABLES } from '../sim/systems/build.ts';
 import { buildStation } from './entities/stations.ts';
 import { CELL, cellToWorld } from './grid.ts';
@@ -66,7 +66,7 @@ export const FADE_BUILDING = BUILDING_OPACITY;
 export interface Ghost {
   group: THREE.Group;
   /** Shows the ghost of `id` on `cell`; null hides it. */
-  set(id: PlacedId | null, cell: Cell | null, valid: boolean): void;
+  set(id: PlacedId | null, cell: Cell | null, valid: boolean, rot?: Turn): void;
 }
 
 export function createGhost(): Ghost {
@@ -95,7 +95,7 @@ export function createGhost(): Ghost {
   let shownValid: boolean | null = null;
   return {
     group,
-    set(id, cell, valid) {
+    set(id, cell, valid, rot = 0) {
       group.visible = id !== null;
       for (const key of PLACEABLES) models[key].visible = key === id && cell !== null;
       tile.visible = cell !== null;
@@ -103,6 +103,7 @@ export function createGhost(): Ghost {
       const [x, z] = cellToWorld(cell);
       tile.position.set(x, 0.06, z);
       models[id].position.set(x, 0, z);
+      models[id].rotation.y = -rot * (Math.PI / 2);
       if (shown === id && shownValid === valid) return;
       shown = id;
       shownValid = valid;

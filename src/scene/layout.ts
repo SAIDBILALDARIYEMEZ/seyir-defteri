@@ -62,7 +62,11 @@ export const CAMERA = {
   minRadius: 36,
   maxRadius: 84,
   elevation: 0.5,
-  maxAzimuth: 0.55,
+  /** Tilt limits (radians): never under the ground, up to a near top-down view (B4). */
+  minElevation: 0.18,
+  maxElevation: 1.45,
+  /** One press of the on-screen turn buttons. */
+  stepAngle: Math.PI / 4,
   /** Slightly right of the grid center: the store and the watch cover the right edge. */
   target: [2, 0, 1] as const,
   rotateSpeed: 0.004,

@@ -1,7 +1,7 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
 // The valley: a flat build floor, sand dunes and hills around it, rocks, the craters of the
-// build grid, and passive scenery (sleep capsules, ship). Deterministic, no randomness.
+// build grid, and the landing rocket. Deterministic, no randomness.
 
 import * as THREE from 'three';
 import { BALANCE } from '../../config/balance.ts';
@@ -100,13 +100,13 @@ function rocks(): THREE.Group {
 
 function hills(): THREE.Group {
   const g = new THREE.Group();
-  for (let i = 0; i < 24; i++) {
-    const a = (i / 24) * Math.PI * 2;
-    if (Math.sin(a) > 0.35) continue; // keep the camera side open
-    const r = 75 + ((i * 7) % 5) * 6;
-    const h = 8 + ((i * 5) % 7) * 2;
+  // A full ring (the camera turns 360 degrees, B4), beyond the farthest camera position.
+  for (let i = 0; i < 28; i++) {
+    const a = (i / 28) * Math.PI * 2;
+    const r = 112 + ((i * 7) % 5) * 6;
+    const h = 10 + ((i * 5) % 7) * 2.5;
     const x = Math.cos(a) * r;
-    const z = Math.sin(a) * r - 10;
+    const z = Math.sin(a) * r;
     const hill = new THREE.Mesh(new THREE.ConeGeometry(14 + (i % 3) * 5, h, 7), flat(COLORS.hill));
     hill.position.set(x, heightAt(x, z) + h / 2 - 1, z);
     hill.rotation.y = i;
@@ -115,19 +115,10 @@ function hills(): THREE.Group {
   return g;
 }
 
-/** Sleep capsules behind the grid and the landing rocket on its grid cell: never clickable. */
+/** The landing rocket on its grid cell: never clickable. */
 function passive(): THREE.Group {
   const g = new THREE.Group();
   const WHITE = 0xf2ece4;
-  const pod = new THREE.CapsuleGeometry(0.6, 1.4, 2, 8);
-  const back = -GRID_HALF - 5;
-  for (let i = 0; i < 6; i++) {
-    const p = new THREE.Mesh(pod, flat(0xc9c3bb));
-    p.position.set(5 + i * 1.7, 0.6, back);
-    p.rotation.x = Math.PI / 2;
-    p.castShadow = true;
-    g.add(p);
-  }
   const ship = new THREE.Group();
   const add = (geo: THREE.BufferGeometry, color: number, y: number): THREE.Mesh => {
     const m = new THREE.Mesh(geo, flat(color));

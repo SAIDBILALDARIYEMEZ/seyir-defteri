@@ -3,7 +3,7 @@
 // GameState: plain serializable data. No text, no functions, no window data.
 
 import { BALANCE } from '../config/balance.ts';
-import type { Cell, PlacedId, ReasonCode, StationId } from './actions.ts';
+import type { Cell, PlacedId, ReasonCode, StationId, Turn } from './actions.ts';
 import { createRng } from './rng.ts';
 import { rollSchedule } from './systems/schedule.ts';
 import type { Schedule } from './systems/schedule.ts';
@@ -19,6 +19,8 @@ export interface CrewMember {
 export interface Building {
   cell: Cell;
   solsLeft: number;
+  /** Facing in quarter turns; missing = 0 (older saves). Cosmetic only. */
+  rot?: Turn;
 }
 
 export type GamePhase = 'playing' | 'won' | 'lost';

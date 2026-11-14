@@ -32,7 +32,7 @@ describe('sol-1 setup (B3)', () => {
     const s0 = createInitialState(1, win);
     const s1 = step(s0, place('habitat', { x: 3, y: 12 }));
     expect(s1.rejection).toBeNull();
-    expect(s1.buildings.habitat).toEqual({ cell: { x: 3, y: 12 }, solsLeft: 0 });
+    expect(s1.buildings.habitat).toEqual({ cell: { x: 3, y: 12 }, solsLeft: 0, rot: 0 });
     expect([s1.hoursLeft, s1.power, s1.parts]).toEqual([s0.hoursLeft, s0.power, s0.parts]);
     expect(check(s1, place('habitat'), win)).toBe('alreadyPlaced');
     expect(check(s1, place('panels', { x: 4, y: 12 }), win)).toBe('tooClose');
@@ -68,5 +68,32 @@ describe('relocate (B3)', () => {
     // Its own old cell does not block the move one cell over.
     expect(check(s0, move('habitat', { x: 7, y: 9 }), win)).toBe('tooClose');
     expect(check(s0, move('habitat', { x: 9, y: 8 }), win)).toBeNull();
+  });
+});
+
+describe('facing (B4)', () => {
+  it('stores the facing from place, build and relocate, and saves it', () => {
+    let s = step(createInitialState(1, win), { type: 'place', crewId: 0, station: 'habitat', cell: BALANCE.grid.slots.habitat, rot: 1 });
+    s = step(s, { type: 'place', crewId: 0, station: 'panels', cell: BALANCE.grid.slots.panels });
+    expect(s.buildings.habitat?.rot).toBe(1);
+    expect(s.buildings.panels?.rot).toBe(0);
+    const b = step(s, { type: 'build', crewId: 0, station: 'moxie', cell: BALANCE.grid.slots.moxie, rot: 3 });
+    expect(b.buildings.moxie?.rot).toBe(3);
+    const m = step(s, { type: 'relocate', crewId: 0, station: 'habitat', cell: { x: 4, y: 4 } });
+    expect(m.buildings.habitat?.rot).toBe(1);
+    expect(JSON.parse(JSON.stringify(b)).buildings.moxie.rot).toBe(3);
+  });
+
+  it('rotate is free and instant, wraps after four turns, and needs a placed station', () => {
+    let s = step(createInitialState(1, win), { type: 'place', crewId: 0, station: 'habitat', cell: BALANCE.grid.slots.habitat });
+    const before = s;
+    for (let i = 0; i < 3; i++) s = step(s, { type: 'rotate', crewId: 0, station: 'habitat' });
+    expect(s.buildings.habitat?.rot).toBe(3);
+    expect(s.hoursLeft).toBe(before.hoursLeft);
+    expect(s.power).toBe(before.power);
+    expect(s.parts).toBe(before.parts);
+    expect(s.today.actions).toEqual(before.today.actions);
+    expect(step(s, { type: 'rotate', crewId: 0, station: 'habitat' }).buildings.habitat?.rot).toBe(0);
+    expect(check(s, { type: 'rotate', crewId: 0, station: 'moxie' }, win)).toBe('notBuilt');
   });
 });

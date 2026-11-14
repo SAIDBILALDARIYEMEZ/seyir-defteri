@@ -7,7 +7,7 @@
 import { BALANCE } from '../config/balance.ts';
 import stationContent from '../content/stations.json';
 import { t } from '../i18n/i18n.ts';
-import type { Action, ActionType, Cell, PlacedId, StationId } from '../sim/actions.ts';
+import type { Action, ActionType, Cell, PlacedId, StationId, Turn } from '../sim/actions.ts';
 import { check, costOf, isStationLocked } from '../sim/rules.ts';
 import type { GameState } from '../sim/state.ts';
 import { isPlaceable, isStarter } from '../sim/systems/build.ts';
@@ -26,16 +26,16 @@ function actionsAt(station: StationId, state: GameState): Action[] {
   for (const type of stationContent[station].actions as ActionType[]) {
     if (type === 'repair') continue;
     if (type === 'shelterWait') list.push({ type, crewId, hours: BALANCE.actions.shelterWait.stepHours });
-    else if (type !== 'build' && type !== 'bonus' && type !== 'place' && type !== 'relocate') list.push({ type, crewId });
+    else if (type !== 'build' && type !== 'bonus' && type !== 'place' && type !== 'relocate' && type !== 'rotate') list.push({ type, crewId });
   }
   return list;
 }
 
 /** The sim action for dropping `id` on `cell`: set up a starter, move a placed one, or build. */
-export function placeAction(state: GameState, id: PlacedId, cell: Cell): Action {
-  if (state.buildings[id]) return { type: 'relocate', crewId: CREW_ID, station: id, cell };
-  if (isStarter(id)) return { type: 'place', crewId: CREW_ID, station: id, cell };
-  return { type: 'build', crewId: CREW_ID, station: id, cell };
+export function placeAction(state: GameState, id: PlacedId, cell: Cell, rot?: Turn): Action {
+  if (state.buildings[id]) return { type: 'relocate', crewId: CREW_ID, station: id, cell, rot };
+  if (isStarter(id)) return { type: 'place', crewId: CREW_ID, station: id, cell, rot };
+  return { type: 'build', crewId: CREW_ID, station: id, cell, rot };
 }
 
 export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id: StationId) => void = () => undefined) {
@@ -72,6 +72,14 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
           ctx.placement.select(station);
         },
       });
+      // Turn: free and instant, cosmetic only (B4). The menu stays open for more turns.
+      items.push({
+        label: `↻ ${t('action.rotate')}`,
+        cost: '',
+        reason: null,
+        hint: false,
+        onPick: () => ctx.perform({ type: 'rotate', crewId: CREW_ID, station }, true),
+      });
     }
     menu.open(`${stationContent[station].icon} ${t(`station.${station}`)}`, items, t('menu.close'));
   }
@@ -103,9 +111,9 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
     walkThen((done) => world.walkToPoint(x, z, done), () => undefined);
   }
 
-  function placeBuilding(id: PlacedId, cell: Cell): void {
+  function placeBuilding(id: PlacedId, cell: Cell, rot: Turn = 0): void {
     if (!ctx.free()) return;
-    const action = placeAction(s.state, id, cell);
+    const action = placeAction(s.state, id, cell, rot);
     if (check(s.state, action, s.win)) return;
     // Setting up a starter is instant: the crew unpacks it where it lands, no walk.
     if (action.type === 'place') return ctx.perform(action);

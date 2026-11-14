@@ -163,3 +163,8 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
 - The learning layer (XP, capsules, rank) lives in `src/profile/` + `game/learn.ts` and
   never touches the sim. To test the recall question, preset the profile in localStorage
   (`seyir-defteri.profile`, `seen` counts at 3) so the next showing is the 4th.
+- Camera input (B4): synthetic PointerEvents cannot be pointer-captured (`setPointerCapture`
+  throws), so `input/pointer.ts` wraps it in try/catch; test two-finger gestures by
+  dispatching `pointerType: 'touch'` events with two pointer ids on `#scene`.
+- Building facing is cosmetic (`Building.rot`, action `rotate`): never let it touch rules,
+  costs or the bot.
