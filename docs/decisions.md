@@ -191,7 +191,7 @@ Human decisions:
   sim stores those values in the log line (`SolLog.dusk`).
 - **New Mission:** the first game on a device is always window 1 with the fixed seed; later
   games use a random seed. `?seed=` / `?w=` still pin both.
-Build choices (please confirm or change):
+Build choices (the first three were confirmed by the human on 2026-11-14):
 - **Later games also change the window**: window = seed mod 3. The request only fixed the
   first game; one line in `src/main.ts` if later games should stay on window 1.
 - **Panels start dusty** (`BALANCE.panel.initial` = 0.7). The PRD tutorial starts with
