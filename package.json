@@ -1,0 +1,26 @@
+{
+  "name": "seyir-defteri",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Seyir Defteri: Son 30 Sol - a browser game where kids keep a Mars base alive for 30 sols, driven by real NASA space weather data.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "bot": "node tools/bot/run.ts",
+    "deploy": "npm run build && bash tools/deploy.sh"
+  },
+  "dependencies": {
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/three": "^0.187.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
+  }
+}

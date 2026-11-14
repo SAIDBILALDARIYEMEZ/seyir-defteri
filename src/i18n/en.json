@@ -1,0 +1,13 @@
+{
+  "app.title": "Seyir Defteri: The Last 30 Sols",
+  "app.tagline": "Real storms. Real choices.",
+  "comingSoon.status": "Coming soon",
+  "comingSoon.body": "Keep a Mars base alive for 30 sols. Every storm in this game really happened.",
+  "lang.switchTo": "TR",
+  "lang.switchLabel": "Türkçe'ye geç",
+  "debug.title": "Debug",
+  "debug.fps": "FPS",
+  "debug.sol": "Sol",
+  "debug.hoursLeft": "Hours left",
+  "debug.nextSol": "Skip to next sol"
+}

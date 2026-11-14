@@ -1,0 +1,13 @@
+{
+  "app.title": "Seyir Defteri: Son 30 Sol",
+  "app.tagline": "Gerçek fırtınalar, gerçek kararlar.",
+  "comingSoon.status": "Çok yakında",
+  "comingSoon.body": "Mars'taki üssü 30 sol boyunca ayakta tut. Bu oyundaki her fırtına gerçekten yaşandı.",
+  "lang.switchTo": "EN",
+  "lang.switchLabel": "Switch to English",
+  "debug.title": "Hata ayıklama",
+  "debug.fps": "FPS",
+  "debug.sol": "Sol",
+  "debug.hoursLeft": "Kalan saat",
+  "debug.nextSol": "Sonraki sola geç"
+}

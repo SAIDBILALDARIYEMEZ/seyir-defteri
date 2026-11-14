@@ -1,0 +1,11 @@
+node_modules
+dist
+.env*
+.claude/settings.local.json
+.DS_Store
+*.log
+graphify-out
+
+# Internal working notes, kept local (see docs/decisions.md D-003)
+docs/ARASTIRMA-veri.md
+docs/RAKIP-ANALIZI.md
