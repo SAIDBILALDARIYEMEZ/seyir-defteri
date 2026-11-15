@@ -575,7 +575,7 @@
   "hud.sheltered": "In the shelter: shielded",
   "menu.store": "store {n}/{max}",
   "reason.foodFullStore": "The food store is full ({n}/{max}). Harvest again after the crew has eaten some.",
-  "night.coldAhead": "Tonight the heaters need {power}⚡ but you will have only {have}⚡, so the base gets cold and loses {cold}💨 more.",
+  "night.coldAhead": "❄️ Cold night ahead: heating needs {power}⚡, you will have {have}⚡.",
   "settings.motionReduced": "Reduce motion: on",
   "settings.motionFull": "Reduce motion: off",
   "cine.skip": "Skip ⏭",
@@ -708,5 +708,13 @@
   "pick.lockedTap": "Finish a mission first.",
   "code.note": "Everyone with the same code plays the same storms; compare in class.",
   "message.oneWay": "Your message reaches Earth in about {n} minutes.",
-  "message.roundTrip": "There and back takes about {n} minutes: Earth is far away, in an emergency you decide."
+  "message.roundTrip": "There and back takes about {n} minutes: Earth is far away, in an emergency you decide.",
+  "cause.today": "Today",
+  "cause.tomorrow": "Tomorrow",
+  "cause.calm": "A calm day: the base is ready for tomorrow.",
+  "cause.cold": "Power was spent in the day, the heaters stopped at night: oxygen dropped.",
+  "cause.foodEmpty": "Food ran out: tend the plants or tomorrow is hungry too.",
+  "cause.dust": "Dust hid the Sun: the panels give less power.",
+  "cause.broken": "A broken machine stays broken until you repair it.",
+  "cause.radEvent": "A particle storm came: the shelter keeps the dose low."
 }

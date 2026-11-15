@@ -17,7 +17,7 @@ import { sepWarnedToday, visibleWarnings } from '../sim/systems/warnings.ts';
 import { dateOfSol, rateAt } from '../sim/window.ts';
 import type { WindowData } from '../sim/window.ts';
 import { sourceTag } from './cards.ts';
-import { fmt, formatDate } from './dom.ts';
+import { el, fmt, formatDate } from './dom.ts';
 import { dayRows, nightExtra } from './nightCard.ts';
 import { nightOverdueLine } from './overdue.ts';
 import type { ModalSpec } from './overlays.ts';
@@ -38,6 +38,16 @@ export interface NightHandlers {
 }
 
 /** `before` is the state before the last action of the sol; `state` is the next morning. */
+/** F8: [today's cause, tomorrow's effect] icons per "why" flag. */
+const CAUSE_ICONS: Record<string, [string, string]> = {
+  calm: ['✅', '🌅'],
+  cold: ['⚡📉', '🥶 −💨'],
+  foodEmpty: ['🥫0', '🌱❗'],
+  dust: ['🌪️', '☀️📉 ⚡'],
+  broken: ['🔧', '⚙️❌'],
+  radEvent: ['☢️', '🛡️ / +☢️'],
+};
+
 export function nightSpec(before: GameState, state: GameState, win: WindowData, on: NightHandlers): ModalSpec {
   const { power, air, food, advisor, actions } = BALANCE;
   const log = state.log[state.log.length - 1];
@@ -56,6 +66,19 @@ export function nightSpec(before: GameState, state: GameState, win: WindowData, 
   if (doseOpen) lines.push([`☢️ ${t('night.dose')}`, `+${share(gained)}%`]);
 
   const why = WHY_FLAGS.filter((flag) => flags.includes(flag));
+  // F8: cause -> effect as one big line: "Today: [choice] -> Tomorrow: [effect]".
+  const top = why[0] ?? 'calm';
+  const [today, tomorrow] = CAUSE_ICONS[top] ?? ['✅', '🌅'];
+  const lead = (): HTMLElement => {
+    const box = el('div', 'cause-line');
+    box.append(
+      el('span', 'cause-part', `${t('cause.today')}: ${today}`),
+      el('span', 'cause-arrow', '→'),
+      el('span', 'cause-part', `${t('cause.tomorrow')}: ${tomorrow}`),
+      el('small', 'cause-text', t(`cause.${top}` as TextKey)),
+    );
+    return box;
+  };
   if (why.length === 0) lines.push(`🧭 ${t('night.why.calm')}`);
   for (const flag of why) lines.push(`🧭 ${t(`night.why.${flag}`)}`);
 
@@ -82,7 +105,7 @@ export function nightSpec(before: GameState, state: GameState, win: WindowData, 
   }
   if (on.replay) buttons.unshift(on.replay);
   const extra = (): HTMLElement => nightExtra(before, state, log);
-  return { kind: 'night', title: `🌙 ${t('night.title', { n: before.sol })}`, lines, fact, buttons, extra };
+  return { kind: 'night', title: `🌙 ${t('night.title', { n: before.sol })}`, lead, lines, fact, buttons, extra };
 }
 
 export type CardBuild = (close: () => void) => ModalSpec;

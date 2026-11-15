@@ -575,7 +575,7 @@
   "hud.sheltered": "Sığınakta: korunuyorsun",
   "menu.store": "depo {n}/{max}",
   "reason.foodFullStore": "Yemek deposu dolu ({n}/{max}). Ekip biraz yedikten sonra yine hasat et.",
-  "night.coldAhead": "Bu gece ısıtıcılara {power}⚡ lazım ama sende yalnızca {have}⚡ olacak; üs soğur ve {cold}💨 daha fazla hava kaybeder.",
+  "night.coldAhead": "❄️ Bu gece soğuk: ısıtma {power}⚡ ister, sende {have}⚡ olacak.",
   "settings.motionReduced": "Hareketi azalt: açık",
   "settings.motionFull": "Hareketi azalt: kapalı",
   "cine.skip": "Atla ⏭",
@@ -708,5 +708,13 @@
   "pick.lockedTap": "Önce bir görevi tamamla.",
   "code.note": "Aynı kodu giren herkes aynı fırtınaları oynar; sınıfta karşılaştırın.",
   "message.oneWay": "Mesajın Dünya'ya yaklaşık {n} dakikada ulaşır.",
-  "message.roundTrip": "Gidiş-dönüş yaklaşık {n} dakika: Dünya uzakta, acil durumda kararı sen verirsin."
+  "message.roundTrip": "Gidiş-dönüş yaklaşık {n} dakika: Dünya uzakta, acil durumda kararı sen verirsin.",
+  "cause.today": "Bugün",
+  "cause.tomorrow": "Yarın",
+  "cause.calm": "Sakin bir gün: üs yarına hazır.",
+  "cause.cold": "Gündüz güç harcandı, gece ısıtma durdu: oksijen azaldı.",
+  "cause.foodEmpty": "Yemek bitti: bitkilere bakmazsan yarın da aç kalırsın.",
+  "cause.dust": "Toz Güneş'i kapattı: paneller daha az güç verir.",
+  "cause.broken": "Bozuk makine tamir edilmezse yarın da çalışmaz.",
+  "cause.radEvent": "Parçacık fırtınası geldi: sığınak dozu düşük tutar."
 }

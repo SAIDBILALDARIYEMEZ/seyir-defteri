@@ -22,6 +22,12 @@ export function costText(c: OverdueCost): string {
   return parts.join('  ');
 }
 
+/** F8: the evening's ❄️ warning when the battery will not cover tonight's heating, else null. */
+export function coldNote(state: GameState): string | null {
+  const have = Math.floor(state.power + incomePerHour(state) * state.hoursLeft);
+  return have < BALANCE.power.nightHeating ? t('night.coldAhead', { power: BALANCE.power.nightHeating, have, cold: BALANCE.air.coldPenalty }) : null;
+}
+
 /** One sentence on what the night costs (F5b), from the balance numbers. */
 export function nightNote(state: GameState): string {
   const { power, air, food } = BALANCE;

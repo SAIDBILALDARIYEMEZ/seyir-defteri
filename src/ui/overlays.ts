@@ -25,6 +25,8 @@ export interface ModalSpec {
   fact?: string;
   /** Source tag (where the fact or number comes from). */
   source?: string;
+  /** F8: a big one-line infographic right under the title. */
+  lead?: () => HTMLElement;
   /** Extra content such as a chart, placed after the lines. */
   extra?: () => HTMLElement;
   /** Adds the language picker (pause / settings). */
@@ -116,6 +118,7 @@ export function openModal(parent: HTMLElement, build: () => ModalSpec): () => vo
     card.className = `card ${spec.kind ?? ''}`;
     card.replaceChildren(el('h2', '', spec.title));
     if (spec.date) card.append(el('span', 'card-date', spec.date));
+    if (spec.lead) card.append(spec.lead());
     card.append(...body(spec));
     if (spec.extra) card.append(spec.extra());
     // F7: the real-life fact is behind ℹ️ unless the card shows everything.

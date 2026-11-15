@@ -37,7 +37,7 @@ import { mountBuildMenu } from './ui/buildMenu.ts';
 import { mountGuide } from './ui/guide.ts';
 import { mountInfoCard } from './ui/infoCard.ts';
 import { mountHud } from './ui/hud.ts';
-import { endDaySpec, nightNote } from './ui/overdue.ts';
+import { coldNote, endDaySpec, nightNote } from './ui/overdue.ts';
 import { feedOf, stormBanner } from './ui/watchFeed.ts';
 import { mountActionMenu, openModal } from './ui/overlays.ts';
 import type { ModalSpec } from './ui/overlays.ts';
@@ -208,6 +208,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
         feed: feedOf(s.state, s.win),
         storm: stormBanner(s.state, s.win),
         mood: moodOf(s.state, s.win),
+        cold: s.state.phase === 'playing' ? coldNote(s.state) : null,
       });
     }
     fitDepot();

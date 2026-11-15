@@ -26,3 +26,9 @@
 }
 /* The card can scroll on small screens: its buttons stay in reach at the bottom. */
 .card.night .card-actions { position: sticky; bottom: -22px; margin: 16px -24px -22px; padding: 12px 24px 18px; background: rgb(24, 28, 58); }
+/* F8 cause -> effect line at the top of the night card; ❄️ cold warning on the watch. */
+.cause-line { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin: 6px 0 10px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 179, 71, 0.16); border: 2px solid rgba(255, 179, 71, 0.5); }
+.cause-part { font-size: 20px; font-weight: 800; text-align: center; }
+.cause-arrow { font-size: 26px; font-weight: 800; color: var(--accent); }
+.cause-text { grid-column: 1 / -1; text-align: center; font-size: 13.5px; }
+.pusula-cold { margin: 0; padding: 6px 10px; font-size: 13px; font-weight: 700; background: rgba(90, 170, 255, 0.35); border: 2px solid #8fd0ff; border-radius: 12px; }

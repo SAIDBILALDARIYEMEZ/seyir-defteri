@@ -38,6 +38,8 @@ export interface WatchView {
   feed: FeedItem[];
   /** F6: particle-storm warning, or null (F7: shown as one short purple line). */
   storm: string | null;
+  /** F8: ❄️ cold-night warning for this evening, or null. */
+  cold?: string | null;
   /** F7: PUSULA's face. */
   mood?: Mood;
 }
@@ -71,6 +73,7 @@ export function mountWatch(parent: HTMLElement, onPusula: () => void, onEndDay: 
   head.append(pf.node, bubble);
   const storm = el('p', 'pusula-storm');
   storm.setAttribute('role', 'alert');
+  const coldLine = el('p', 'pusula-cold');
   const chips = el('div', 'pusula-chips');
   const later = el('p', 'watch-later');
   const end = el('div', 'watch-end');
@@ -79,12 +82,14 @@ export function mountWatch(parent: HTMLElement, onPusula: () => void, onEndDay: 
   end.append(endBtn, endNote);
   const rescueBar = el('div', 'pusula-rescue');
   const feedBox = el('div', 'pusula-feed');
-  root.append(head, storm, chips, later, end, rescueBar, feedBox);
+  root.append(head, storm, coldLine, chips, later, end, rescueBar, feedBox);
   parent.append(root);
 
   return {
     root,
-    update({ text, tasks, deferred, endDay, rescue, feed, storm: stormText, mood = 'happy' }) {
+    update({ text, tasks, deferred, endDay, rescue, feed, storm: stormText, mood = 'happy', cold = null }) {
+      coldLine.hidden = !cold;
+      coldLine.textContent = cold ?? '';
       pf.set(mood);
       setGlossText(bubble, first(text));
       storm.hidden = !stormText;
