@@ -143,6 +143,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
   const mainMenu = mountMainMenu(ui, {
     onContinue: () => flow.continueMission(),
     onNewMission: flow.newMission,
+    onPickStorm: flow.pickStorm,
     onSaves: flow.showSaves,
     onInfo: flow.showInfoScreen,
     onSettings: flow.showSettings,

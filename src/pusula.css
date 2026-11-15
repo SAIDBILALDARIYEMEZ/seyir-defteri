@@ -59,3 +59,6 @@ html .rank-badge { display: flex; align-items: center; gap: 8px; min-width: 0; p
 .rank-stars { color: #ffd166; font-size: 15px; letter-spacing: 1px; }
 html .rank-badge .xp-bar { width: 90px; }
 html .rank-badge > :not(:first-child) { display: grid; }
+/* F7 main menu: the class-code note, locked storm options. */
+.code-note { margin: 0 0 4px; font-size: 12.5px; text-align: center; color: var(--ink-dim); }
+.pick-option.locked { opacity: 0.6; cursor: help; filter: grayscale(0.7); }

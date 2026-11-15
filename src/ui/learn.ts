@@ -13,6 +13,7 @@ import { dateOfSol } from '../sim/window.ts';
 import type { WindowData } from '../sim/window.ts';
 import { button, el, formatDate } from './dom.ts';
 import type { ModalSpec } from './overlays.ts';
+import { popAnchor } from './pop.ts';
 
 export type Concept = (typeof concepts)[number];
 export const CONCEPTS: readonly Concept[] = concepts;
@@ -98,16 +99,19 @@ export function hazardOf(station: StationId): string | null {
 }
 
 /** Storm picker (unlocked after the first win): one big button per real month. */
-export function pickStormSpec(windows: WindowData[], onPick: (win: WindowData) => void, close: () => void): ModalSpec {
+export function pickStormSpec(windows: WindowData[], onPick: (win: WindowData) => void, close: () => void, locked = false): ModalSpec {
   return {
     kind: 'event pick',
     title: `🌩️ ${t('pick.title')}`,
-    lines: [t('pick.body')],
+    lines: [t(locked ? 'pick.locked' : 'pick.body')],
     extra: () => {
       const list = el('div', 'pick-list');
       windows.forEach((win, i) => {
-        const b = button('btn pick-option', '', () => { close(); onPick(win); });
-        b.append(el('b', '', `${i + 1}. ${formatDate(dateOfSol(win, 1))}`), el('span', '', t(`pick.${win.id}` as TextKey)));
+        // F7: before the first win the three storms show locked; a tap says why.
+        const b = locked
+          ? popAnchor(button('btn pick-option locked', '', () => undefined), () => t('pick.lockedTap'))
+          : button('btn pick-option', '', () => { close(); onPick(win); });
+        b.append(el('b', '', `${locked ? '🔒 ' : ''}${i + 1}. ${formatDate(dateOfSol(win, 1))}`), el('span', '', t(`pick.${win.id}` as TextKey)));
         list.append(b);
       });
       return list;

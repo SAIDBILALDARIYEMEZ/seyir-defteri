@@ -702,5 +702,9 @@
   "radar.low": "Yarın radyasyon: ⬇ düşük, dışarıda çalışabilirsin.",
   "radar.none": "Kurtarma gemisi yarın geliyor; radar dinleniyor.",
   "radar.fact": "Bu tahmin, yarının gerçek tarihindeki Curiosity RAD ölçümünden gelir (oyun basitleştirmesi: radar ileriyi görebiliyor).",
-  "rank.pop": "Görev yaptıkça XP kazanırsın; rütbe, deneyimindir."
+  "rank.pop": "Görev yaptıkça XP kazanırsın; rütbe, deneyimindir.",
+  "menu.pickStorm": "Fırtına seç",
+  "pick.locked": "Bir görevi tamamlayınca gerçek fırtınaları seçebilirsin.",
+  "pick.lockedTap": "Önce bir görevi tamamla.",
+  "code.note": "Aynı kodu giren herkes aynı fırtınaları oynar; sınıfta karşılaştırın."
 }

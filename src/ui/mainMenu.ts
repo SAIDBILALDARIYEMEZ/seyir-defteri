@@ -16,6 +16,8 @@ export interface MainMenu {
 export interface MenuHandlers {
   onContinue(): void;
   onNewMission(): void;
+  /** F7: storm picker (locked until the first win). */
+  onPickStorm(): void;
   onSaves(): void;
   onInfo(): void;
   onSettings(): void;
@@ -42,7 +44,8 @@ export function mountMainMenu(parent: HTMLElement, on: MenuHandlers): MainMenu {
   const info = button('btn', '', on.onInfo);
   const settings = button('btn', '', on.onSettings);
   const intro = button('btn', '', on.onIntro);
-  list.append(resume, start, saves, intro, info, settings);
+  const storm = button('btn', '', on.onPickStorm);
+  list.append(resume, start, storm, saves, intro, info, settings);
   const codeRow = el('form', 'code-row');
   const input = el('input', 'code-input');
   input.maxLength = CODE_LENGTH;
@@ -67,7 +70,8 @@ export function mountMainMenu(parent: HTMLElement, on: MenuHandlers): MainMenu {
     }
   });
   error.hidden = true;
-  card.append(kicker, title, tagline, list, toggle, codeRow, error);
+  const codeNote = el('p', 'code-note');
+  card.append(kicker, title, tagline, list, toggle, codeNote, codeRow, error);
   mountSunCard(card); // F6: live "Today on the Sun" (PRD §10.1)
   root.append(card);
   parent.append(root);
@@ -89,6 +93,8 @@ export function mountMainMenu(parent: HTMLElement, on: MenuHandlers): MainMenu {
       settings.textContent = `⚙️ ${t('menu.settings')}`;
       intro.textContent = `🎬 ${t('menu.intro')}`;
       toggle.textContent = `🔑 ${t('menu.enterCode')}`;
+      codeNote.textContent = t('code.note');
+      storm.textContent = `🌩️ ${t('menu.pickStorm')}`;
       input.placeholder = t('code.placeholder');
       input.setAttribute('aria-label', t('menu.enterCode'));
       go.textContent = t('code.start');

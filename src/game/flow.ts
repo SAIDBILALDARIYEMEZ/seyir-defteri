@@ -234,6 +234,14 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     );
   }
 
+  /** F7: the main menu's "Pick a storm": always there; locked (🔒) until the first win. */
+  function pickStorm(): void {
+    const locked = !learn.canPickStorm();
+    const close = ctx.modal(() =>
+      pickStormSpec(missions.windows(), (win) => confirmReplace(() => missions.pick(win)), () => close(), locked),
+    );
+  }
+
   /** Puts the scene and the UI at the current state (new mission, Continue, replay). */
   function enterPlay(): void {
     s.frozen = null;
@@ -329,6 +337,7 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     preview,
     continueMission,
     newMission,
+    pickStorm,
     ...createMenuCards(ctx, { continueMission, confirmReset }),
     codeMission,
   };
