@@ -53,7 +53,7 @@ export function languagePicker(): HTMLElement {
 /** F5b: cards lead with at most two short sentences; the rest folds under "More ▾". */
 const LEAD_SENTENCES = 1;
 /** Card kinds that always show everything (lists, charts, results, quiz). */
-const FULL_KINDS = ['logbook', 'result', 'data', 'quiz', 'pick', 'storm-real', 'menu-list'];
+const FULL_KINDS = ['logbook', 'result', 'data', 'quiz', 'pick', 'menu-list'];
 
 export function sentences(text: string): string[] {
   return text.split(/(?<=[.!?…])\s+(?=\S)/u).filter((x) => x.length > 0);

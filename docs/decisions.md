@@ -843,3 +843,47 @@ the whole storm instead); no new 3D model files (debris and upgrade props are ma
   - The watch scrolls back to the top whenever the banner appears or changes (it stayed scrolled
     down from the day before in the browser test).
   - Only what the crew can see is used (warnings + the current reading), never the curve's future.
+
+## D-023 — 2026-11-15 — F7: simplification for ages 7-12 (minimum text, maximum icons)
+
+Target age is **7-12** (the challenge text), not 10-14. Mentor, test players and the challenge
+said the same thing: too much text. Rule: one short sentence + icons; details only in a tap
+pop-up (ℹ️). Sim and balance untouched: bot report identical to F6 (D-022 table).
+
+1. **Text diet:** cards lead with one sentence; the rest and the real-life fact sit behind one
+   ℹ️ button (`ui/pop.ts`, shared tap bubble). The station info card opens only from its ℹ️ pill.
+   PUSULA's watch shows one sentence; the PUSULA task lines were rewritten as one sentence (TR +
+   EN). Knowledge capsules: at most one per sol, never the same one twice in a game (quiz too).
+   Glossary bubble: bold "Doz:" + one sentence. TR "nefes/hava" -> "oksijen" where it means O2.
+   The real-storm card is no longer a "show everything" card: one sentence + chart + ℹ️.
+2. **Dashboard:** one even strip (sol, daylight pie, power, oxygen, food, dose, parts, science,
+   gear), icon + number + small bar. Pie turns red at <= 2 h. A value at its critical level
+   (advisor thresholds; dose >= 75%) blinks red (no blink with Reduce motion) and plays the warn
+   sound once. Tap = one-sentence pop-up (+ ℹ️ to the old info card). Each gauge introduces itself
+   once per device (`seyir-defteri.hudSeen`).
+3. **Store:** icon tiles (big icon, 🔩 ⏱ ⚡ metrics, 🔒 / ⏳ / ✅ badge), no text; a locked tile's
+   reason opens in a tap pop-up.
+4. **PUSULA character:** a drawn CSS face (no image) with three moods (happy / worried / alarm,
+   `game/mood.ts`, from what the crew can see), speech bubble, icon task chips, rescue bar
+   📡 → 📍 → 🛬, purple one-line storm warning, real fact behind 💡.
+5. **Meaningful actions (UI only):** action buttons show their result as icons (`gain.*`).
+   Curiosity is the **storm radar**: after reading it, a card shows "Tomorrow's radiation: ⬆ high /
+   ⬇ low" from tomorrow's real RAD hours (event-rate rule). **This revises D-022's "never the
+   curve's future"** at the human's request; the card labels it as a game simplification ("the
+   radar can see ahead") and names the RAD source. Earth's plain reply now gives the science
+   received and the next *visible* storm warning (warnings only). Science / Curiosity menus get a
+   one-sentence note.
+6. **Rank badge:** astronaut head + rank stars + XP bar; tap explains XP and rank.
+7. **Fixes:** "Exit without saving" on sol 1 left the first-day autosave behind (the sol-1 morning
+   snapshot was saved): now `exitWithoutSaving` removes the mission's save on sol 1 and goes back
+   to this morning on later sols (2 tests). A logbook opened over the result card got the stacked
+   card's dark background (dark text on dark brown): fixed, opaque, stacked backdrop darker.
+   "Wait in the shelter" leaves the watch once no storm hour is left today (display only; the
+   sim's list is unchanged). Dust-storm texts say "not radiation, dims the panels, no shelter".
+8. **Main menu:** "🌩️ Pick a storm" always visible; before the first win the three storms are
+   locked and a tap says "Finish a mission first". One line under "Enter mission code" explains
+   class codes.
+9. **Mini map** (bottom left, hidden under 900 px): top view fitted to the base; stations,
+   rocket, Ada; tap a station or the ground to walk there. No fog.
+
+Screenshots for the presentation: `screenshots-f7/`.

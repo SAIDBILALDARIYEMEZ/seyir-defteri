@@ -39,3 +39,5 @@
 html .backdrop ~ .backdrop { background: rgba(10, 4, 2, 0.82); }
 html .backdrop ~ .backdrop .card.logbook, html .card.logbook { background: #f6ead2; color: #3a2414; opacity: 1; }
 html .card.result { background: rgb(38, 17, 10); }
+/* F7: the station info (pill or card) sits under the rank badge, not on it. */
+@media (min-width: 601px) { html .info-card { top: 140px; } }

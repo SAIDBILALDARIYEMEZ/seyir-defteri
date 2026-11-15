@@ -229,3 +229,11 @@ npm run deploy    # Build, then publish dist/ to the gh-pages branch
   the screen; give it `width: max-content` plus a max-width (the cutscene subtitle bug).
 - Live data: `src/adapters/donki.ts` never throws; the main-menu card starts SAVED and swaps to LIVE.
   Refresh the fallback with `node tools/data/fetch.mjs --latest` (does not touch the window snapshots).
+- F7 tap pop-ups: use `ui/pop.ts` (`showPop`, `popAnchor`, `infoButton`) for any detail text; a
+  tap anywhere outside closes it. Cards fold everything after the first sentence (and the fact)
+  behind one ℹ️: write card lines so the first sentence carries the message.
+- The HUD intro pop-ups show once per device (`seyir-defteri.hudSeen`); preset that key in pane
+  tests so they do not cover the strip.
+- Adding the minimap/dashboard changed what labels must avoid: new fixed UI goes into
+  `LABEL_BLOCKERS` in `ui/panels.ts`.
+
