@@ -34,3 +34,8 @@
 .info-card.mini { padding: 6px; width: auto; max-width: 260px; }
 .info-pill { min-height: 40px; padding: 6px 14px; border-radius: 999px; border: none; background: rgba(255,255,255,0.14); color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
 .gloss-pop b { color: var(--accent); }
+/* F7 fix: a logbook opened over the result card stays paper-coloured and fully opaque, and the
+   stacked backdrop hides the card underneath (the stacked-card rule gave it a dark background). */
+html .backdrop ~ .backdrop { background: rgba(10, 4, 2, 0.82); }
+html .backdrop ~ .backdrop .card.logbook, html .card.logbook { background: #f6ead2; color: #3a2414; opacity: 1; }
+html .card.result { background: rgb(38, 17, 10); }

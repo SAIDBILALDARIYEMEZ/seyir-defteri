@@ -121,3 +121,14 @@ export function deleteSave(id: string): void {
 export function clearSave(state: Pick<GameState, 'seed' | 'windowId'>): void {
   deleteSave(saveIdOf(state));
 }
+
+/**
+ * F7 "Exit without saving": today's work is dropped. The save goes back to this morning (the
+ * night already saved it). On sol 1 there was no save before today, so the mission's save is
+ * removed: the autosaves made during the first day do not survive.
+ */
+export function exitWithoutSaving(state: GameState): void {
+  const morning = state.mornings.find((m) => m.sol === state.sol);
+  if (morning && state.sol > 1) saveGame({ ...structuredClone(morning), mornings: state.mornings });
+  else clearSave(state);
+}

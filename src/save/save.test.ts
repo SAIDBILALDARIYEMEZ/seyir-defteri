@@ -7,7 +7,7 @@ import { createRng } from '../sim/rng.ts';
 import { createInitialState } from '../sim/state.ts';
 import type { GameState } from '../sim/state.ts';
 import { BALANCE } from '../config/balance.ts';
-import { MAX_SAVES, clearSave, deleteSave, listSaves, loadGame, saveGame, saveIdOf } from './save.ts';
+import { MAX_SAVES, clearSave, deleteSave, exitWithoutSaving, listSaves, loadGame, saveGame, saveIdOf } from './save.ts';
 
 /** A plain in-memory localStorage for the Node test run. */
 function memoryStorage(): Storage {
@@ -74,5 +74,26 @@ describe('saved games (F5b)', () => {
     localStorage.setItem('seyir-defteri.save', JSON.stringify({ saveVersion: 3, savedAt: '2026-01-01T00:00:00Z', state: old }));
     expect(loadGame()?.seed).toBe(9);
     expect(localStorage.getItem('seyir-defteri.save')).toBeNull();
+  });
+
+  it('"Exit without saving" on sol 1 leaves no save behind (F7)', () => {
+    const s = setUp(41);
+    saveGame(s); // the mid-day autosave
+    expect(listSaves()).toHaveLength(1);
+    exitWithoutSaving(s);
+    expect(listSaves()).toHaveLength(0);
+  });
+
+  it('"Exit without saving" later goes back to this morning (F7)', () => {
+    let s = setUp(42);
+    s = reduce(s, { type: 'endSol', crewId: 0 }, rng, win);
+    const morning = s.sol;
+    const hours = s.hoursLeft;
+    s = reduce(s, { type: 'clean', crewId: 0 }, rng, win);
+    saveGame(s);
+    exitWithoutSaving(s);
+    const loaded = loadGame(saveIdOf(s));
+    expect(loaded?.sol).toBe(morning);
+    expect(loaded?.hoursLeft).toBe(hours);
   });
 });

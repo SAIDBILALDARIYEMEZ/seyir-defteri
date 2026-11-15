@@ -13,6 +13,8 @@ import { exploreTask, liveDay, nextTask, urgentNeeds } from '../sim/systems/advi
 import type { Task } from '../sim/systems/advisor.ts';
 import { setupDone } from '../sim/systems/build.ts';
 import { taskKey } from '../sim/systems/overdue.ts';
+import { eventHoursOver } from '../sim/systems/lessons.ts';
+import { clockOf, isEventNow } from '../sim/systems/time.ts';
 import type { WindowData } from '../sim/window.ts';
 import { tutorialSteps } from '../ui/guide.ts';
 import type { WatchTask } from '../ui/watch.ts';
@@ -71,8 +73,14 @@ export function computeGuide(state: GameState, win: WindowData, go: GuideActions
       go.goStation(costOf(state, a).station);
     },
   });
-  const day = liveDay(state, win);
-  const next = nextTask(state, win);
+  const live = liveDay(state, win);
+  // F7: once today's particle storm is over (no storm hour left today), "Wait in the shelter"
+  // leaves the list. Display only: the sim's list and the bot are unchanged.
+  const stormOver = !isEventNow(state, win) && eventHoursOver(win, state.sol, clockOf(state), state.hoursLeft) === 0;
+  const keep = (task: Task): boolean => !(stormOver && task.action.type === 'shelterWait');
+  const day = { ...live, tasks: live.tasks.filter(keep) };
+  const first = nextTask(state, win);
+  const next = first && !keep(first) ? (day.tasks.find((task) => check(state, task.action, win) === null) ?? null) : first;
   const deferred = day.deferred.filter((task) => !task.spare).map((task) => labelOf(state, task.action));
   const playing = state.phase === 'playing' && setupDone(state);
   // A tutorial / build-chain step that no longer fits today's daylight waits for tomorrow too.

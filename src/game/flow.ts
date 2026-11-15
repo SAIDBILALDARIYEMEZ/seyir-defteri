@@ -13,7 +13,7 @@ import { check } from '../sim/rules.ts';
 import { createInitialState } from '../sim/state.ts';
 import type { GameState } from '../sim/state.ts';
 import { clockOf } from '../sim/systems/time.ts';
-import { clearSave, loadGame, saveGame, saveIdOf } from '../save/save.ts';
+import { clearSave, exitWithoutSaving, loadGame, saveGame, saveIdOf } from '../save/save.ts';
 import { dataSpec, infoSpec, pusulaSpec } from '../ui/cards.ts';
 import { morningCards, nightSpec } from '../ui/dayCards.ts';
 import type { GaugeId } from '../ui/hud.ts';
@@ -44,11 +44,6 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
     resume();
     showMenu();
   };
-  /** Today's work is dropped: the save goes back to this morning (the autosave kept it). */
-  const saveMorning = (): void => {
-    const morning = s.state.mornings.at(-1);
-    if (morning) saveGame({ ...structuredClone(morning), mornings: s.state.mornings });
-  };
   /** Main menu from the pause menu: asks whether to keep today's work (F5b). */
   const askSave = (): void => {
     const close = ctx.modal(() => ({
@@ -56,7 +51,7 @@ export function createFlow(ctx: Ctx, guide: () => Guide, goStation: (id: Station
       lines: [t('pause.ask.body')],
       buttons: [
         { label: `💾 ${t('pause.ask.yes')}`, onClick: () => { close(); ctx.save(); leave(); }, primary: true },
-        { label: t('pause.ask.no'), onClick: () => { close(); saveMorning(); leave(); } },
+        { label: t('pause.ask.no'), onClick: () => { close(); leave(); exitWithoutSaving(s.state); } },
         { label: t('pause.confirm.no'), onClick: () => close() },
       ],
     }));
