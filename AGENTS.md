@@ -1,6 +1,6 @@
 # Seyir Defteri: Son 30 Sol
 
-> A browser game for ages 7-12: keep a Mars base alive for 30 sols while making real mission
+> A browser game for ages 7-12 (challenge text; not 10-14): keep a Mars base alive for 30 sols while making real mission
 > trade-offs (power, life support, radiation shelter, food, comms delay), driven by real NASA data.
 > Browser game: Vite + TypeScript (strict) + three.js. Static hosting on GitHub Pages.
 > NASA Space Apps 2026, solo team "Seyir Defteri", challenge "Build a Junior Astronaut Mission Trainer".

@@ -7,6 +7,7 @@ import terms from '../content/glossary.json';
 import { getLang, t } from '../i18n/i18n.ts';
 import type { TextKey } from '../i18n/i18n.ts';
 import { el } from './dom.ts';
+import { showPop } from './pop.ts';
 
 interface Term {
   id: string;
@@ -35,31 +36,13 @@ function pattern(): { re: RegExp; exact: (RegExp | null)[] } {
   return cache;
 }
 
-let popup: HTMLElement | null = null;
-
-function hidePopup(): void {
-  popup?.remove();
-  popup = null;
+/** "Doz: one sentence." -> bold "Doz:" + the sentence (F7 format fix). */
+function glossContent(id: string): Node[] {
+  const text = t(`gloss.${id}` as TextKey);
+  const cut = text.indexOf(': ');
+  if (cut < 0) return [document.createTextNode(text)];
+  return [el('b', '', `${text.slice(0, cut)}:`), document.createTextNode(` ${text.slice(cut + 2)}`)];
 }
-
-function showPopup(anchor: HTMLElement, id: string): void {
-  hidePopup();
-  const box = el('div', 'gloss-pop');
-  box.setAttribute('role', 'tooltip');
-  box.append(el('b', '', anchor.textContent ?? ''), document.createTextNode(` ${t(`gloss.${id}` as TextKey)}`));
-  document.body.append(box);
-  const r = anchor.getBoundingClientRect();
-  const w = box.offsetWidth;
-  box.style.left = `${Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2))}px`;
-  const below = r.bottom + 8 + box.offsetHeight < window.innerHeight;
-  box.style.top = `${below ? r.bottom + 8 : r.top - box.offsetHeight - 8}px`;
-  popup = box;
-}
-
-document.addEventListener('pointerdown', (e) => {
-  const target = e.target as HTMLElement | null;
-  if (!target?.closest('.gloss-pop, .term')) hidePopup();
-}, true);
 
 /** A tappable glossary word (a span, so it also works inside buttons and labels). */
 function termNode(word: string, id: string): HTMLElement {
@@ -69,9 +52,7 @@ function termNode(word: string, id: string): HTMLElement {
   const open = (e: Event): void => {
     e.preventDefault();
     e.stopPropagation();
-    if (popup && popup.dataset.for === id) return hidePopup();
-    showPopup(node, id);
-    if (popup) popup.dataset.for = id;
+    showPop(node, glossContent(id));
   };
   node.addEventListener('click', open);
   node.addEventListener('keydown', (e) => {

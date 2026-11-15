@@ -50,10 +50,17 @@ export function mountInfoCard(parent: HTMLElement): InfoCard {
     box.append(el('h3', '', t(title)), p);
     return box;
   };
-  return {
-    root,
-    show(id, state, withMenu = false) {
-      shown = id;
+  /** F7: the card never opens by itself; a small ℹ️ pill opens it. */
+  const mini = (id: InfoId, state: GameState, withMenu: boolean): void => {
+    const meta = info[id];
+    const pill = button('info-pill', `ℹ️ ${meta.icon} ${t(`station.${id}` as TextKey)}`, () => full(id, state, withMenu));
+    const status = statusOf(id, state);
+    root.replaceChildren(pill, ...(status ? [el('p', 'info-status', status)] : []));
+    root.classList.add('mini');
+    root.hidden = false;
+  };
+  const full = (id: InfoId, state: GameState, withMenu: boolean): void => {
+      root.classList.remove('mini');
       const meta = info[id];
       const key = (part: string): TextKey => `sinfo.${id}.${part}` as TextKey;
       const head = el('header', 'info-head');
@@ -76,6 +83,12 @@ export function mountInfoCard(parent: HTMLElement): InfoCard {
       if (!withMenu) body.push(actions);
       root.replaceChildren(...body);
       root.hidden = false;
+  };
+  return {
+    root,
+    show(id, state, withMenu = false) {
+      shown = id;
+      mini(id, state, withMenu);
     },
     hide,
     current: () => shown,

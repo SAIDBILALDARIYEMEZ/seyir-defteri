@@ -110,8 +110,8 @@ export function mountWatch(parent: HTMLElement, onPusula: () => void, onEndDay: 
         if (rescue.note) chain.append(el('span', 'rescue-note', rescue.note));
       }
       title.textContent = `🧭 ${t('watch.title')}`;
-      // F5b: the watch shows PUSULA's first two sentences; the PUSULA card has the rest.
-      setGlossText(text, sentences(pusulaText).slice(0, 2).join(' '));
+      // F7: the watch shows PUSULA's first sentence; the PUSULA card has the rest.
+      setGlossText(text, sentences(pusulaText).slice(0, 1).join(' '));
       list.replaceChildren(...taskRows(tasks));
       later.hidden = deferred.length === 0;
       later.textContent = `🌙 ${t('watch.later', { list: deferred.join(', ') })}`;

@@ -33,8 +33,9 @@ export function createLearn(ctx: Ctx) {
   let profile: Profile = loadProfile();
   const badge = mountRank(ctx.ui);
   badge.update(profile.xp);
-  /** Sol on which each moment last showed a capsule (one per moment per sol). */
-  const lastShown = new Map<Moment, number>();
+  /** F7: at most one capsule (or question) per sol, and never the same one twice in a game. */
+  let lastSol = 0;
+  const shownThisGame = new Set<string>();
   let shelterSol = 0;
 
   const set = (next: Profile): void => {
@@ -52,12 +53,13 @@ export function createLearn(ctx: Ctx) {
   }
 
   /** The capsule (or question) for a moment, or null when this moment already had one today. */
-  function card(moment: Moment, station: StationId | null): CardBuilder | null {
+  function card(_moment: Moment, station: StationId | null): CardBuilder | null {
     const sol = ctx.s.state.sol;
-    if (lastShown.get(moment) === sol) return null;
-    const id = pickConcept(profile, conceptsFor(station));
+    if (lastSol === sol) return null;
+    const id = pickConcept(profile, conceptsFor(station).filter((c) => !shownThisGame.has(c)));
     if (!id) return null;
-    lastShown.set(moment, sol);
+    lastSol = sol;
+    shownThisGame.add(id);
     const r = showConcept(profile, id);
     set(r.profile);
     if (r.mode === 'capsule') return (close) => capsuleSpec(id, close);
@@ -92,6 +94,8 @@ export function createLearn(ctx: Ctx) {
     /** Card for the morning queue after the night summary. */
     nightCard: (): CardBuilder | null => card('night', null),
     start(seed: number): void {
+      lastSol = 0;
+      shownThisGame.clear();
       set(startMission(profile, seed));
     },
     /** End of a mission: records a win, returns the XP summary for the result screen. */

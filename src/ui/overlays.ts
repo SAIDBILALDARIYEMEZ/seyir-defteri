@@ -7,6 +7,7 @@ import { getLang, onLangChange, setLang, t } from '../i18n/i18n.ts';
 import type { Lang } from '../i18n/i18n.ts';
 import { button, el } from './dom.ts';
 import { glossify } from './glossary.ts';
+import { infoButton } from './pop.ts';
 
 /** A card button, or a custom node in the button list (e.g. the language picker). */
 export type ModalButton = { label: string; onClick: () => void; primary?: boolean; danger?: boolean } | { node: () => HTMLElement };
@@ -50,7 +51,7 @@ export function languagePicker(): HTMLElement {
 }
 
 /** F5b: cards lead with at most two short sentences; the rest folds under "More ▾". */
-const LEAD_SENTENCES = 2;
+const LEAD_SENTENCES = 1;
 /** Card kinds that always show everything (lists, charts, results, quiz). */
 const FULL_KINDS = ['logbook', 'result', 'data', 'quiz', 'pick', 'storm-real', 'menu-list'];
 
@@ -65,8 +66,10 @@ function para(text: string, className = ''): HTMLElement {
 }
 
 /** Card body: rows stay where they are; plain text past the first two sentences folds. */
+const isFull = (spec: ModalSpec): boolean => spec.full === true || FULL_KINDS.some((k) => (spec.kind ?? '').split(' ').includes(k));
+
 function body(spec: ModalSpec): HTMLElement[] {
-  const full = spec.full || FULL_KINDS.some((k) => (spec.kind ?? '').split(' ').includes(k));
+  const full = isFull(spec);
   const out: HTMLElement[] = [];
   const more: string[] = [];
   let budget = full ? Number.POSITIVE_INFINITY : LEAD_SENTENCES;
@@ -92,13 +95,11 @@ function body(spec: ModalSpec): HTMLElement[] {
   return out;
 }
 
-/** "More ▾": the details of a card, folded until tapped. */
+/** F7: the details of a card stay closed; the ℹ️ button opens them in a tap pop-up. */
 export function moreBox(lines: string[]): HTMLElement {
-  const box = el('details', 'more');
-  const summary = el('summary', '', t('more.show'));
-  box.append(summary, ...lines.map((line) => para(line)));
-  box.addEventListener('toggle', () => (summary.textContent = t(box.open ? 'more.hide' : 'more.show')));
-  return box;
+  const row = el('div', 'more-row');
+  row.append(infoButton(() => lines.flatMap((line, i) => [...(i ? [el('br')] : []), ...glossify(line)]), `ℹ️ ${t('more.show')}`));
+  return row;
 }
 
 /** Opens a modal card. `build` is re-run when the language changes. Returns close(). */
@@ -115,7 +116,9 @@ export function openModal(parent: HTMLElement, build: () => ModalSpec): () => vo
     if (spec.date) card.append(el('span', 'card-date', spec.date));
     card.append(...body(spec));
     if (spec.extra) card.append(spec.extra());
-    if (spec.fact) card.append(para(spec.fact, 'card-fact'));
+    // F7: the real-life fact is behind ℹ️ unless the card shows everything.
+    if (spec.fact && isFull(spec)) card.append(para(spec.fact, 'card-fact'));
+    else if (spec.fact) card.append(moreBox([spec.fact]));
     if (spec.source) card.append(el('p', 'card-source', spec.source));
     if (spec.languagePicker) card.append(languagePicker());
     const actions = el('div', 'card-actions');
