@@ -41,7 +41,9 @@ import { endDaySpec, nightNote } from './ui/overdue.ts';
 import { feedOf, stormBanner } from './ui/watchFeed.ts';
 import { mountActionMenu, openModal } from './ui/overlays.ts';
 import type { ModalSpec } from './ui/overlays.ts';
-import { mountLabels, mountWatch } from './ui/panels.ts';
+import { mountLabels } from './ui/panels.ts';
+import { mountWatch } from './ui/watch.ts';
+import { moodOf } from './game/mood.ts';
 import { mountMainMenu } from './ui/mainMenu.ts';
 import { mountShelterBand } from './ui/shelterBand.ts';
 import { createShelter } from './game/shelter.ts';
@@ -187,6 +189,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
         rescue: rescueProgress(s.state),
         feed: feedOf(s.state, s.win),
         storm: stormBanner(s.state, s.win),
+        mood: moodOf(s.state, s.win),
       });
     }
     fitDepot();

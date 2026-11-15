@@ -1,6 +1,6 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
-// Wrist watch (PUSULA text + tappable task list) and the station name labels.
+// Station name labels (the PUSULA watch moved to watch.ts in F7).
 
 import stations from '../content/stations.json';
 import { t } from '../i18n/i18n.ts';
@@ -10,117 +10,6 @@ import { buildStatus, isBuildable } from '../sim/systems/build.ts';
 import type { GameState } from '../sim/state.ts';
 import type { ScreenPoint } from '../scene/world.ts';
 import { button, el } from './dom.ts';
-import { sentences } from './overlays.ts';
-import { glossify, setGlossText } from './glossary.ts';
-import { BALANCE } from '../config/balance.ts';
-import type { RescueProgress } from './rescue.ts';
-import type { FeedItem } from './watchFeed.ts';
-
-export interface WatchTask {
-  /** Already translated. */
-  label: string;
-  onPick: () => void;
-  /** Carried over from an earlier sol (F5a). */
-  overdue?: boolean;
-  /** Not enough power yet: the panels fill the battery as the day goes on (F5b). */
-  waiting?: boolean;
-}
-
-export interface WatchView {
-  text: string;
-  tasks: WatchTask[];
-  /** Tasks that do not fit today's daylight (F5b), already translated. */
-  deferred: string[];
-  /** Nothing meaningful left: the big "End the day" button and what the night brings. */
-  endDay: { night: string } | null;
-  rescue: RescueProgress | null;
-  feed: FeedItem[];
-  /** F6: particle-storm warning banner at the top of the watch, or null. */
-  storm: string | null;
-}
-
-export interface Watch {
-  root: HTMLElement;
-  update(view: WatchView): void;
-}
-
-const FEED_ICON: Record<FeedItem['kind'], string> = { alert: '⚠️', pusula: '🧭', fact: '💡' };
-
-/** "Today" and "Overdue" groups, at most `listMax` rows; more overdue ones as "+N overdue". */
-function taskRows(tasks: WatchTask[]): HTMLElement[] {
-  const max = BALANCE.overdue.listMax;
-  const today = tasks.filter((x) => !x.overdue);
-  const late = tasks.filter((x) => x.overdue);
-  const shownToday = today.slice(0, max);
-  const shownLate = late.slice(0, Math.max(0, max - shownToday.length));
-  const row = (task: WatchTask): HTMLElement => {
-    const b = button(`watch-task${task.overdue ? ' is-overdue' : ''}${task.waiting ? ' is-waiting' : ''}`, task.label, task.onPick);
-    if (task.waiting) b.append(el('small', 'task-wait', `⚡ ${t('watch.waitPower')}`));
-    return b;
-  };
-  const out: HTMLElement[] = [];
-  if (shownToday.length > 0) out.push(el('span', 'watch-group', t('watch.today')), ...shownToday.map(row));
-  if (late.length > 0) out.push(el('span', 'watch-group late', `⏰ ${t('overdue.tag')}`), ...shownLate.map(row));
-  const hidden = late.length - shownLate.length;
-  if (hidden > 0) out.push(el('span', 'watch-more', t('watch.moreLate', { n: hidden })));
-  return out;
-}
-
-export function mountWatch(parent: HTMLElement, onPusula: () => void, onEndDay: () => void): Watch {
-  const root = el('aside', 'watch');
-  const title = button('watch-title', '', onPusula);
-  const text = el('p', 'watch-text');
-  const storm = el('p', 'watch-storm');
-  storm.setAttribute('role', 'alert');
-  const list = el('div', 'watch-tasks');
-  const later = el('p', 'watch-later');
-  const end = el('div', 'watch-end');
-  const endBtn = button('btn primary big end-day', '', onEndDay);
-  const endNote = el('p', 'end-note');
-  end.append(endBtn, endNote);
-  const chain = el('div', 'watch-rescue');
-  const feedBox = el('ol', 'watch-feed');
-  feedBox.setAttribute('aria-live', 'polite');
-  root.append(title, storm, text, list, later, end, chain, feedBox);
-  parent.append(root);
-  return {
-    root,
-    update({ text: pusulaText, tasks, deferred, endDay, rescue, feed, storm: stormText }) {
-      storm.hidden = !stormText;
-      if (stormText && storm.textContent !== stormText) {
-        setGlossText(storm, stormText);
-        root.scrollTop = 0; // a new or changed storm warning is always in view
-      }
-      feedBox.hidden = feed.length === 0;
-      feedBox.replaceChildren(
-        ...feed.map((item) => {
-          const li = el('li', `feed-item ${item.kind}`);
-          if (item.kind === 'fact') li.append(el('strong', '', `💡 ${t('feed.fact')}: `));
-          li.append(...glossify(item.kind === 'fact' ? item.text : `${FEED_ICON[item.kind]} ${item.text}`));
-          return li;
-        }),
-      );
-      chain.hidden = !rescue;
-      if (rescue) {
-        const steps = rescue.steps.map((step, i) => {
-          const state = step.done ? 'done' : step.current ? 'current' : '';
-          return el('span', `rescue-step ${state}`, `${step.done ? '✅' : `${i + 1}.`} ${step.label}`);
-        });
-        chain.replaceChildren(el('span', 'watch-sub', `🚀 ${rescue.title}`), ...steps);
-        if (rescue.note) chain.append(el('span', 'rescue-note', rescue.note));
-      }
-      title.textContent = `🧭 ${t('watch.title')}`;
-      // F7: the watch shows PUSULA's first sentence; the PUSULA card has the rest.
-      setGlossText(text, sentences(pusulaText).slice(0, 1).join(' '));
-      list.replaceChildren(...taskRows(tasks));
-      later.hidden = deferred.length === 0;
-      later.textContent = `🌙 ${t('watch.later', { list: deferred.join(', ') })}`;
-      end.hidden = !endDay;
-      endBtn.textContent = `🌙 ${t('watch.endDay')}`;
-      endNote.textContent = endDay?.night ?? '';
-    },
-  };
-}
 
 export interface Labels {
   root: HTMLElement;
@@ -192,7 +81,7 @@ export function mountLabels(parent: HTMLElement, onPick: (id: StationId) => void
 }
 
 /** UI that labels must not hide under. */
-const LABEL_BLOCKERS = '.hud-group, .hud-chips, .chip.star, .chip.gear, .rank-badge, .date-badge, .cam-controls, .watch, .depot, .info-card, .action-menu, .shelter-band, .place-banner, .guide-bubble';
+const LABEL_BLOCKERS = '.dash-strip, .hud-side.left, .rank-badge, .date-badge, .cam-controls, .watch, .depot, .info-card, .action-menu, .shelter-band, .place-banner, .guide-bubble';
 const LABEL_GAP = 4;
 
 interface Box {

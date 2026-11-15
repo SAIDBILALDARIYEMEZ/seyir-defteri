@@ -15,7 +15,7 @@ import { setupDone } from '../sim/systems/build.ts';
 import { taskKey } from '../sim/systems/overdue.ts';
 import type { WindowData } from '../sim/window.ts';
 import { tutorialSteps } from '../ui/guide.ts';
-import type { WatchTask } from '../ui/panels.ts';
+import type { WatchTask } from '../ui/watch.ts';
 import { actionLabel } from '../ui/rescue.ts';
 
 /** Urgent needs that turn PUSULA's light red. */
@@ -55,8 +55,13 @@ export function labelOf(state: GameState, action: Action): string {
 
 export function computeGuide(state: GameState, win: WindowData, go: GuideActions): Guide {
   const danger = urgentNeeds(state, win).some((need) => DANGER_NEEDS.includes(need));
+  const iconOf = (a: Action): string =>
+    a.type === 'build' || a.type === 'place' ? stationContent[a.station].icon
+    : a.type === 'bonus' ? '🧩'
+    : stationContent[costOf(state, a).station].icon;
   const toTask = (task: Task): WatchTask => ({
     label: labelOf(state, task.action),
+    icon: iconOf(task.action),
     overdue: task.overdue === true,
     waiting: check(state, task.action, win) === 'noPower',
     onPick: () => {

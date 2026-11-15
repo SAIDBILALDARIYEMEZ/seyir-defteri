@@ -1,0 +1,54 @@
+/* SI-assistance note: written with the help of Anthropic's Claude (coding assistant). */
+/* F7 PUSULA character: drawn face + speech bubble, task chips, 3-icon rescue bar, storm line. */
+html .watch.pusula { width: 250px; padding: 10px 12px; border-radius: 22px; display: flex; flex-direction: column; gap: 8px; }
+.pusula-head { display: grid; grid-template-columns: 72px 1fr; gap: 8px; align-items: center; }
+.pusula-face {
+  position: relative; width: 72px; height: 64px; border: 3px solid #e8f4ff; border-radius: 22px 22px 26px 26px;
+  background: linear-gradient(#5fc4ff, #2f8fd8); cursor: pointer; padding: 0; transition: background 0.3s;
+}
+.pusula-face:hover { outline: 3px solid var(--accent); }
+.pf-antenna { position: absolute; left: 50%; top: -12px; width: 4px; height: 10px; margin-left: -2px; background: #e8f4ff; border-radius: 2px; }
+.pf-antenna::after { content: ''; position: absolute; left: -3px; top: -7px; width: 10px; height: 10px; border-radius: 50%; background: #ffd166; }
+.pf-eye { position: absolute; top: 22px; width: 13px; height: 15px; border-radius: 50%; background: #fff; }
+.pf-eye::after { content: ''; position: absolute; left: 3px; top: 4px; width: 7px; height: 7px; border-radius: 50%; background: #1b2a44; }
+.pf-eye.l { left: 15px; } .pf-eye.r { right: 15px; }
+.pf-brow { position: absolute; top: 15px; width: 14px; height: 3px; border-radius: 2px; background: #1b2a44; opacity: 0; }
+.pf-brow.l { left: 14px; } .pf-brow.r { right: 14px; }
+.pf-mouth { position: absolute; left: 50%; bottom: 9px; width: 24px; height: 11px; margin-left: -12px; border: 3px solid #1b2a44; border-top: 0; border-radius: 0 0 14px 14px; }
+.pusula-face.worried { background: linear-gradient(#ffd27a, #e9a63a); }
+.pusula-face.worried .pf-brow { opacity: 1; }
+.pusula-face.worried .pf-brow.l { transform: rotate(-14deg); } .pusula-face.worried .pf-brow.r { transform: rotate(14deg); }
+.pusula-face.worried .pf-mouth { height: 3px; border: 0; background: #1b2a44; border-radius: 2px; bottom: 13px; }
+.pusula-face.alarm { background: linear-gradient(#ff8a70, #d8452f); animation: pf-shake 1.2s ease-in-out infinite; }
+.pusula-face.alarm .pf-brow { opacity: 1; }
+.pusula-face.alarm .pf-brow.l { transform: rotate(18deg); } .pusula-face.alarm .pf-brow.r { transform: rotate(-18deg); }
+.pusula-face.alarm .pf-eye { height: 17px; }
+.pusula-face.alarm .pf-mouth { width: 16px; height: 12px; margin-left: -8px; border: 3px solid #1b2a44; border-radius: 50%; }
+@keyframes pf-shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+html.reduce-motion .pusula-face.alarm { animation: none; }
+.pusula-bubble {
+  position: relative; margin: 0; padding: 8px 10px; font-size: 14px; line-height: 1.35; font-weight: 600;
+  background: #fff7ea; color: #2a140c; border-radius: 14px;
+}
+.pusula-bubble::before { content: ''; position: absolute; left: -8px; top: 50%; margin-top: -7px; border: 7px solid transparent; border-right-color: #fff7ea; border-left: 0; }
+.pusula-storm { margin: 0; padding: 6px 10px; font-size: 13px; font-weight: 700; background: rgba(150, 90, 230, 0.55); border: 2px solid #c9a2ff; border-radius: 12px; }
+.pusula-chips { display: flex; flex-direction: column; gap: 5px; }
+.pusula-chip {
+  display: flex; align-items: center; gap: 6px; min-height: 38px; padding: 4px 10px; text-align: left; font-size: 13.5px; font-weight: 700;
+  background: rgba(255, 255, 255, 0.14); border: 2px solid transparent; border-radius: 999px; cursor: pointer;
+}
+.pusula-chip:hover { border-color: var(--accent); }
+.pusula-chip .chip-icon { font-size: 18px; }
+.pusula-chip .chip-label { flex: 1; }
+.pusula-chip.is-overdue { border-color: rgba(255, 176, 64, 0.7); }
+.pusula-chip.is-waiting { opacity: 0.7; }
+.pusula-rescue { display: flex; align-items: center; gap: 4px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.2); }
+.pr-rocket { font-size: 16px; margin-right: 2px; }
+.pr-step { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; font-size: 17px; background: rgba(255, 255, 255, 0.1); filter: grayscale(0.8); }
+.pr-step.current { filter: none; box-shadow: 0 0 0 2px var(--accent); background: rgba(255, 179, 71, 0.2); }
+.pr-step.done { filter: none; background: rgba(79, 220, 122, 0.25); }
+.pr-line { flex: 1; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.2); }
+.pr-line.on { background: #4fdc7a; }
+.pusula-feed { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.pusula-feed .feed-item { margin: 0; font-size: 12.5px; }
+@media (max-width: 600px) { html .watch.pusula { width: 210px; } .pusula-head { grid-template-columns: 54px 1fr; } .pusula-face { transform: scale(0.75); transform-origin: left center; } }
