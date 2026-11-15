@@ -887,3 +887,18 @@ pop-up (ℹ️). Sim and balance untouched: bot report identical to F6 (D-022 ta
    rocket, Ada; tap a station or the ground to walk there. No fog.
 
 Screenshots for the presentation: `screenshots-f7/`.
+
+## D-024 — 2026-11-15 — F8: challenge alignment (comms delay, core trio, no-free-action test)
+
+- **Comms delay:** the message card now leads with the one-way delay ("reaches Earth in about
+  N minutes") and the round trip, computed from the played date with the JPL mean-element orbit
+  (`lib/commsDelay.ts`, labelled "about"; 3-22 min). PUSULA: "Earth is far away, in an emergency
+  you decide." The reply still arrives the next morning (always later than the real round trip,
+  so never instant); no sim change.
+- **Core trio:** power, oxygen and dose are the big gauges; food, parts and ⭐ a smaller group.
+- **No free action (tried, reverted):** clean / shelterBuild / readCuriosity / scanRock / repair
+  got a power cost. Round 1 (1-2 ⚡): balanced 0-0.5%, pusula 52-59%. Round 2 (all 1 ⚡):
+  balanced 18-24%, pusula 69-78.5%, never-shelter w2/w3 27%. Both break the targets (balanced
+  >= 70%, pusula >= 80%) because every point spent in the day is missing for the night heating
+  (cold nights drain the oxygen). Reverted as the task allows; the costs stay 0 ⚡, and the
+  trade-off is time (daylight hours) instead. Bot report identical to D-022.
