@@ -6,6 +6,7 @@ import { PROGRESSION } from '../config/progression.ts';
 import { t } from '../i18n/i18n.ts';
 import { rankOf, rankProgress } from '../profile/profile.ts';
 import { el } from './dom.ts';
+import { popAnchor, popContent } from './pop.ts';
 
 const RANK_ICONS = ['🎗️', '🥉', '🥈', '🥇', '🏆'];
 
@@ -21,21 +22,36 @@ export function rankLabel(xp: number): string {
 }
 
 export function mountRank(parent: HTMLElement): RankBadge {
-  const root = el('div', 'rank-badge');
+  // F7: an astronaut head + rank stars + XP bar; a tap explains XP and rank in one sentence.
+  const root = el('button', 'rank-badge');
+  const head = el('span', 'rank-head', '👩‍🚀');
+  const stars = el('span', 'rank-stars');
   const name = el('b', 'rank-name');
   const bar = el('span', 'xp-bar');
   const fill = el('span', 'xp-fill');
   const note = el('small', 'xp-note');
   bar.append(fill);
-  root.append(name, bar, note);
+  const side = el('span', 'rank-side');
+  side.append(stars, bar);
+  root.append(head, side);
+  let lastXp = 0;
+  popAnchor(root, () => [
+    ...popContent(rankLabel(lastXp), t('rank.pop')),
+    el('br'),
+    el('small', '', note.textContent ?? ''),
+  ]);
   const toasts = el('div', 'xp-toasts');
   toasts.setAttribute('aria-live', 'polite');
   parent.append(root, toasts);
   return {
     root,
     update(xp) {
+      lastXp = xp;
       const r = rankOf(xp);
       name.textContent = rankLabel(xp);
+      const total = PROGRESSION.ranks.length;
+      stars.textContent = '★'.repeat(r.index + 1) + '☆'.repeat(Math.max(0, total - r.index - 1));
+      root.setAttribute('aria-label', `${rankLabel(xp)} · ${xp} XP`);
       fill.style.width = `${Math.round(rankProgress(xp) * 100)}%`;
       const nextRank = PROGRESSION.ranks[r.index + 1];
       note.textContent = r.next === null || !nextRank

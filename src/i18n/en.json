@@ -701,5 +701,6 @@
   "radar.high": "Tomorrow's radiation: ⬆ high, get the shelter ready!",
   "radar.low": "Tomorrow's radiation: ⬇ low, you can work outside.",
   "radar.none": "The rescue ship comes tomorrow; the radar rests.",
-  "radar.fact": "This forecast comes from Curiosity's real RAD reading on tomorrow's real date (game simplification: the radar can see ahead)."
+  "radar.fact": "This forecast comes from Curiosity's real RAD reading on tomorrow's real date (game simplification: the radar can see ahead).",
+  "rank.pop": "You earn XP by doing tasks; your rank is your experience."
 }

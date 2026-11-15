@@ -701,5 +701,6 @@
   "radar.high": "Yarın radyasyon: ⬆ yüksek, sığınağı hazırla!",
   "radar.low": "Yarın radyasyon: ⬇ düşük, dışarıda çalışabilirsin.",
   "radar.none": "Kurtarma gemisi yarın geliyor; radar dinleniyor.",
-  "radar.fact": "Bu tahmin, yarının gerçek tarihindeki Curiosity RAD ölçümünden gelir (oyun basitleştirmesi: radar ileriyi görebiliyor)."
+  "radar.fact": "Bu tahmin, yarının gerçek tarihindeki Curiosity RAD ölçümünden gelir (oyun basitleştirmesi: radar ileriyi görebiliyor).",
+  "rank.pop": "Görev yaptıkça XP kazanırsın; rütbe, deneyimindir."
 }

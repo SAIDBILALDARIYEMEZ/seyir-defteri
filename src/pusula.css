@@ -52,3 +52,10 @@ html.reduce-motion .pusula-face.alarm { animation: none; }
 .pusula-feed { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 .pusula-feed .feed-item { margin: 0; font-size: 12.5px; }
 @media (max-width: 600px) { html .watch.pusula { width: 210px; } .pusula-head { grid-template-columns: 54px 1fr; } .pusula-face { transform: scale(0.75); transform-origin: left center; } }
+/* F7 rank badge: astronaut head + stars + XP bar, tappable. */
+html .rank-badge { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 10px; border: 0; pointer-events: auto; cursor: pointer; text-align: left; }
+.rank-head { font-size: 30px; line-height: 1; }
+.rank-side { display: grid; gap: 4px; }
+.rank-stars { color: #ffd166; font-size: 15px; letter-spacing: 1px; }
+html .rank-badge .xp-bar { width: 90px; }
+html .rank-badge > :not(:first-child) { display: grid; }
