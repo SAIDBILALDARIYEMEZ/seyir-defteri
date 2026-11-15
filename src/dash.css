@@ -49,3 +49,13 @@ html .depot-card.tile.ready .depot-cost { display: none; }
 html .depot-card.tile.ready .depot-name::after { content: none; }
 html .depot-card.tile.starter .depot-cost { font-size: 18px; }
 @media (max-width: 600px) { html .depot-list { display: flex; } html .depot-card.tile { min-width: 76px; } html .depot { width: auto; } }
+/* F8: core trio big, the rest smaller. */
+.dash-cell.core { width: 96px; min-height: 66px; background: rgba(255, 255, 255, 0.14); }
+.dash-cell.core .dash-icon { font-size: 26px; height: 28px; }
+.dash-cell.core .dash-num { font-size: 18px; }
+.dash-cell.core .dash-bar { height: 8px; }
+.dash-cell.minor { width: 58px; }
+.dash-cell.minor .dash-icon { font-size: 16px; }
+.dash-cell.minor .dash-num { font-size: 13px; }
+.dash-cell.food { margin-left: 8px; }
+html .hud.dash .date-badge { top: 90px; }

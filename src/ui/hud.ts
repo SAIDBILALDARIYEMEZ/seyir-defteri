@@ -83,7 +83,9 @@ export function mountHud(parent: HTMLElement, onPause: () => void, onInfo: (id: 
     };
   };
 
-  const cells = (['sol', 'hours', 'power', 'air', 'food', 'dose', 'parts', 'science'] as CellId[]).map(cell);
+  // F8: the three core resources (power, oxygen, dose) first and big; the rest smaller.
+  const cells = (['sol', 'hours', 'power', 'air', 'dose', 'food', 'parts', 'science'] as CellId[]).map(cell);
+  for (const c of cells) c.node.classList.add(['power', 'air', 'dose'].includes(c.id) ? 'core' : 'minor');
   const byId = (id: CellId): Cell => cells.find((c) => c.id === id) as Cell;
   const pie = el('span', 'dash-pie');
   byId('hours').node.querySelector('.dash-icon')?.append(pie);

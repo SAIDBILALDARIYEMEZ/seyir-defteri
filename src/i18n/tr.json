@@ -679,7 +679,7 @@
   "dash.pop.food": "Sera yemek yetiştirir; Ada her gün yer.",
   "dash.pop.dose": "Fırtınada alınan fazla radyasyon; sığınak korur.",
   "dash.pop.parts": "Roketten toplanan parçalar; yapı kurmak için.",
-  "dash.pop.science": "Topladığın bilim; Dünya'ya gönderilir.",
+  "dash.pop.science": "Dünya'ya gönderdiğin bilim; görev sonunda sayılır.",
   "build.solsShort": "{n} sol",
   "event.reply.useful": "Dünya cevap verdi: ⭐ {n} bilimini aldık, {storm}",
   "event.reply.stormIn": "sıradaki parçacık fırtınası {n} sol sonra!",
