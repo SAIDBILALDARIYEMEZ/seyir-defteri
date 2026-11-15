@@ -662,5 +662,22 @@
   "event.radPlanAhead": "Plan: dışarıdaki işleri fırtınadan önce yap; başlayınca doğruca sığınağa git.",
   "lesson.coldNight.what": "Bu gece ısıtıcılara güç kalmadı, üs {n} 💨 fazladan hava kaybetti.",
   "lesson.coldNight.why": "Gündüzki işler gece ısıtmasının ihtiyacı olan gücü harcadı.",
-  "lesson.coldNight.next": "Akşamdan önce ısıtıcılar için en az {heat} ⚡ ayır."
+  "lesson.coldNight.next": "Akşamdan önce ısıtıcılar için en az {heat} ⚡ ayır.",
+  "dash.sol": "Sol",
+  "dash.hours": "Gün ışığı",
+  "dash.power": "Güç",
+  "dash.air": "Oksijen",
+  "dash.food": "Yemek",
+  "dash.dose": "Doz",
+  "dash.parts": "Parça",
+  "dash.science": "Bilim",
+  "dash.hoursShort": "{n} sa",
+  "dash.pop.sol": "Bugün kaçıncı gün; 30. solda kurtarma gelir.",
+  "dash.pop.hours": "Hava kararana kadar kalan saat; işler gündüz yapılır.",
+  "dash.pop.power": "Makineleri çalıştırır, gece ısıtır.",
+  "dash.pop.air": "Ada'nın soluduğu hava; MOXIE yeniden doldurur.",
+  "dash.pop.food": "Sera yemek yetiştirir; Ada her gün yer.",
+  "dash.pop.dose": "Fırtınada alınan fazla radyasyon; sığınak korur.",
+  "dash.pop.parts": "Roketten toplanan parçalar; yapı kurmak için.",
+  "dash.pop.science": "Topladığın bilim; Dünya'ya gönderilir."
 }

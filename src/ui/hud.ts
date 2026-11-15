@@ -1,88 +1,115 @@
 // SI-assistance note: written with the help of Anthropic's Claude (coding assistant).
 // Concept, story, design and decisions: team Seyir Defteri.
-// HUD: three gauge groups on top (Power | Life: air + food | Storm dose as a share of the
-// budget), science star, hours left, real-date badge and the pause gear. Tapping a gauge opens
-// its info card. Gauges appear with the gradual unlock.
+// HUD (F7 dashboard): one even strip on top: sol, daylight clock (a pie), power, oxygen, food,
+// storm dose, parts and science, each an icon + number + small bar. A value at a critical level
+// blinks red (no blink with "reduce motion") and plays a short warning once. A tap opens a
+// one-sentence pop-up (its ℹ️ opens the full info card); each gauge introduces itself once.
 
 import { BALANCE } from '../config/balance.ts';
 import { t } from '../i18n/i18n.ts';
+import type { TextKey } from '../i18n/i18n.ts';
+import { reduceMotion } from '../lib/motion.ts';
 import type { GameState } from '../sim/state.ts';
 import { foodMax } from '../sim/systems/explore.ts';
 import { dateOfSol } from '../sim/window.ts';
 import type { WindowData } from '../sim/window.ts';
 import { button, el, fmt, formatDate } from './dom.ts';
+import { popContent, showPop } from './pop.ts';
 
 export type GaugeId = 'power' | 'air' | 'food' | 'dose' | 'science';
+type CellId = 'sol' | 'hours' | GaugeId | 'parts';
 
 export interface Hud {
   root: HTMLElement;
-  /** Left column (sol, hours, parts); the rank badge goes in under the chips (F5b). */
+  /** Left column under the strip; the rank badge goes in here. */
   left: HTMLElement;
   /** `sheltered`: Ada waits in the shelter, the dose gauge shows a shield (F5b). */
   update(state: GameState, win: WindowData, sheltered?: boolean): void;
 }
 
-interface Gauge {
-  row: HTMLElement;
-  set(label: string, share: number, value: string, low: boolean): void;
+interface Cell {
+  id: CellId;
+  node: HTMLButtonElement;
+  set(value: string, share: number | null, low: boolean, critical: boolean): void;
 }
 
-function gauge(icon: string, onInfo: () => void): Gauge {
-  const row = button('gauge', '', onInfo);
-  const name = el('span', 'gauge-name');
-  const bar = el('span', 'gauge-bar');
-  const fill = el('span', 'gauge-fill');
-  const num = el('b', 'gauge-num');
-  bar.append(fill);
-  row.append(el('span', 'gauge-icon', icon), name, bar, num);
-  return {
-    row,
-    set(label, share, value, low) {
-      name.textContent = label;
-      fill.style.width = `${Math.max(0, Math.min(1, share)) * 100}%`;
-      num.textContent = value;
-      row.classList.toggle('low', low);
-    },
-  };
-}
+const ICONS: Record<CellId, string> = { sol: '🗓️', hours: '', power: '⚡', air: '💨', food: '🥫', dose: '☢️', parts: '🔩', science: '⭐' };
+const INTRO_KEY = 'seyir-defteri.hudSeen';
+const CLOCK_RED = 2;
 
-export function mountHud(parent: HTMLElement, onPause: () => void, onInfo: (id: GaugeId) => void): Hud {
-  const root = el('header', 'hud');
-  const left = el('div', 'hud-side left');
-  const chips = el('div', 'hud-chips');
-  const sol = el('span', 'chip');
-  const hours = el('span', 'chip');
-  const parts = el('span', 'chip parts');
-  chips.append(sol, hours, parts);
-  left.append(chips);
-
-  const groups = el('div', 'hud-groups');
-  const power = gauge('⚡', () => onInfo('power'));
-  const air = gauge('💨', () => onInfo('air'));
-  const food = gauge('🥫', () => onInfo('food'));
-  const dose = gauge('☢️', () => onInfo('dose'));
-  const powerGroup = el('div', 'hud-group');
-  powerGroup.append(power.row);
-  const lifeGroup = el('div', 'hud-group');
-  const lifeTitle = el('span', 'group-title');
-  lifeGroup.append(lifeTitle, air.row, food.row);
-  const doseGroup = el('div', 'hud-group dose');
-  const shield = el('span', 'dose-shield');
-  doseGroup.append(dose.row, shield);
-  groups.append(powerGroup, lifeGroup, doseGroup);
-
-  const right = el('div', 'hud-side right');
-  const star = button('chip star', '', () => onInfo('science'));
-  // F5a: anchors for the floating numbers under each gauge.
-  for (const [node, key] of [[power.row, 'power'], [air.row, 'air'], [food.row, 'food'], [dose.row, 'dose'], [hours, 'hours'], [parts, 'parts'], [star, 'science']] as const) {
-    node.dataset.res = key;
+function seenIntro(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(INTRO_KEY) ?? '[]') as string[]);
+  } catch {
+    return new Set();
   }
-  const gear = button('chip gear', '⚙', onPause);
-  right.append(star, gear);
+}
 
+export function mountHud(parent: HTMLElement, onPause: () => void, onInfo: (id: GaugeId) => void, onWarn: () => void = () => {}): Hud {
+  const root = el('header', 'hud dash');
+  const strip = el('div', 'dash-strip');
+  const left = el('div', 'hud-side left');
   const date = el('div', 'date-badge');
-  root.append(left, groups, right, date);
+
+  const popFor = (id: CellId): Node[] => {
+    const out = popContent(t(`dash.${id}` as TextKey), t(`dash.pop.${id}` as TextKey));
+    if (id === 'power' || id === 'air' || id === 'food' || id === 'dose' || id === 'science') {
+      out.push(document.createTextNode(' '), button('info-btn', 'ℹ️', () => onInfo(id)));
+    }
+    return out;
+  };
+
+  const cell = (id: CellId): Cell => {
+    const node = button(`dash-cell ${id}`, '', () => showPop(node, popFor(id)));
+    node.classList.add('pop-anchor');
+    node.dataset.res = id;
+    const icon = el('span', 'dash-icon', ICONS[id]);
+    const num = el('b', 'dash-num');
+    const bar = el('span', 'dash-bar');
+    const fill = el('span', 'dash-fill');
+    bar.append(fill);
+    node.append(icon, num, bar);
+    return {
+      id,
+      node,
+      set(value, share, low, critical) {
+        num.textContent = value;
+        bar.hidden = share === null;
+        if (share !== null) fill.style.width = `${Math.max(0, Math.min(1, share)) * 100}%`;
+        node.classList.toggle('low', low);
+        node.classList.toggle('critical', critical);
+        node.classList.toggle('blink', critical && !reduceMotion());
+      },
+    };
+  };
+
+  const cells = (['sol', 'hours', 'power', 'air', 'food', 'dose', 'parts', 'science'] as CellId[]).map(cell);
+  const byId = (id: CellId): Cell => cells.find((c) => c.id === id) as Cell;
+  const pie = el('span', 'dash-pie');
+  byId('hours').node.querySelector('.dash-icon')?.append(pie);
+  const shield = el('span', 'dash-shield', '🛡️');
+  byId('dose').node.append(shield);
+  const gear = button('dash-gear', '⚙', onPause);
+  strip.append(...cells.map((c) => c.node), gear);
+  root.append(strip, left, date);
   parent.append(root);
+
+  const wasCritical = new Set<CellId>();
+  const seen = seenIntro();
+
+  /** Introduces the first visible gauge not yet introduced on this device (one at a time). */
+  function intro(): void {
+    if (document.querySelector('.backdrop, .gloss-pop')) return;
+    const next = cells.find((c) => !c.node.hidden && !seen.has(c.id));
+    if (!next) return;
+    seen.add(next.id);
+    try {
+      localStorage.setItem(INTRO_KEY, JSON.stringify([...seen]));
+    } catch {
+      // Storage blocked: the intro may show again next time.
+    }
+    showPop(next.node, popContent(t(`dash.${next.id}` as TextKey), t(`dash.pop.${next.id}` as TextKey)));
+  }
 
   return {
     root,
@@ -90,31 +117,43 @@ export function mountHud(parent: HTMLElement, onPause: () => void, onInfo: (id: 
     update(state, win, sheltered = false) {
       const a = BALANCE.advisor;
       // Gradual unlock (PRD §11.5): food from sol 3, storm dose from sol 4; science from the
-      // sol Curiosity opens (sol 1 in build mode, D-013).
-      food.row.hidden = state.sol < BALANCE.food.unlockSol;
-      doseGroup.hidden = state.sol < BALANCE.unlockSol.shelterBuild;
-      star.hidden = state.sol < BALANCE.unlockSol.readCuriosity;
-      parts.textContent = `🔩 ${state.parts}`;
-      parts.title = t('hud.parts');
-      const tapHint = t('hud.tapInfo');
-      for (const g of [power, air, food, dose]) g.row.title = tapHint;
-      sol.textContent = t('hud.sol', { n: state.sol, total: BALANCE.totalSols });
-      hours.textContent = `⏱ ${t('hud.hoursLeft', { n: fmt(state.hoursLeft) })}`;
-      power.set(t('hud.power'), state.power / BALANCE.power.max, fmt(state.power), state.power <= a.powerLow);
-      lifeTitle.textContent = `❤️ ${t('hud.life')}`;
-      air.set(t('hud.air'), state.air / BALANCE.air.max, fmt(state.air), state.air <= a.airLow);
-      // F5b: the food store shows how full it is (x/y).
-      food.set(t('hud.food'), state.food / foodMax(state), `${fmt(state.food)}/${foodMax(state)}`, state.food <= a.foodLow);
+      // sol Curiosity opens.
+      byId('food').node.hidden = state.sol < BALANCE.food.unlockSol;
+      byId('dose').node.hidden = state.sol < BALANCE.unlockSol.shelterBuild;
+      byId('science').node.hidden = state.sol < BALANCE.unlockSol.readCuriosity;
+      byId('sol').set(`${state.sol}/${BALANCE.totalSols}`, state.sol / BALANCE.totalSols, false, false);
+      const day = Math.max(0, Math.min(1, state.hoursLeft / BALANCE.daylightHours));
+      const late = state.hoursLeft <= CLOCK_RED;
+      pie.style.setProperty('--day', `${day * 360}deg`);
+      byId('hours').set(t('dash.hoursShort', { n: fmt(state.hoursLeft) }), null, late, false);
+      const crit = {
+        power: state.power <= a.powerLow,
+        air: state.air <= a.airLow,
+        food: state.food <= a.foodLow,
+        dose: state.dose / BALANCE.dose.budget >= 0.75,
+      };
+      byId('power').set(fmt(state.power), state.power / BALANCE.power.max, crit.power, crit.power);
+      byId('air').set(fmt(state.air), state.air / BALANCE.air.max, crit.air, crit.air);
+      byId('food').set(`${fmt(state.food)}/${foodMax(state)}`, state.food / foodMax(state), crit.food, crit.food);
       const share = state.dose / BALANCE.dose.budget;
-      dose.set(t('hud.dose'), share, `${Math.round(share * 100)}%`, share >= 0.5);
-      doseGroup.classList.toggle('shielded', sheltered);
+      byId('dose').set(`${Math.round(share * 100)}%`, share, share >= 0.5, crit.dose);
+      byId('dose').node.classList.toggle('shielded', sheltered);
       shield.hidden = !sheltered;
-      shield.textContent = `🛡️ ${t('hud.sheltered')}`;
-      star.textContent = `⭐ ${fmt(state.science)}`;
-      star.title = `${t('hud.science')}. ${tapHint}`;
+      byId('parts').set(String(state.parts), null, false, false);
+      byId('science').set(fmt(state.science), null, false, false);
+      // A short warning sound when a value first drops to its critical level.
+      let warn = false;
+      for (const [id, on] of Object.entries(crit) as [CellId, boolean][]) {
+        const visible = !byId(id).node.hidden;
+        if (on && visible && !wasCritical.has(id)) warn = true;
+        if (on && visible) wasCritical.add(id);
+        else wasCritical.delete(id);
+      }
+      if (warn) onWarn();
+      for (const c of cells) c.node.setAttribute('aria-label', `${t(`dash.${c.id}` as TextKey)}: ${c.node.querySelector('.dash-num')?.textContent ?? ''}`);
       gear.setAttribute('aria-label', t('hud.pause'));
-      const text = formatDate(dateOfSol(win, state.sol));
-      date.textContent = `🌍 ${t('hud.date', { date: text })}`;
+      date.textContent = `🌍 ${t('hud.date', { date: formatDate(dateOfSol(win, state.sol)) })}`;
+      window.setTimeout(intro, 600);
     },
   };
 }

@@ -127,7 +127,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
   });
   const flow = createFlow(ctx, guide, (id) => stations.selectStation(id), learn);
 
-  const hud = mountHud(ui, flow.pause, (id) => flow.showInfo(id));
+  const hud = mountHud(ui, flow.pause, (id) => flow.showInfo(id), () => sfx.warn());
   hud.left.append(learn.badge);
   const labels = mountLabels(ui, (id) => stations.selectStation(id));
   const depot = mountBuildMenu(ui, { onPress: (id, e) => placement.press(id, e), onSelect: (id) => placement.select(id) });

@@ -662,5 +662,22 @@
   "event.radPlanAhead": "Plan: do the outside work before it comes; when it starts, go straight to the shelter.",
   "lesson.coldNight.what": "The heaters had no power tonight, so the base lost {n} 💨 more air.",
   "lesson.coldNight.why": "The day's work used the power the night heating needed.",
-  "lesson.coldNight.next": "Before the evening, keep at least {heat} ⚡ for the heaters."
+  "lesson.coldNight.next": "Before the evening, keep at least {heat} ⚡ for the heaters.",
+  "dash.sol": "Sol",
+  "dash.hours": "Daylight",
+  "dash.power": "Power",
+  "dash.air": "Oxygen",
+  "dash.food": "Food",
+  "dash.dose": "Dose",
+  "dash.parts": "Parts",
+  "dash.science": "Science",
+  "dash.hoursShort": "{n} h",
+  "dash.pop.sol": "Which day it is; the rescue comes on sol 30.",
+  "dash.pop.hours": "Hours left until dark; work is done in daylight.",
+  "dash.pop.power": "Runs the machines and heats the base at night.",
+  "dash.pop.air": "The air Ada breathes; MOXIE fills it up.",
+  "dash.pop.food": "The greenhouse grows food; Ada eats every day.",
+  "dash.pop.dose": "Extra radiation from storms; the shelter protects.",
+  "dash.pop.parts": "Parts collected from the rocket, for building.",
+  "dash.pop.science": "Science you collected, sent to Earth."
 }

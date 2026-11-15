@@ -1,0 +1,35 @@
+/* SI-assistance note: written with the help of Anthropic's Claude (coding assistant). */
+/* F7 dashboard: one even strip of icon + number + small bar cells on top. */
+html .hud.dash { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+.dash-strip { display: flex; gap: 6px; align-self: center; max-width: 100%; padding: 6px; background: var(--panel); border-radius: 16px; pointer-events: auto; }
+.dash-cell, .dash-gear {
+  display: grid; grid-template-rows: auto auto 6px; justify-items: center; gap: 2px; width: 74px; min-height: 58px;
+  padding: 4px 4px 6px; border: 0; border-radius: 12px; background: rgba(255, 255, 255, 0.08); cursor: pointer;
+}
+.dash-gear { grid-template-rows: 1fr; align-items: center; width: 48px; font-size: 22px; }
+.dash-cell:hover, .dash-gear:hover { background: rgba(255, 255, 255, 0.16); }
+.dash-icon { font-size: 20px; line-height: 1; height: 22px; display: grid; place-items: center; }
+.dash-num { font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dash-bar { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.18); border-radius: 4px; overflow: hidden; }
+.dash-fill { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.4s; }
+.dash-cell.dose .dash-fill { background: #c9a2ff; }
+.dash-cell.air .dash-fill { background: #7fd3ff; }
+.dash-cell.food .dash-fill { background: #9dde7a; }
+.dash-cell.low .dash-fill { background: #ff5a3c; }
+.dash-cell.critical { background: rgba(255, 70, 50, 0.35); box-shadow: 0 0 0 2px #ff5a3c inset; }
+.dash-cell.blink { animation: dash-blink 0.9s ease-in-out infinite; }
+@keyframes dash-blink { 50% { background: rgba(255, 70, 50, 0.75); } }
+.dash-pie { display: block; width: 20px; height: 20px; border-radius: 50%; background: conic-gradient(#ffd166 var(--day, 360deg), rgba(255, 255, 255, 0.2) 0); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5); }
+.dash-cell.hours.low .dash-pie { background: conic-gradient(#ff5a3c var(--day, 360deg), rgba(255, 255, 255, 0.2) 0); }
+.dash-cell.hours.low .dash-num { color: #ff8a70; }
+.dash-cell { position: relative; }
+.dash-shield { position: absolute; top: 2px; right: 4px; font-size: 13px; }
+html .hud.dash .hud-side.left { align-self: flex-start; }
+html .hud.dash .date-badge { position: absolute; top: 78px; left: 50%; transform: translateX(-50%); width: max-content; max-width: 60vw; }
+html.reduce-motion .dash-cell.blink { animation: none; }
+@media (max-width: 700px) {
+  .dash-strip { flex-wrap: wrap; justify-content: center; }
+  .dash-cell { width: 52px; min-height: 50px; }
+  .dash-num { font-size: 12px; }
+  html .hud.dash .date-badge { display: none; }
+}
