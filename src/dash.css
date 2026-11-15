@@ -33,3 +33,19 @@ html.reduce-motion .dash-cell.blink { animation: none; }
   .dash-num { font-size: 12px; }
   html .hud.dash .date-badge { display: none; }
 }
+/* F7 store: icon tiles (big icon, icon metrics, corner badge), two per row. */
+html .depot { width: 196px; }
+html .depot-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+html .depot-card.tile { position: relative; align-items: center; justify-content: center; text-align: center; padding: 6px 4px; gap: 2px; min-height: 74px; }
+html .depot-card.tile > span { width: auto; }
+.depot-icon { font-size: 30px; line-height: 1.1; }
+html .depot-card.tile .depot-cost { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; font-size: 11.5px; color: var(--ink); white-space: nowrap; }
+.depot-cost .short { color: #ff8a70; font-weight: 700; }
+.depot-badge { position: absolute; top: 3px; right: 5px; font-size: 14px; font-weight: 700; }
+html .depot-card.tile.locked { cursor: help; }
+html .depot-card.tile.locked .depot-icon, html .depot-card.tile.locked .depot-cost { filter: grayscale(1); opacity: 0.55; }
+html .depot-card.tile.ready { opacity: 0.6; padding: 6px 4px; }
+html .depot-card.tile.ready .depot-cost { display: none; }
+html .depot-card.tile.ready .depot-name::after { content: none; }
+html .depot-card.tile.starter .depot-cost { font-size: 18px; }
+@media (max-width: 600px) { html .depot-list { display: flex; } html .depot-card.tile { min-width: 76px; } html .depot { width: auto; } }

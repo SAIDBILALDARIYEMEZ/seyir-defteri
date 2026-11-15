@@ -679,5 +679,6 @@
   "dash.pop.food": "Sera yemek yetiştirir; Ada her gün yer.",
   "dash.pop.dose": "Fırtınada alınan fazla radyasyon; sığınak korur.",
   "dash.pop.parts": "Roketten toplanan parçalar; yapı kurmak için.",
-  "dash.pop.science": "Topladığın bilim; Dünya'ya gönderilir."
+  "dash.pop.science": "Topladığın bilim; Dünya'ya gönderilir.",
+  "build.solsShort": "{n} sol"
 }

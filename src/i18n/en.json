@@ -679,5 +679,6 @@
   "dash.pop.food": "The greenhouse grows food; Ada eats every day.",
   "dash.pop.dose": "Extra radiation from storms; the shelter protects.",
   "dash.pop.parts": "Parts collected from the rocket, for building.",
-  "dash.pop.science": "Science you collected, sent to Earth."
+  "dash.pop.science": "Science you collected, sent to Earth.",
+  "build.solsShort": "{n} sol"
 }
