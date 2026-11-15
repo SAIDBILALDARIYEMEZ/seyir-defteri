@@ -81,7 +81,7 @@ export function mountLabels(parent: HTMLElement, onPick: (id: StationId) => void
 }
 
 /** UI that labels must not hide under. */
-const LABEL_BLOCKERS = '.dash-strip, .hud-side.left, .rank-badge, .date-badge, .cam-controls, .watch, .depot, .info-card, .action-menu, .shelter-band, .place-banner, .guide-bubble';
+const LABEL_BLOCKERS = '.dash-strip, .hud-side.left, .minimap, .rank-badge, .date-badge, .cam-controls, .watch, .depot, .info-card, .action-menu, .shelter-band, .place-banner, .guide-bubble';
 const LABEL_GAP = 4;
 
 interface Box {

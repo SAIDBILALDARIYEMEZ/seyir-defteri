@@ -43,6 +43,9 @@ import { mountActionMenu, openModal } from './ui/overlays.ts';
 import type { ModalSpec } from './ui/overlays.ts';
 import { mountLabels } from './ui/panels.ts';
 import { mountWatch } from './ui/watch.ts';
+import { mountMiniMap } from './ui/minimap.ts';
+import type { MapView } from './ui/minimap.ts';
+import { GRID_HALF } from './scene/grid.ts';
 import { moodOf } from './game/mood.ts';
 import { mountMainMenu } from './ui/mainMenu.ts';
 import { mountShelterBand } from './ui/shelterBand.ts';
@@ -73,6 +76,8 @@ const DEPOT_GAP_PX = 10;
 const ALARM_DELAY_MS = 1600;
 /** Autosave waits a moment after an action, so quick taps write once. */
 const AUTOSAVE_MS = 600;
+/** F7 mini map: world units shown around the build grid. */
+const MAP_MARGIN = 4;
 /** Main-menu backdrop: the village turns slowly (radians per second, F5c). */
 const MENU_SPIN = 0.05;
 /** ...and sits right of the menu card on wide screens (share of the width). */
@@ -137,6 +142,18 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
   const band = mountShelterBand(ui, () => shelter.exit());
   const cam = mountCamControls(ui, { step: (dir) => world.view.step(dir), reset: () => world.view.reset(), azimuth: () => world.view.azimuth() });
   const marks = mountGuide(ui, () => flow.showPusula());
+  const minimap = mountMiniMap(ui, GRID_HALF + MAP_MARGIN, {
+    station: (id) => s.mode === 'play' && stations.selectStation(id),
+    ground: (x, z) => {
+      if (s.mode !== 'play') return;
+      if (ctx.free()) info.hide();
+      stations.walkGround(x, z);
+    },
+  });
+  const mapView = (): MapView => {
+    const st = world.stage();
+    return { spots: st.spots(), ada: [st.ada.group.position.x, st.ada.group.position.z], lander: [st.lander.position.x, st.lander.position.z] };
+  };
   // Mounted after the labels and the action menu, so it sits above them (no z-index: modals
   // opened later must stay on top).
   const info = mountInfoCard(ui);
@@ -172,7 +189,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     if (!playing || s.state.phase !== 'playing') info.hide();
     cam.refresh();
     learn.render(playing);
-    watch.root.hidden = depot.root.hidden = !playing || s.state.phase !== 'playing';
+    watch.root.hidden = depot.root.hidden = minimap.root.hidden = !playing || s.state.phase !== 'playing';
     mainMenu.root.hidden = s.mode !== 'menu';
     mainMenu.refresh();
     document.title = t('app.title');
@@ -340,6 +357,7 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
       if (s.mode === 'menu' && !reduceMotion()) world.view.turnBy(dt * MENU_SPIN);
       if (s.mode !== 'play') return;
       labels.place((id) => world.screenOf(id));
+      minimap.frame(mapView);
       cam.frame();
       marks.place((id) => world.screenOf(id));
     },
