@@ -7,6 +7,7 @@
 import { BALANCE } from '../config/balance.ts';
 import stationContent from '../content/stations.json';
 import { t } from '../i18n/i18n.ts';
+import type { TextKey } from '../i18n/i18n.ts';
 import type { Action, ActionType, Cell, PlacedId, ReasonCode, StationId, Turn } from '../sim/actions.ts';
 import { check, costOf, isStationLocked } from '../sim/rules.ts';
 import type { GameState } from '../sim/state.ts';
@@ -58,6 +59,13 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
     return t(`reason.${reason}`);
   }
 
+  /** F7: what an action gives, as icons ("+⭐ science"). */
+  function gainOf(type: string): string {
+    const key = `gain.${type}` as TextKey;
+    const text = t(key) as string | undefined;
+    return text ? `  ${text}` : '';
+  }
+
   function showStationMenu(station: StationId): void {
     s.openStation = station;
     const g = guide();
@@ -68,7 +76,7 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
       const store = action.type === 'greenhouse' ? ` · 🥫 ${t('menu.store', { n: fmt(s.state.food), max: foodMax(s.state) })}` : '';
       const parts = action.type === 'upgrade' ? ` · ${t('upgrade.cost', { n: BALANCE.upgrades[action.upgrade].parts })}` : '';
       return {
-        label: `${labelOf(s.state, action)}${store}`,
+        label: `${labelOf(s.state, action)}${store}${gainOf(action.type)}`,
         cost: costLine(hours, cost.power) + parts,
         reason: reason ? reasonText(reason, hours) : null,
         hint: g.station === station && g.stepType === action.type,
@@ -99,7 +107,9 @@ export function createStationUi(ctx: Ctx, guide: () => Guide, onStationOpen: (id
         onPick: () => ctx.perform({ type: 'rotate', crewId: CREW_ID, station }, true),
       });
     }
-    menu.open(`${stationContent[station].icon} ${t(`station.${station}`)}`, items, t('menu.close'));
+    // F7: one sentence on what the station is for (science and storm radar).
+    const note = station === 'science' || station === 'curiosity' ? t(`note.${station}` as TextKey) : undefined;
+    menu.open(`${stationContent[station].icon} ${t(`station.${station}`)}`, items, t('menu.close'), note);
   }
 
   /** Walk animation, then `then`. Blocks other input while Ada walks. */

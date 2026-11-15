@@ -9,7 +9,7 @@ import { t } from '../i18n/i18n.ts';
 import type { Action } from '../sim/actions.ts';
 import { RESCUE_DONE } from '../sim/state.ts';
 import type { GameState } from '../sim/state.ts';
-import { dateOfSol } from '../sim/window.ts';
+import { dateOfSol, isEventRate, rateAt } from '../sim/window.ts';
 import type { WindowData } from '../sim/window.ts';
 import { formatDate } from './dom.ts';
 import type { ModalSpec } from './overlays.ts';
@@ -89,6 +89,22 @@ export function beaconSetSpec(close: () => void): ModalSpec {
     kind: 'event',
     title: `🛬 ${t('beacon.title')}`,
     lines: [t('beacon.body')],
+    buttons: [{ label: t('event.ok'), onClick: close, primary: true }],
+  };
+}
+
+/** F7 storm radar: after reading Curiosity, tomorrow's real RAD reading as ⬆ high / ⬇ low. */
+export function radarSpec(state: GameState, win: WindowData, close: () => void): ModalSpec {
+  const tomorrow = state.sol + 1;
+  const high = Array.from({ length: BALANCE.hoursPerSol }, (_, h) => rateAt(win, tomorrow, h)).some((r) => isEventRate(win, r));
+  const last = tomorrow > BALANCE.totalSols;
+  return {
+    kind: 'event radar',
+    title: `📡 ${t('radar.title')}`,
+    date: last ? undefined : formatDate(dateOfSol(win, tomorrow)),
+    lines: [t(last ? 'radar.none' : high ? 'radar.high' : 'radar.low')],
+    fact: t('radar.fact'),
+    source: t('source.rad'),
     buttons: [{ label: t('event.ok'), onClick: close, primary: true }],
   };
 }

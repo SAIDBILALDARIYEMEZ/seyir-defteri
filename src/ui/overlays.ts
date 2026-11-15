@@ -91,6 +91,8 @@ function body(spec: ModalSpec): HTMLElement[] {
       budget = 0;
     }
   }
+  // F7: the real-life fact joins the details behind the one ℹ️ button.
+  if (spec.fact && !full) more.push(spec.fact);
   if (more.length > 0) out.push(moreBox(more));
   return out;
 }
@@ -118,7 +120,6 @@ export function openModal(parent: HTMLElement, build: () => ModalSpec): () => vo
     if (spec.extra) card.append(spec.extra());
     // F7: the real-life fact is behind ℹ️ unless the card shows everything.
     if (spec.fact && isFull(spec)) card.append(para(spec.fact, 'card-fact'));
-    else if (spec.fact) card.append(moreBox([spec.fact]));
     if (spec.source) card.append(el('p', 'card-source', spec.source));
     if (spec.languagePicker) card.append(languagePicker());
     const actions = el('div', 'card-actions');

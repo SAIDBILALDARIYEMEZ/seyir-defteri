@@ -168,7 +168,13 @@ export function morningCards(
   }
   const reply = state.lastReply;
   if (reply) {
-    const lines = [t(`event.reply.${reply}`, { n: BALANCE.actions.beacon.afterSol + 1 })];
+    // F7: a plain reply says something useful: the science Earth got and the next storm the
+    // crew can see coming (warnings only, never the curve's future).
+    const next = visibleWarnings(state, win).find((w) => w.kind === 'sep' && w.sol > state.sol);
+    const storm = next ? t('event.reply.stormIn', { n: next.sol - state.sol }) : t('event.reply.noStorm');
+    const lines = [reply === 'advice'
+      ? t('event.reply.useful', { n: fmt(state.science), storm })
+      : t(`event.reply.${reply}`, { n: BALANCE.actions.beacon.afterSol + 1 })];
     if (reply === 'coords') lines.push(`📍 ${t('event.coords.place', EVENTS.coords?.params ?? {})}`);
     lines.push(`⏱ ${t('event.reply.travel', delayParams(win, state.sol))}`);
     const coords = reply === 'coords' ? { title: `🛬 ${t('event.coords.title')}`, fact: t('event.coords.fact') } : {};

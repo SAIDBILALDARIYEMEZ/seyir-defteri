@@ -89,7 +89,7 @@ export function mountWatch(parent: HTMLElement, onPusula: () => void, onEndDay: 
       setGlossText(bubble, first(text));
       storm.hidden = !stormText;
       if (stormText) {
-        const line = `☢️ ${first(stormText)}`;
+        const line = first(stormText);
         if (storm.textContent !== line) {
           setGlossText(storm, line);
           root.scrollTop = 0;

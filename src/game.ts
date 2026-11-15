@@ -47,7 +47,7 @@ import { moodOf } from './game/mood.ts';
 import { mountMainMenu } from './ui/mainMenu.ts';
 import { mountShelterBand } from './ui/shelterBand.ts';
 import { createShelter } from './game/shelter.ts';
-import { beaconSetSpec, messageSentSpec, rescueProgress } from './ui/rescue.ts';
+import { beaconSetSpec, messageSentSpec, radarSpec, rescueProgress } from './ui/rescue.ts';
 
 export type { Mission, Missions } from './game/context.ts';
 
@@ -269,6 +269,9 @@ export function createGame(canvas: HTMLCanvasElement, ui: HTMLElement, world: Wo
     }
     if (action.type === 'message') {
       const close = modal(() => messageSentSpec(before, s.win, () => close()));
+    }
+    if (action.type === 'readCuriosity' && sameSol) {
+      const close = modal(() => radarSpec(s.state, s.win, () => close()));
     }
     if (action.type === 'beacon') {
       const close = modal(() => beaconSetSpec(() => close()));
