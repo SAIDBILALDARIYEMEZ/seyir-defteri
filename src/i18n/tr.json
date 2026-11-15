@@ -706,5 +706,7 @@
   "menu.pickStorm": "Fırtına seç",
   "pick.locked": "Bir görevi tamamlayınca gerçek fırtınaları seçebilirsin.",
   "pick.lockedTap": "Önce bir görevi tamamla.",
-  "code.note": "Aynı kodu giren herkes aynı fırtınaları oynar; sınıfta karşılaştırın."
+  "code.note": "Aynı kodu giren herkes aynı fırtınaları oynar; sınıfta karşılaştırın.",
+  "message.oneWay": "Mesajın Dünya'ya yaklaşık {n} dakikada ulaşır.",
+  "message.roundTrip": "Gidiş-dönüş yaklaşık {n} dakika: Dünya uzakta, acil durumda kararı sen verirsin."
 }

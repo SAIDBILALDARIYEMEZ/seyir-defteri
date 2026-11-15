@@ -73,11 +73,14 @@ export function messageSentSpec(before: GameState, win: WindowData, close: () =>
     kind: 'event',
     title: `📡 ${t('message.title')}`,
     date: delay.date,
+    // F8: the one-way delay leads (challenge goal: comms delay); round trip + PUSULA's line next.
     lines: [
+      `⏱ ${t('message.oneWay', { n: Math.max(1, Math.round(delay.min + delay.s / 60)) })}`,
+      `🔁 ${t('message.roundTrip', { n: Math.max(1, Math.round((2 * (delay.min * 60 + delay.s)) / 60)) })}`,
       t(before.rescueStage === 1 ? 'message.location' : 'message.plain'),
-      `⏱ ${t('message.delay', delay)}`,
       t('message.tomorrow'),
     ],
+    full: true,
     fact: t('message.fact', delay),
     source: t('source.computed'),
     buttons: [{ label: t('event.ok'), onClick: close, primary: true }],

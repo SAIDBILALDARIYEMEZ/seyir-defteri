@@ -706,5 +706,7 @@
   "menu.pickStorm": "Pick a storm",
   "pick.locked": "Finish one mission to pick the real storms.",
   "pick.lockedTap": "Finish a mission first.",
-  "code.note": "Everyone with the same code plays the same storms; compare in class."
+  "code.note": "Everyone with the same code plays the same storms; compare in class.",
+  "message.oneWay": "Your message reaches Earth in about {n} minutes.",
+  "message.roundTrip": "There and back takes about {n} minutes: Earth is far away, in an emergency you decide."
 }
